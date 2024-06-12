@@ -1,0 +1,10 @@
+# Changes here will be overwritten by Copier
+_commit: v2.0.1
+_src_path: gh:lincc-frameworks/python-project-template
+author_email: laszlo.szigeti.86@gmail.com
+author_name: Laszlo Szigeti
+custom_install: false
+package_name: forcedphot
+project_license: MIT
+project_name: ssoforcedphot
+project_organization: lsst-sssc
