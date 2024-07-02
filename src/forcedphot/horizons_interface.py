@@ -8,7 +8,7 @@ import pandas as pd
 from astropy.time import Time
 from astroquery.jplhorizons import Horizons
 
-""" 
+"""
 Setting up dataclasses for the query input and the ephemeris data.
 """
 
@@ -57,7 +57,8 @@ class HorizonsInterface:
     @staticmethod
     def query_single_range(query: QueryInput) -> QueryResult:
         """
-        Executes a query to the JPL Horizons system to retrieve ephemeris data for a specified target within a given date range.
+        Executes a query to the JPL Horizons system to retrieve ephemeris data for a specified 
+        target within a given date range.
 
         Parameters:
         -----------
@@ -106,7 +107,8 @@ class HorizonsInterface:
             ephemeris = obj.ephemerides()
             end_time = time.time()
             HorizonsInterface.logger.info(
-                f"Query for range {query.start} to {query.end} successful for target {query.target}. Time taken: {end_time - start_time:.2f} seconds."
+                f"Query for range {query.start} to {query.end} successful for target {query.target}. \
+                Time taken: {end_time - start_time:.2f} seconds."
             )
 
             ephemeris_data = EphemerisData(
@@ -128,15 +130,17 @@ class HorizonsInterface:
             return QueryResult(query.target, query.start, query.end, ephemeris_data)
         except Exception as e:
             HorizonsInterface.logger.error(
-                f"An error occurred during query for range {query.start} to {query.end} for target {query.target}: {e}"
+                f"An error occurred during query for range {query.start} to {query.end} for target \
+                {query.target}: {e}"
             )
             return None
 
     @staticmethod
     def query_ephemeris_from_csv(csv_filename: str):
         """
-        Processes a CSV file to query ephemeris data for multiple astronomical targets using the JPL Horizons system.
-        The ephemeris data is then saved to individual CSV files for each target and date range specified in the input CSV.
+        Processes a CSV file to query ephemeris data for multiple astronomical targets using the JPL Horizons 
+        system. The ephemeris data is then saved to individual CSV files for each target and date range 
+        specified in the input CSV.
 
         Parameters:
         -----------
@@ -165,7 +169,7 @@ class HorizonsInterface:
             df = pd.read_csv(csv_filename)
 
             # Process each row in the CSV file
-            for index, row in df.iterrows():
+            for _index, row in df.iterrows():
                 query = QueryInput(
                     target=row.iloc[0],
                     start=Time(row.iloc[1], scale="utc"),
@@ -269,7 +273,8 @@ class HorizonsInterface:
 
             total_end_time = time.time()
             HorizonsInterface.logger.info(
-                f"Total time taken for processing the CSV file: {total_end_time - total_start_time:.2f} seconds."
+                f"Total time taken for processing the CSV file: {total_end_time - total_start_time:.2f} \
+                seconds."
             )
 
         except Exception as e:
