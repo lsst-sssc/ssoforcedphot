@@ -40,8 +40,8 @@ class EphemerisData:
         alpha_deg (np.ndarray): Phase angle in degrees.
         RSS_3sigma_arcsec (np.ndarray): Root Sum Square 3-sigma positional uncertainty in arcseconds.
     """
-    datetime_jd: Time = field(default_factory=lambda: Time([], format='jd'))
-    datetime_iso: Time = field(default_factory=lambda: Time([], format='iso'))
+    datetime_jd: Time = field(default_factory=lambda: Time([], format="jd"))
+    datetime_iso: Time = field(default_factory=lambda: Time([], format="iso"))
     RA_deg: np.ndarray = field(default_factory=lambda: np.array([]))
     DEC_deg: np.ndarray = field(default_factory=lambda: np.array([]))
     RA_rate_arcsec_per_h: np.ndarray = field(default_factory=lambda: np.array([]))
