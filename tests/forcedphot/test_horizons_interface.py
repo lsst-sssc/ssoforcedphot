@@ -1,47 +1,49 @@
-import pytest
-from unittest.mock import patch, MagicMock
-from astropy.time import Time
-import pandas as pd
+from unittest.mock import MagicMock, patch
+
 import numpy as np
-from horizons_interface import HorizonsInterface, QueryInput, QueryResult, EphemerisData
+import pandas as pd
+import pytest
+from astropy.time import Time
+from horizons_interface import EphemerisData, HorizonsInterface, QueryInput, QueryResult
+
 
 @pytest.fixture
 def mock_horizons():
-    with patch('horizons_interface.Horizons') as mock:
+    with patch("horizons_interface.Horizons") as mock:
         yield mock
 
 @pytest.fixture
 def mock_csv_data():
     return pd.DataFrame({
-        'target': ['Ceres'],
-        'start': ['2020-01-01'],
-        'end': ['2020-01-02'],
-        'step': ['1h']
+        "target": ["Ceres"],
+        "start": ["2020-01-01"],
+        "end": ["2020-01-02"],
+        "step": ["1h"]
     })
 
 def test_init():
     hi = HorizonsInterface()
     assert hi.observer_location == HorizonsInterface.DEFAULT_OBSERVER_LOCATION
 
-    custom_location = 'X06'
+    custom_location = "X06"
     hi_custom = HorizonsInterface(observer_location=custom_location)
     assert hi_custom.observer_location == custom_location
 
 def test_query_single_range_success(mock_horizons):
     mock_ephemerides = MagicMock()
     mock_ephemerides.return_value = {
-        'datetime_jd': [2459000.5],
-        'RA': [100.0],
-        'DEC': [-20.0],
-        'RA_rate': [0.5],
-        'DEC_rate': [-0.3],
-        'AZ': [250.0],
-        'EL': [45.0],
-        'r': [1.5],
-        'delta': [0.8],
-        'V': [15.0],
-        'alpha': [30.0],
-        'RSS_3sigma': [0.1]
+        "datetime_jd": [2459000.5],
+        "RA": [100.0],
+        "DEC": [-20.0],
+        "RA_rate": [0.5],
+        "DEC_rate": [-0.3],
+        "AZ": [250.0],
+        "EL": [45.0],
+        "r": [1.5],
+        "delta": [0.8],
+        "V": [15.0],
+        "alpha": [30.0],
+        "RSS_3sigma": [0.1]
     }
     mock_horizons.return_value.ephemerides = mock_ephemerides
 
@@ -83,14 +85,14 @@ def test_ephemeris_data_creation():
     assert isinstance(ephemeris.DEC_deg, np.ndarray)
     # Add similar assertions for other attributes
 
-@patch('pandas.read_csv')
-@patch('horizons_interface.HorizonsInterface.query_single_range')
+@patch("pandas.read_csv")
+@patch("horizons_interface.HorizonsInterface.query_single_range")
 def test_query_ephemeris_from_csv(mock_query_single_range, mock_read_csv, mock_csv_data):
     mock_read_csv.return_value = mock_csv_data
 
     mock_ephemeris = EphemerisData(
-        datetime_jd=Time([2459000.5], format='jd'),
-        datetime_iso=Time(['2020-01-01 00:00:00.000'], format='iso'),
+        datetime_jd=Time([2459000.5], format="jd"),
+        datetime_iso=Time(["2020-01-01 00:00:00.000"], format="iso"),
         RA_deg=np.array([100.0]),
         DEC_deg=np.array([-20.0]),
         RA_rate_arcsec_per_h=np.array([0.5]),
@@ -106,9 +108,9 @@ def test_query_ephemeris_from_csv(mock_query_single_range, mock_read_csv, mock_c
     mock_query_result = QueryResult("Ceres", Time("2020-01-01"), Time("2020-01-02"), mock_ephemeris)
     mock_query_single_range.return_value = mock_query_result
 
-    with patch('builtins.open', create=True), patch('pandas.DataFrame.to_csv') as mock_to_csv:
-        HorizonsInterface.query_ephemeris_from_csv('test.csv')
+    with patch("builtins.open", create=True), patch("pandas.DataFrame.to_csv") as mock_to_csv:
+        HorizonsInterface.query_ephemeris_from_csv("test.csv")
 
-        mock_read_csv.assert_called_once_with('test.csv')
+        mock_read_csv.assert_called_once_with("test.csv")
         mock_query_single_range.assert_called_once()
         mock_to_csv.assert_called_once()
