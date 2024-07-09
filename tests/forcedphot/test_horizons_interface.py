@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 import pytest
 from astropy.time import Time
-from horizons_interface import EphemerisData, HorizonsInterface, QueryInput, QueryResult
-
+from horizons_interface import HorizonsInterface
+from local_dataclasses import EphemerisData, QueryInput, QueryResult
 
 @pytest.fixture
 def mock_horizons():
