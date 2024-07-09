@@ -17,7 +17,9 @@ dynamic = ["version"]
 requires-python = ">=3.9"
 dependencies = [
     "astropy",
-    "astroquery"
+    "astroquery",
+    "pandas",
+    "numpy"
 ]
 
 [project.urls]
