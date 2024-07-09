@@ -50,6 +50,9 @@ write_to = "src/forcedphot/_version.py"
 testpaths = [
     "tests",
 ]
+pythonpath = [
+    "src",
+]
 
 [tool.black]
 line-length = 110

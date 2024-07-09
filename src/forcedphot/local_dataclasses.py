@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
+
 import numpy as np
 from astropy.time import Time
+
 
 @dataclass
 class QueryInput:
