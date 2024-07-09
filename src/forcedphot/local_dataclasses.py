@@ -15,10 +15,12 @@ class QueryInput:
         end (Time): The end time of the query period.
         step (str): The time step interval for the query results.
     """
+
     target: str
     start: Time
     end: Time
     step: str
+
 
 @dataclass
 class EphemerisData:
@@ -40,6 +42,7 @@ class EphemerisData:
         alpha_deg (np.ndarray): Phase angle in degrees.
         RSS_3sigma_arcsec (np.ndarray): Root Sum Square 3-sigma positional uncertainty in arcseconds.
     """
+
     datetime_jd: Time = field(default_factory=lambda: Time([], format="jd"))
     datetime_iso: Time = field(default_factory=lambda: Time([], format="iso"))
     RA_deg: np.ndarray = field(default_factory=lambda: np.array([]))
@@ -54,6 +57,7 @@ class EphemerisData:
     alpha_deg: np.ndarray = field(default_factory=lambda: np.array([]))
     RSS_3sigma_arcsec: np.ndarray = field(default_factory=lambda: np.array([]))
 
+
 @dataclass
 class QueryResult:
     """
@@ -65,6 +69,7 @@ class QueryResult:
         end (Time): The end time of the query period.
         ephemeris (EphemerisData): The ephemeris data for the celestial object.
     """
+
     target: str
     start: Time
     end: Time
