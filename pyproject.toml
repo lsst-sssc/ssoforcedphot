@@ -16,6 +16,8 @@ classifiers = [
 dynamic = ["version"]
 requires-python = ">=3.9"
 dependencies = [
+    astropy
+    astroquery
 ]
 
 [project.urls]
