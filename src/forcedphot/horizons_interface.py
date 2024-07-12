@@ -7,7 +7,8 @@ import pandas as pd
 from astropy.time import Time
 from astroquery.jplhorizons import Horizons
 
-from .local_dataclasses import EphemerisData, QueryInput, QueryResult
+# from .local_dataclasses import EphemerisData, QueryInput, QueryResult
+from forcedphot.local_dataclasses import EphemerisData, QueryInput, QueryResult
 
 
 class HorizonsInterface:
@@ -46,8 +47,6 @@ class HorizonsInterface:
 
         Parameters:
         ----------
-        self : HorizonsInterface
-            The instance of the class being initialized.
         observer_location : str, optional
             The observer location code. Default is 'X05' (Rubin location).
         """
@@ -59,8 +58,6 @@ class HorizonsInterface:
 
         Parameters
         ----------
-        self : HorizonsInterface
-            The instance of the class calling this method.
         query : QueryInput
             he query parameters containing target, start time, end time, and step.
 
@@ -175,7 +172,7 @@ class HorizonsInterface:
                 # Check if multiple queries are needed
                 if step_instances > max_instances:
                     cls.logger.info(
-                        f"Total instances exceed 10,000 for target {query.target}. Splitting" f"the queries."
+                        f"Total instances exceed 10,000 for target {query.target}. Splitting the queries."
                     )
 
                     time_splits = int(step_instances // max_instances) + 1
