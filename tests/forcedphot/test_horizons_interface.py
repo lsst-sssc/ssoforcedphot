@@ -121,10 +121,11 @@ def test_ephemeris_data_creation():
 
 @patch("pandas.read_csv")
 @patch("forcedphot.horizons_interface.HorizonsInterface.query_single_range")
-@patch('astropy.table.Table.from_pandas')
-@patch('astropy.table.Table.write')
-def test_query_ephemeris_from_csv(mock_table_write, mock_table_from_pandas,
-                                  mock_query_single_range, mock_read_csv, mock_csv_data):
+@patch("astropy.table.Table.from_pandas")
+@patch("astropy.table.Table.write")
+def test_query_ephemeris_from_csv(
+    mock_table_write, mock_table_from_pandas, mock_query_single_range, mock_read_csv, mock_csv_data
+):
     """
     Test querying ephemeris data from a CSV file using mocked dependencies.
     """
@@ -153,7 +154,7 @@ def test_query_ephemeris_from_csv(mock_table_write, mock_table_from_pandas,
     mock_table = MagicMock()
     mock_table_from_pandas.return_value = mock_table
 
-    with patch('builtins.open', mock_open()) as _mock_file:
+    with patch("builtins.open", mock_open()) as _mock_file:
         horizons_interface.HorizonsInterface.query_ephemeris_from_csv("test.csv")
 
     mock_read_csv.assert_called_once_with("test.csv")
@@ -161,7 +162,7 @@ def test_query_ephemeris_from_csv(mock_table_write, mock_table_from_pandas,
     mock_table_from_pandas.assert_called_once()
 
     expected_filename = "./data/Ceres_2020-01-01_00-00-00.000_2020-01-02_00-00-00.000.ecsv"
-    expected_call = call(expected_filename, format='ascii.ecsv', overwrite=True)
+    expected_call = call(expected_filename, format="ascii.ecsv", overwrite=True)
     print(f"Expected call: {expected_call}")
     print(f"Actual calls: {mock_table.write.mock_calls}")
 
