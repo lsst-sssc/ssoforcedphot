@@ -4,9 +4,9 @@ import time
 import astropy.units as u
 import numpy as np
 import pandas as pd
+from astropy.table import Table
 from astropy.time import Time
 from astroquery.jplhorizons import Horizons
-from astropy.table import Table
 
 # from .local_dataclasses import EphemerisData, QueryInput, QueryResult
 from forcedphot.local_dataclasses import EphemerisData, QueryInput, QueryResult
@@ -109,7 +109,8 @@ class HorizonsInterface:
         except Exception as e:
             self.logger.error(
                 f"An error occurred during query for range {query.start} to {query.end}"
-                f"for target {query.target}")
+                f"for target {query.target}"
+            )
             self.logger.error(f"Error details: {str(e)}")
             
             return None
@@ -257,7 +258,7 @@ class HorizonsInterface:
 
                 # Save the data to an ECSV file
                 result_table = Table.from_pandas(relevant_data)
-                result_table.write("./data/" + output_filename, format='ascii.ecsv', overwrite=True)
+                result_table.write("./data/" + output_filename, format="ascii.ecsv", overwrite=True)
                 cls.logger.info(f"Ephemeris data successfully saved to {output_filename}")
 
             total_end_time = time.time()
