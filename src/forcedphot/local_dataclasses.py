@@ -33,7 +33,7 @@ class QueryInputMiriade:
         step (str): The time step interval for the query results.
         nsteps (int): The number of steps in the query.
     """
-    
+
     target: str
     start: Time
     step: str
