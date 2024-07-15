@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from astropy.time import Time
 from astroquery.jplhorizons import Horizons
+from astropy.table import Table
 
 # from .local_dataclasses import EphemerisData, QueryInput, QueryResult
 from forcedphot.local_dataclasses import EphemerisData, QueryInput, QueryResult
@@ -84,7 +85,7 @@ class HorizonsInterface:
             ephemeris = obj.ephemerides()
             end_time = time.time()
             self.logger.info(
-                f"Query for range {query.start} to {query.end} successful for target"
+                f"Query for range {query.start} to {query.end} successful for target "
                 f"{query.target}. Time taken: {end_time - start_time:.2f} seconds."
             )
 
@@ -108,8 +109,9 @@ class HorizonsInterface:
         except Exception as e:
             self.logger.error(
                 f"An error occurred during query for range {query.start} to {query.end}"
-                f"for target {query.target}: {e}"
-            )
+                f"for target {query.target}")
+            self.logger.error(f"Error details: {str(e)}")
+            
             return None
 
     @classmethod
@@ -120,8 +122,6 @@ class HorizonsInterface:
 
         Parameters
         ----------
-        cls : type
-            The class itself, as this is a class method.
         csv_filename : str
             The filename of the input CSV file containing target, start time, end time, and step.
         observer_location : str, optional
@@ -248,12 +248,16 @@ class HorizonsInterface:
                 )
 
                 # Generate output filename
-                output_filename = f"{query.target}_{query.start.iso}_{query.end.iso}.csv".replace(
+                output_filename = f"{query.target}_{query.start.iso}_{query.end.iso}.ecsv".replace(
                     ":", "-"
                 ).replace(" ", "_")
 
                 # Save the data to a CSV file
-                relevant_data.to_csv(output_filename, index=False)
+                # relevant_data.to_csv("./data/" + output_filename, index=False)
+
+                # Save the data to an ECSV file
+                result_table = Table.from_pandas(relevant_data)
+                result_table.write("./data/" + output_filename, format='ascii.ecsv', overwrite=True)
                 cls.logger.info(f"Ephemeris data successfully saved to {output_filename}")
 
             total_end_time = time.time()

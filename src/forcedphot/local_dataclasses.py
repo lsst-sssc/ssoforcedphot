@@ -23,6 +23,23 @@ class QueryInput:
 
 
 @dataclass
+class QueryInputMiriade:
+    """
+    A data class representing the input parameters for the Miriade ephemeris query.
+
+    Attributes:
+        target (str): The name or identifier of the celestial target.
+        start (Time): The start time of the query period.
+        step (str): The time step interval for the query results.
+        nsteps (int): The number of steps in the query.
+    """
+    target: str
+    start: Time
+    step: str
+    nsteps: int
+
+
+@dataclass
 class EphemerisData:
     """
     A data class representing the ephemeris data for a celestial object.
