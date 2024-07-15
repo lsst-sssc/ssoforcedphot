@@ -112,7 +112,7 @@ class HorizonsInterface:
                 f"for target {query.target}"
             )
             self.logger.error(f"Error details: {str(e)}")
-            
+
             return None
 
     @classmethod
