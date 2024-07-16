@@ -91,7 +91,6 @@ class HorizonsInterface:
 
             ephemeris_data = EphemerisData(
                 datetime_jd=Time(ephemeris["datetime_jd"], format="jd"),
-                datetime_iso=Time(Time(ephemeris["datetime_jd"], format="jd").iso, format="iso"),
                 RA_deg=np.array(ephemeris["RA"]),
                 DEC_deg=np.array(ephemeris["DEC"]),
                 RA_rate_arcsec_per_h=np.array(ephemeris["RA_rate"]),
@@ -199,12 +198,6 @@ class HorizonsInterface:
                             np.concatenate((all_ephemeris.datetime_jd.jd, result.ephemeris.datetime_jd.jd)),
                             format="jd",
                         )
-                        all_ephemeris.datetime_iso = Time(
-                            np.concatenate(
-                                (all_ephemeris.datetime_iso.iso, result.ephemeris.datetime_iso.iso)
-                            ),
-                            format="iso",
-                        )
                         all_ephemeris.RA_deg = np.concatenate((all_ephemeris.RA_deg, result.ephemeris.RA_deg))
                         all_ephemeris.DEC_deg = np.concatenate(
                             (all_ephemeris.DEC_deg, result.ephemeris.DEC_deg)
@@ -233,7 +226,6 @@ class HorizonsInterface:
                 relevant_data = pd.DataFrame(
                     {
                         "datetime_jd": all_ephemeris.datetime_jd.jd,
-                        "datetime_iso": all_ephemeris.datetime_iso.iso,
                         "RA": all_ephemeris.RA_deg,
                         "DEC": all_ephemeris.DEC_deg,
                         "RA_rate": all_ephemeris.RA_rate_arcsec_per_h,

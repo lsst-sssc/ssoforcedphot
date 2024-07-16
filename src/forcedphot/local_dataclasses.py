@@ -47,7 +47,6 @@ class EphemerisData:
 
     Attributes:
         datetime_jd (Time): Julian date times for the ephemeris data points.
-        datetime_iso (Time): ISO format times for the ephemeris data points.
         RA_deg (np.ndarray): Right Ascension in degrees.
         DEC_deg (np.ndarray): Declination in degrees.
         RA_rate_arcsec_per_h (np.ndarray): Rate of change of Right Ascension in arcseconds per hour.
@@ -62,7 +61,6 @@ class EphemerisData:
     """
 
     datetime_jd: Time = field(default_factory=lambda: Time([], format="jd"))
-    datetime_iso: Time = field(default_factory=lambda: Time([], format="iso"))
     RA_deg: np.ndarray = field(default_factory=lambda: np.array([]))
     DEC_deg: np.ndarray = field(default_factory=lambda: np.array([]))
     RA_rate_arcsec_per_h: np.ndarray = field(default_factory=lambda: np.array([]))
