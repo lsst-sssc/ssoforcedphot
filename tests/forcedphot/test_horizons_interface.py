@@ -105,7 +105,6 @@ def test_ephemeris_data_creation():
     """
     ephemeris = local_dataclasses.EphemerisData()
     assert isinstance(ephemeris.datetime_jd, Time)
-    assert isinstance(ephemeris.datetime_iso, Time)
     assert isinstance(ephemeris.RA_deg, np.ndarray)
     assert isinstance(ephemeris.DEC_deg, np.ndarray)
     assert isinstance(ephemeris.RA_rate_arcsec_per_h, np.ndarray)
@@ -133,7 +132,6 @@ def test_query_ephemeris_from_csv(
 
     mock_ephemeris = local_dataclasses.EphemerisData(
         datetime_jd=Time([2459000.5], format="jd"),
-        datetime_iso=Time(["2020-01-01 00:00:00.000"], format="iso"),
         RA_deg=np.array([100.0]),
         DEC_deg=np.array([-20.0]),
         RA_rate_arcsec_per_h=np.array([0.5]),
