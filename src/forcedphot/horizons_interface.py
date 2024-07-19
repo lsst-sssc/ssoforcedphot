@@ -21,7 +21,7 @@ class HorizonsInterface:
     to interact with the JPL Horizons system.
 
     Attributes:
-        DEFAULT_OBSERVER_LOCATION (str): The default observer location code ('X05' for Rubin).
+        DEFAULT_OBSERVER_LOCATION (str): The default observer location code ("X05" for Rubin).
         logger (logging.Logger): Logger for the class.
         observer_location (str): The observer location code used for queries.
 
@@ -36,7 +36,7 @@ class HorizonsInterface:
             Query ephemeris for multiple celestial objects from a CSV file and save results to ECSV files.
 
     The class handles large queries by splitting them into smaller time ranges
-    when necessary to avoid exceeding JPL Horizons' limit of 10,000 instances per query."""
+    when necessary to avoid exceeding JPL Horizons limit of 10,000 instances per query."""
 
     # Set up logging
     logging.basicConfig(level=logging.INFO)
@@ -52,7 +52,7 @@ class HorizonsInterface:
         Parameters:
         ----------
         observer_location : str, optional
-            The observer location code. Default is 'X05' (Rubin location).
+            The observer location code. Default is "X05" (Rubin location).
         """
         self.observer_location = observer_location
 
@@ -60,7 +60,7 @@ class HorizonsInterface:
         """
         Split a query into multiple time ranges if the total number of instances exceeds a specified maximum.
 
-        This method calculates the total number of instances based on the query's start and end dates
+        This method calculates the total number of instances based on the query"s start and end dates
         and the step size. If the number of instances exceeds the specified maximum, it splits the
         query into multiple time ranges.
 
@@ -81,29 +81,29 @@ class HorizonsInterface:
         Raises:
         -------
         ValueError
-            If the step unit is not recognized ('s', 'm', 'h', or 'd').
+            If the step unit is not recognized ("s", "m", "h", or "d").
 
         Notes:
         ------
         - The method assumes that the query object has attributes: start, end, step, and target.
-        - The step size is expected to be a string with a number followed by a unit (e.g., '1h' for 1 hour).
+        - The step size is expected to be a string with a number followed by a unit (e.g., "1h" for 1 hour).
         - Supported step units are:
-            's' for seconds
-            'm' for minutes
-            'h' for hours
-            'd' for days
+            "s" for seconds
+            "m" for minutes
+            "h" for hours
+            "d" for days
         - Time ranges are calculated using astropy's Time objects and are returned as such.
         - The method uses astropy units (u) for time calculations.
         """
         # Define the step frequency with astropy units
         value, unit = int(query.step[:-1]), query.step[-1]
-        if unit == 's':
+        if unit == "s":
             step_freqency = value * u.s
-        elif unit == 'm':
+        elif unit == "m":
             step_freqency = value * u.min
-        elif unit == 'h':
+        elif unit == "h":
             step_freqency = value * u.hour
-        elif unit == 'd':
+        elif unit == "d":
             step_freqency = value * u.day
         else:
             raise ValueError("Error in the input field.")
@@ -164,23 +164,23 @@ class HorizonsInterface:
             all_ephemeris = []
 
             for start, end in time_ranges:
-                    start_time = time.time()
-                    obj = Horizons(
-                         id_type="smallbody",
-                          id=query.target,
-                          location=self.observer_location,
-                          epochs={"start": start.iso, "stop": end.iso, "step": query.step},
-                      )
-                    ephemeris = obj.ephemerides()
-                    if ephemeris is not None:
-                        all_ephemeris.append(ephemeris)
+                start_time = time.time()
+                obj = Horizons(
+                     id_type="smallbody",
+                      id=query.target,
+                      location=self.observer_location,
+                      epochs={"start": start.iso, "stop": end.iso, "step": query.step},
+                  )
+                ephemeris = obj.ephemerides()
+                if ephemeris is not None:
+                    all_ephemeris.append(ephemeris)
 
-                    end_time = time.time()
+                end_time = time.time()
 
-                    self.logger.info(
-                        f"Query for range {start} to {end} successful for target "
-                        f"{query.target}. Time taken: {end_time - start_time:.2f} seconds."
-                    )
+                self.logger.info(
+                    f"Query for range {start} to {end} successful for target "
+                    f"{query.target}. Time taken: {end_time - start_time:.2f} seconds."
+                )
             # Combine the results if multiple queries were made
             combined_ephemeris = vstack(all_ephemeris)
 
@@ -220,7 +220,7 @@ class HorizonsInterface:
         csv_filename : str
             The filename of the input CSV file containing target, start time, end time, and step.
         observer_location : str, optional
-            The observer location code. Default is 'X05' (Rubin location).
+            The observer location code. Default is "X05" (Rubin location).
 
         Returns
         -------
@@ -319,4 +319,3 @@ if __name__ == "__main__":
     )
     horizons = HorizonsInterface()
     result = horizons.query_single_range(query=target_query)
-git 
