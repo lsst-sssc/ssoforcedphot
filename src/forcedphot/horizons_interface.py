@@ -166,11 +166,11 @@ class HorizonsInterface:
             for start, end in time_ranges:
                 start_time = time.time()
                 obj = Horizons(
-                     id_type="smallbody",
-                      id=query.target,
-                      location=self.observer_location,
-                      epochs={"start": start.iso, "stop": end.iso, "step": query.step},
-                  )
+                    id_type="smallbody",
+                    id=query.target,
+                    location=self.observer_location,
+                    epochs={"start": start.iso, "stop": end.iso, "step": query.step},
+                )
                 ephemeris = obj.ephemerides()
                 if ephemeris is not None:
                     all_ephemeris.append(ephemeris)
