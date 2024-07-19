@@ -4,7 +4,7 @@ import time
 import astropy.units as u
 import numpy as np
 import pandas as pd
-from astropy.table import Table
+from astropy.table import Table, vstack
 from astropy.time import Time
 from astroquery.jplhorizons import Horizons
 
@@ -26,6 +26,9 @@ class HorizonsInterface:
         observer_location (str): The observer location code used for queries.
 
     Methods:
+        splitting_query(query: QueryInput) -> List[time_ranges]:
+            Split a query into multiple time ranges to avoid exceeding the limit.
+
         query_single_range(query: QueryInput) -> QueryResult:
             Query ephemeris for a single time range.
 
@@ -53,6 +56,82 @@ class HorizonsInterface:
         """
         self.observer_location = observer_location
 
+    def splitting_query(self, query: QueryInput, max_instances=10000):
+        """
+        Split a query into multiple time ranges if the total number of instances exceeds a specified maximum.
+
+        This method calculates the total number of instances based on the query's start and end dates
+        and the step size. If the number of instances exceeds the specified maximum, it splits the
+        query into multiple time ranges.
+
+        Parameters:
+        -----------
+        query : QueryInput
+            The input query containing start date, end date, step size, and target information.
+        max_instances : int, optional
+            The maximum number of instances allowed in a single query (default is 10000).
+
+        Returns:
+        --------
+        list of tuple
+            A list of time ranges, where each range is a tuple of (start_time, end_time).
+            If splitting is not necessary, the list contains a single tuple with the original
+            start and end times.
+
+        Raises:
+        -------
+        ValueError
+            If the step unit is not recognized ('s', 'm', 'h', or 'd').
+
+        Notes:
+        ------
+        - The method assumes that the query object has attributes: start, end, step, and target.
+        - The step size is expected to be a string with a number followed by a unit (e.g., '1h' for 1 hour).
+        - Supported step units are:
+            's' for seconds
+            'm' for minutes
+            'h' for hours
+            'd' for days
+        - Time ranges are calculated using astropy's Time objects and are returned as such.
+        - The method uses astropy units (u) for time calculations.
+        """
+        # Define the step frequency with astropy units
+        value, unit = int(query.step[:-1]), query.step[-1]
+        if unit == 's':
+            step_freqency = value * u.s
+        elif unit == 'm':
+            step_freqency = value * u.min
+        elif unit == 'h':
+            step_freqency = value * u.hour
+        elif unit == 'd':
+            step_freqency = value * u.day
+        else:
+            raise ValueError("Error in the input field.")
+
+        # Calculate the total number of instances
+        total_days = (query.end - query.start).jd
+        step_instances = int(total_days * 86400 / step_freqency.to(u.s).value)
+
+        # Check if multiple queries are needed
+        if step_instances > max_instances:
+            self.logger.info(
+                f"Total instances exceed {max_instances} for target {query.target}. Number"
+                f"of instances: {step_instances}. Splitting the queries."
+            )
+
+            time_splits = int(step_instances // max_instances) + 1
+            time_ranges = [
+                (
+                    query.start + i * (total_days / time_splits) * u.day,
+                    query.start + (i + 1) * (total_days / time_splits) * u.day,
+                )
+                for i in range(time_splits)
+            ]
+        else:
+            time_ranges = [(query.start, query.end)]
+
+        return time_ranges
+
     def query_single_range(self, query: QueryInput) -> QueryResult:
         """
         Query ephemeris for a single time range.
@@ -60,7 +139,7 @@ class HorizonsInterface:
         Parameters
         ----------
         query : QueryInput
-            he query parameters containing target, start time, end time, and step.
+            The query parameters containing target, start time, end time, and step.
 
         Returns
         -------
@@ -73,35 +152,51 @@ class HorizonsInterface:
         Exception
             If an error occurs during the query process. The error is logged,
             but not re-raised.
+
+        Notes
+        ------
+        - If a query would exceed 10,000 instances, it is automatically split into multiple queries.
         """
         try:
-            start_time = time.time()
-            obj = Horizons(
-                id_type="smallbody",
-                id=query.target,
-                location=self.observer_location,
-                epochs={"start": query.start.iso, "stop": query.end.iso, "step": query.step},
-            )
-            ephemeris = obj.ephemerides()
-            end_time = time.time()
-            self.logger.info(
-                f"Query for range {query.start} to {query.end} successful for target "
-                f"{query.target}. Time taken: {end_time - start_time:.2f} seconds."
-            )
+            # Split the query into smaller time ranges if necessary
+            time_ranges = self.splitting_query(query, max_instances=10000)
+
+            all_ephemeris = []
+
+            for start, end in time_ranges:
+                    start_time = time.time()
+                    obj = Horizons(
+                         id_type="smallbody",
+                          id=query.target,
+                          location=self.observer_location,
+                          epochs={"start": start.iso, "stop": end.iso, "step": query.step},
+                      )
+                    ephemeris = obj.ephemerides()
+                    if ephemeris is not None:
+                        all_ephemeris.append(ephemeris)
+
+                    end_time = time.time()
+
+                    self.logger.info(
+                        f"Query for range {start} to {end} successful for target "
+                        f"{query.target}. Time taken: {end_time - start_time:.2f} seconds."
+                    )
+            # Combine the results if multiple queries were made
+            combined_ephemeris = vstack(all_ephemeris)
 
             ephemeris_data = EphemerisData(
-                datetime_jd=Time(ephemeris["datetime_jd"], format="jd"),
-                RA_deg=np.array(ephemeris["RA"]),
-                DEC_deg=np.array(ephemeris["DEC"]),
-                RA_rate_arcsec_per_h=np.array(ephemeris["RA_rate"]),
-                DEC_rate_arcsec_per_h=np.array(ephemeris["DEC_rate"]),
-                AZ_deg=np.array(ephemeris["AZ"]),
-                EL_deg=np.array(ephemeris["EL"]),
-                r_au=np.array(ephemeris["r"]),
-                delta_au=np.array(ephemeris["delta"]),
-                V_mag=np.array(ephemeris["V"]),
-                alpha_deg=np.array(ephemeris["alpha"]),
-                RSS_3sigma_arcsec=np.array(ephemeris["RSS_3sigma"]),
+                datetime_jd=Time(combined_ephemeris["datetime_jd"], format="jd"),
+                RA_deg=np.array(combined_ephemeris["RA"]),
+                DEC_deg=np.array(combined_ephemeris["DEC"]),
+                RA_rate_arcsec_per_h=np.array(combined_ephemeris["RA_rate"]),
+                DEC_rate_arcsec_per_h=np.array(combined_ephemeris["DEC_rate"]),
+                AZ_deg=np.array(combined_ephemeris["AZ"]),
+                EL_deg=np.array(combined_ephemeris["EL"]),
+                r_au=np.array(combined_ephemeris["r"]),
+                delta_au=np.array(combined_ephemeris["delta"]),
+                V_mag=np.array(combined_ephemeris["V"]),
+                alpha_deg=np.array(combined_ephemeris["alpha"]),
+                RSS_3sigma_arcsec=np.array(combined_ephemeris["RSS_3sigma"]),
             )
 
             return QueryResult(query.target, query.start, query.end, ephemeris_data)
@@ -129,24 +224,27 @@ class HorizonsInterface:
 
         Returns
         -------
-        None
-            This method doesn't return any value, but saves the queried data to CSV files.
+        List of QueryResult or None
+            The queried ephemeris data wrapped in a QueryResult object if successful,
+            or None if an error occurs. Also, the method saves the data to ECSV files.
 
         Raises
         ------
         Exception
-            If an error occurs during the CSV processing or querying. The error is logged,
+            If an error occurs during the ECSV processing or querying. The error is logged,
             but not re-raised.
 
         Notes
         -----
         - The input CSV file should have columns for target, start time, end time, and step.
-        - The method creates a separate CSV file for each target in the input file.
-        - If a query would exceed 10,000 instances, it is automatically split into multiple queries.
+        - The method creates a separate ECSV file for each target in the input file.
         - The method logs information about the query process and any errors that occur.
         """
         try:
             total_start_time = time.time()
+
+            # Create an empty list to store the results
+            results = []
             # Read the CSV file
             df = pd.read_csv(csv_filename)
 
@@ -162,81 +260,28 @@ class HorizonsInterface:
                     step=row.iloc[3],
                 )
 
-                # Calculate the total number of instances
-                total_days = (query.end - query.start).jd
-                step_hours = float(query.step[:-1])
-                step_days = step_hours / 24.0
-                max_instances = 10000
-                step_instances = total_days / step_days
+                # Initialze the query
+                query_result = horizons_interface.query_single_range(query)
 
-                # Check if multiple queries are needed
-                if step_instances > max_instances:
-                    cls.logger.info(
-                        f"Total instances exceed 10,000 for target {query.target}. Splitting the queries."
-                    )
-
-                    time_splits = int(step_instances // max_instances) + 1
-                    time_ranges = [
-                        (
-                            query.start + i * (total_days / time_splits) * u.day,
-                            query.start + (i + 1) * (total_days / time_splits) * u.day,
-                        )
-                        for i in range(time_splits)
-                    ]
-                else:
-                    time_ranges = [(query.start, query.end)]
-
-                all_ephemeris = EphemerisData()
-
-                # Run queries sequentially
-                for start, end in time_ranges:
-                    result = horizons_interface.query_single_range(
-                        QueryInput(query.target, start, end, query.step)
-                    )
-                    if result is not None:
-                        all_ephemeris.datetime_jd = Time(
-                            np.concatenate((all_ephemeris.datetime_jd.jd, result.ephemeris.datetime_jd.jd)),
-                            format="jd",
-                        )
-                        all_ephemeris.RA_deg = np.concatenate((all_ephemeris.RA_deg, result.ephemeris.RA_deg))
-                        all_ephemeris.DEC_deg = np.concatenate(
-                            (all_ephemeris.DEC_deg, result.ephemeris.DEC_deg)
-                        )
-                        all_ephemeris.RA_rate_arcsec_per_h = np.concatenate(
-                            (all_ephemeris.RA_rate_arcsec_per_h, result.ephemeris.RA_rate_arcsec_per_h)
-                        )
-                        all_ephemeris.DEC_rate_arcsec_per_h = np.concatenate(
-                            (all_ephemeris.DEC_rate_arcsec_per_h, result.ephemeris.DEC_rate_arcsec_per_h)
-                        )
-                        all_ephemeris.AZ_deg = np.concatenate((all_ephemeris.AZ_deg, result.ephemeris.AZ_deg))
-                        all_ephemeris.EL_deg = np.concatenate((all_ephemeris.EL_deg, result.ephemeris.EL_deg))
-                        all_ephemeris.r_au = np.concatenate((all_ephemeris.r_au, result.ephemeris.r_au))
-                        all_ephemeris.delta_au = np.concatenate(
-                            (all_ephemeris.delta_au, result.ephemeris.delta_au)
-                        )
-                        all_ephemeris.V_mag = np.concatenate((all_ephemeris.V_mag, result.ephemeris.V_mag))
-                        all_ephemeris.alpha_deg = np.concatenate(
-                            (all_ephemeris.alpha_deg, result.ephemeris.alpha_deg)
-                        )
-                        all_ephemeris.RSS_3sigma_arcsec = np.concatenate(
-                            (all_ephemeris.RSS_3sigma_arcsec, result.ephemeris.RSS_3sigma_arcsec)
-                        )
+                if query_result is not None:
+                    # Append the result to the list
+                    results.append(query_result)
 
                 # Convert to pandas DataFrame
                 relevant_data = pd.DataFrame(
                     {
-                        "datetime_jd": all_ephemeris.datetime_jd.jd,
-                        "RA": all_ephemeris.RA_deg,
-                        "DEC": all_ephemeris.DEC_deg,
-                        "RA_rate": all_ephemeris.RA_rate_arcsec_per_h,
-                        "DEC_rate": all_ephemeris.DEC_rate_arcsec_per_h,
-                        "AZ": all_ephemeris.AZ_deg,
-                        "EL": all_ephemeris.EL_deg,
-                        "r": all_ephemeris.r_au,
-                        "delta": all_ephemeris.delta_au,
-                        "V": all_ephemeris.V_mag,
-                        "alpha": all_ephemeris.alpha_deg,
-                        "RSS_3sigma": all_ephemeris.RSS_3sigma_arcsec,
+                        "datetime_jd": query_result.ephemeris.datetime_jd.jd,
+                        "RA": query_result.ephemeris.RA_deg,
+                        "DEC": query_result.ephemeris.DEC_deg,
+                        "RA_rate": query_result.ephemeris.RA_rate_arcsec_per_h,
+                        "DEC_rate": query_result.ephemeris.DEC_rate_arcsec_per_h,
+                        "AZ": query_result.ephemeris.AZ_deg,
+                        "EL": query_result.ephemeris.EL_deg,
+                        "r": query_result.ephemeris.r_au,
+                        "delta": query_result.ephemeris.delta_au,
+                        "V": query_result.ephemeris.V_mag,
+                        "alpha": query_result.ephemeris.alpha_deg,
+                        "RSS_3sigma": query_result.ephemeris.RSS_3sigma_arcsec,
                     }
                 )
 
@@ -245,9 +290,6 @@ class HorizonsInterface:
                     ":", "-"
                 ).replace(" ", "_")
 
-                # Save the data to a CSV file
-                # relevant_data.to_csv("./data/" + output_filename, index=False)
-
                 # Save the data to an ECSV file
                 result_table = Table.from_pandas(relevant_data)
                 result_table.write("./data/" + output_filename, format="ascii.ecsv", overwrite=True)
@@ -255,17 +297,26 @@ class HorizonsInterface:
 
             total_end_time = time.time()
             cls.logger.info(
-                f"Total time taken for processing the CSV file:"
+                f"Total time taken for processing the ECSV file:"
                 f"{total_end_time - total_start_time:.2f} seconds."
             )
+            return results
 
         except Exception as e:
-            cls.logger.error(f"An error occurred while processing the CSV file: {e}")
+            cls.logger.error(f"An error occurred while processing the ECSV file: {e}")
 
 
 # Example usage
 if __name__ == "__main__":
-    HorizonsInterface.query_ephemeris_from_csv("./data/targets.csv")
+    # HorizonsInterface.query_ephemeris_from_csv("./data/targets.csv")
 
-    # Different observer location
-    # HorizonsInterface.query_ephemeris_from_csv('targets.csv', observer_location='500')
+    # Define the target query parameters
+    target_query = QueryInput(
+        target="Ceres",
+        start=Time("2024-01-01 00:00"),
+        end=Time("2025-12-31 23:59"),
+        step="1h",
+    )
+    horizons = HorizonsInterface()
+    result = horizons.query_single_range(query=target_query)
+git 
