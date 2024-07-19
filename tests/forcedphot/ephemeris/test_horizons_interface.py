@@ -6,6 +6,7 @@ import pytest
 from astropy.time import Time
 from forcedphot.ephemeris import horizons_interface, local_dataclasses
 
+
 @pytest.fixture
 def mock_horizons():
     """
