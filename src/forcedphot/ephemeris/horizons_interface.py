@@ -209,7 +209,8 @@ class HorizonsInterface:
             return None
 
     @classmethod
-    def query_ephemeris_from_csv(cls, csv_filename: str, observer_location=DEFAULT_OBSERVER_LOCATION):
+    def query_ephemeris_from_csv(cls, csv_filename: str, observer_location=DEFAULT_OBSERVER_LOCATION,
+                                 save_data=False):
         """
         Query ephemeris for multiple celestial objects from JPL Horizons based on a CSV file and save
         the data to CSV files.
@@ -220,6 +221,8 @@ class HorizonsInterface:
             The filename of the input CSV file containing target, start time, end time, and step.
         observer_location : str, optional
             The observer location code. Default is "X05" (Rubin location).
+        save_data : bool, optional
+            Whether to save the data to ECSV files. Default is False.
 
         Returns
         -------
@@ -266,33 +269,33 @@ class HorizonsInterface:
                     # Append the result to the list
                     results.append(query_result)
 
-                # Convert to pandas DataFrame
-                relevant_data = pd.DataFrame(
-                    {
-                        "datetime_jd": query_result.ephemeris.datetime_jd.jd,
-                        "RA": query_result.ephemeris.RA_deg,
-                        "DEC": query_result.ephemeris.DEC_deg,
-                        "RA_rate": query_result.ephemeris.RA_rate_arcsec_per_h,
-                        "DEC_rate": query_result.ephemeris.DEC_rate_arcsec_per_h,
-                        "AZ": query_result.ephemeris.AZ_deg,
-                        "EL": query_result.ephemeris.EL_deg,
-                        "r": query_result.ephemeris.r_au,
-                        "delta": query_result.ephemeris.delta_au,
-                        "V": query_result.ephemeris.V_mag,
-                        "alpha": query_result.ephemeris.alpha_deg,
-                        "RSS_3sigma": query_result.ephemeris.RSS_3sigma_arcsec,
-                    }
-                )
+                if save_data:
+                    # Convert to pandas DataFrame
+                    relevant_data = pd.DataFrame(
+                        {
+                            "datetime_jd": query_result.ephemeris.datetime_jd.jd,
+                            "RA": query_result.ephemeris.RA_deg,
+                            "DEC": query_result.ephemeris.DEC_deg,
+                            "RA_rate": query_result.ephemeris.RA_rate_arcsec_per_h,
+                            "DEC_rate": query_result.ephemeris.DEC_rate_arcsec_per_h,
+                            "AZ": query_result.ephemeris.AZ_deg,
+                            "EL": query_result.ephemeris.EL_deg,
+                            "r": query_result.ephemeris.r_au,
+                            "delta": query_result.ephemeris.delta_au,
+                            "V": query_result.ephemeris.V_mag,
+                            "alpha": query_result.ephemeris.alpha_deg,
+                            "RSS_3sigma": query_result.ephemeris.RSS_3sigma_arcsec,
+                        }
+                    )
 
-                # Generate output filename
-                output_filename = f"{query.target}_{query.start.iso}_{query.end.iso}.ecsv".replace(
-                    ":", "-"
-                ).replace(" ", "_")
+                    # Generate output filename
+                    output_filename = f"{query.target}_{query.start.iso}_{query.end.iso}.ecsv".replace(
+                        ":", "-").replace(" ", "_")
 
-                # Save the data to an ECSV file
-                result_table = Table.from_pandas(relevant_data)
-                result_table.write("./data/" + output_filename, format="ascii.ecsv", overwrite=True)
-                cls.logger.info(f"Ephemeris data successfully saved to {output_filename}")
+                    # Save the data to an ECSV file
+                    result_table = Table.from_pandas(relevant_data)
+                    result_table.write("./data/" + output_filename, format="ascii.ecsv", overwrite=True)
+                    cls.logger.info(f"Ephemeris data successfully saved to {output_filename}")
 
             total_end_time = time.time()
             cls.logger.info(
