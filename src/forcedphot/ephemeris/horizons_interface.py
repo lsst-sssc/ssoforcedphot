@@ -209,8 +209,9 @@ class HorizonsInterface:
             return None
 
     @classmethod
-    def query_ephemeris_from_csv(cls, csv_filename: str, observer_location=DEFAULT_OBSERVER_LOCATION,
-                                 save_data=False):
+    def query_ephemeris_from_csv(
+            cls, csv_filename: str, observer_location=DEFAULT_OBSERVER_LOCATION,save_data=False
+        ):
         """
         Query ephemeris for multiple celestial objects from JPL Horizons based on a CSV file and save
         the data to CSV files.
@@ -290,7 +291,8 @@ class HorizonsInterface:
 
                     # Generate output filename
                     output_filename = f"{query.target}_{query.start.iso}_{query.end.iso}.ecsv".replace(
-                        ":", "-").replace(" ", "_")
+                        ":", "-"
+                        ).replace(" ", "_")
 
                     # Save the data to an ECSV file
                     result_table = Table.from_pandas(relevant_data)
