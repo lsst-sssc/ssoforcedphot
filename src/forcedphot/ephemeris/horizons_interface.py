@@ -210,7 +210,7 @@ class HorizonsInterface:
 
     @classmethod
     def query_ephemeris_from_csv(
-        cls, csv_filename: str, observer_location=DEFAULT_OBSERVER_LOCATION,save_data=False
+        cls, csv_filename: str, observer_location=DEFAULT_OBSERVER_LOCATION, save_data=False
     ):
         """
         Query ephemeris for multiple celestial objects from JPL Horizons based on a CSV file and save
