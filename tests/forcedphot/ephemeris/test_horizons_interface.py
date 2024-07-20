@@ -153,7 +153,7 @@ def test_query_ephemeris_from_csv(
     mock_table_from_pandas.return_value = mock_table
 
     with patch("builtins.open", mock_open()) as _mock_file:
-        horizons_interface.HorizonsInterface.query_ephemeris_from_csv("test.csv")
+        horizons_interface.HorizonsInterface.query_ephemeris_from_csv("test.csv", save_data=True)
 
     mock_read_csv.assert_called_once_with("test.csv")
     mock_query_single_range.assert_called_once()
