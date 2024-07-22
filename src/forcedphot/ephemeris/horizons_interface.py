@@ -162,16 +162,17 @@ class HorizonsInterface:
         relevant_data = pd.DataFrame(
             {
                 "datetime_jd": ephemeris_data.datetime_jd.jd,
-                "RA": ephemeris_data.RA_deg,
-                "DEC": ephemeris_data.DEC_deg,
-                "RA_rate": ephemeris_data.RA_rate_arcsec_per_h,
-                "DEC_rate": ephemeris_data.DEC_rate_arcsec_per_h,
-                "EL": ephemeris_data.EL_deg,
-                "r": ephemeris_data.r_au,
-                "delta": ephemeris_data.delta_au,
-                "V": ephemeris_data.V_mag,
-                "alpha": ephemeris_data.alpha_deg,
-                "RSS_3sigma": ephemeris_data.RSS_3sigma_arcsec,
+                "RA_deg": ephemeris_data.RA_deg,
+                "DEC_deg": ephemeris_data.DEC_deg,
+                "RA_rate_arcsec_per_h": ephemeris_data.RA_rate_arcsec_per_h,
+                "DEC_rate_arcsec_per_h": ephemeris_data.DEC_rate_arcsec_per_h,
+                "AZ_deg": ephemeris_data.AZ_deg,
+                "EL_deg": ephemeris_data.EL_deg,
+                "r_au": ephemeris_data.r_au,
+                "delta_au": ephemeris_data.delta_au,
+                "V_mag": ephemeris_data.V_mag,
+                "alpha_deg": ephemeris_data.alpha_deg,
+                "RSS_3sigma_arcsec": ephemeris_data.RSS_3sigma_arcsec,
             }
         )
 
