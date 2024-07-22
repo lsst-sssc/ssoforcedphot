@@ -11,12 +11,14 @@ class QueryInput:
 
     Attributes:
         target (str): The name or identifier of the celestial target.
+        target_type (str): The type of celestial target.
         start (Time): The start time of the query period.
         end (Time): The end time of the query period.
         step (str): The time step interval for the query results.
     """
 
     target: str
+    target_type: str
     start: Time
     end: Time
     step: str
@@ -29,12 +31,14 @@ class QueryInputMiriade:
 
     Attributes:
         target (str): The name or identifier of the celestial target.
+        objtype (str): The type of celestial target.
         start (Time): The start time of the query period.
         step (str): The time step interval for the query results.
         nsteps (int): The number of steps in the query.
     """
 
     target: str
+    objtype: str
     start: Time
     step: str
     nsteps: int

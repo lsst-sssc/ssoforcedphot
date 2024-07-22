@@ -21,7 +21,7 @@ def mock_csv_data():
     """
     Fixture to provide mock CSV data for testing.
     """
-    return pd.DataFrame({"target": ["Ceres"], "start": ["2020-01-01"], "end": ["2020-01-02"], "step": ["1h"]})
+    return pd.DataFrame({"target": ["Ceres"], "target_type": ["smallbody"], "start": ["2020-01-01"], "end": ["2020-01-02"], "step": ["1h"]})
 
 
 def test_init():
@@ -58,7 +58,7 @@ def test_query_single_range_success(mock_horizons):
     mock_horizons.return_value.ephemerides = mock_ephemerides
 
     hi = horizons_interface.HorizonsInterface()
-    query = local_dataclasses.QueryInput("Ceres", Time("2020-01-01"), Time("2020-01-02"), "1h")
+    query = local_dataclasses.QueryInput("Ceres", "smallbody", Time("2020-01-01"), Time("2020-01-02"), "1h")
     result = hi.query_single_range(query)
 
     assert result is not None
@@ -75,25 +75,26 @@ def test_query_single_range_failure(mock_horizons):
     mock_horizons.side_effect = Exception("Query failed")
 
     hi = horizons_interface.HorizonsInterface()
-    query = local_dataclasses.QueryInput("Invalid Target", Time("2020-01-01"), Time("2020-01-02"), "1h")
+    query = local_dataclasses.QueryInput("Invalid Target",  "smallbody", Time("2020-01-01"), Time("2020-01-02"), "1h")
     result = hi.query_single_range(query)
 
     assert result is None
 
 
 @pytest.mark.parametrize(
-    "target,start,end,step",
+    "target,target_type,start,end,step",
     [
-        ("Ceres", "2020-01-01", "2020-01-02", "1h"),
-        ("2021 XY", "2021-06-01", "2021-06-30", "2h"),
+        ("Ceres", "smallbody", "2020-01-01", "2020-01-02", "1h"),
+        ("2021 XY", "smallbody", "2021-06-01", "2021-06-30", "2h"),
     ],
 )
-def test_query_input_creation(target, start, end, step):
+def test_query_input_creation(target, target_type, start, end, step):
     """
     Test creation of QueryInput objects with various parameters.
     """
-    query = local_dataclasses.QueryInput(target, Time(start), Time(end), step)
+    query = local_dataclasses.QueryInput(target, target_type, Time(start), Time(end), step)
     assert query.target == target
+    assert query.target_type == target_type
     assert query.start == Time(start)
     assert query.end == Time(end)
     assert query.step == step
@@ -159,7 +160,7 @@ def test_query_ephemeris_from_csv(
     mock_query_single_range.assert_called_once()
     mock_table_from_pandas.assert_called_once()
 
-    expected_filename = "./data/Ceres_2020-01-01_00-00-00.000_2020-01-02_00-00-00.000.ecsv"
+    expected_filename = "./Ceres_2020-01-01_00-00-00.000_2020-01-02_00-00-00.000.ecsv"
     expected_call = call(expected_filename, format="ascii.ecsv", overwrite=True)
     print(f"Expected call: {expected_call}")
     print(f"Actual calls: {mock_table.write.mock_calls}")
