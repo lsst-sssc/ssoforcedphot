@@ -162,7 +162,7 @@ class MiriadeInterface:
 
         return query_miriade
 
-    def query_single_range(self, query: QueryInput):
+    def query_single_range(self, query: QueryInput, save_data: bool = False):
         """
         Query Miriade for ephemeris data within a single time range.
 
@@ -177,6 +177,8 @@ class MiriadeInterface:
             - start: The start time of the query
             - end: The end time of the query
             - step: The time step for the query (e.g., '1h' for 1 hour)
+        save_data : bool, optional
+            - A flag indicating whether to save the queried data to a file.
 
         Returns:
         --------
@@ -243,7 +245,7 @@ class MiriadeInterface:
 
     @classmethod
     def query_ephemeris_from_csv(
-        cls, csv_file: str, observer_location=DEFAULT_OBSERVER_LOCATION, save_data=False
+        cls, csv_file: str, observer_location=DEFAULT_OBSERVER_LOCATION,  save_data: bool = False
     ):
         """
         Process multiple ephemeris queries from a CSV file and save results as ECSV files.

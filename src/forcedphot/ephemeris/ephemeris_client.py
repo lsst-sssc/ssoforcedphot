@@ -18,14 +18,17 @@ class EphemerisClient:
     and batch processing from CSV files.
 
     Attributes:
-        DEFAULT_OBSERVER_LOCATION (str): Default location code for the observer (set to "X05" for Rubin Observatory).
+        DEFAULT_OBSERVER_LOCATION (str): Default location code for the observer (set to "X05"
+        for Rubin Observatory).
+        DEFAULT_SAVE_DATA (bool): Default flag to save data (set to False).
         logger (logging.Logger): Logger for the class.
 
     Methods:
-        query_single(service: str, target: str, start: str, end: str, step: str, observer_location: str):
+        query_single(service: str, target: str, start: str, end: str, step: str, observer_location: str,
+        save_data: bool):
             Query ephemeris for a single target using the specified service.
 
-        query_from_csv(service: str, csv_file: str, observer_location: str):
+        query_from_csv(service: str, csv_file: str, observer_location: str, save_data: bool):
             Process multiple queries from a CSV file using the specified service.
     """
 
@@ -49,6 +52,7 @@ class EphemerisClient:
             end (str): The end time for the ephemeris query.
             step (str): The time step for the ephemeris query.
             observer_location (str): The observer's location code.
+            save_data (bool): Whether to save the query result as an ECSV file.
 
         Returns:
             Union[QueryInput, None]: The query result if successful, None otherwise.
@@ -62,16 +66,18 @@ class EphemerisClient:
         )
 
         if service.lower() == 'horizons':
-            interface = HorizonsInterface(observer_location, save_data=save_data)
+            interface = HorizonsInterface(observer_location)
         elif service.lower() == 'miriade':
-            interface = MiriadeInterface(observer_location, save_data=save_data)
+            interface = MiriadeInterface(observer_location)
         else:
             self.logger.error(f"Invalid service: {service}. Use 'horizons' or 'miriade'.")
             return None
 
-        return interface.query_single_range(query)
+        return interface.query_single_range(query, save_data=save_data)
 
-    def query_from_csv(self, service: str, csv_file: str, observer_location: str, save_data: bool = DEFAUT_SAVE_DATA):
+    def query_from_csv(
+        self, service: str, csv_file: str, observer_location: str, save_data: bool = DEFAUT_SAVE_DATA
+    ):
         """
         Process multiple queries from a CSV file using the specified service.
 
@@ -79,12 +85,15 @@ class EphemerisClient:
             service (str): The service to use ('horizons' or 'miriade').
             csv_file (str): Path to the CSV file containing query parameters.
             observer_location (str): The observer's location code.
+            save_data (bool): Whether to save the query result as an ECSV file.
 
         Returns:
             List of query results.
         """
         if service.lower() == 'horizons':
-            return HorizonsInterface.query_ephemeris_from_csv(csv_file, observer_location, save_data=save_data)
+            return HorizonsInterface.query_ephemeris_from_csv(
+                csv_file, observer_location, save_data=save_data
+                )
         elif service.lower() == 'miriade':
             return MiriadeInterface.query_ephemeris_from_csv(csv_file, observer_location, save_data=save_data)
         else:
@@ -93,7 +102,41 @@ class EphemerisClient:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Query ephemeris data using JPL Horizons or Miriade services.")
+    """
+    Main function to handle command-line arguments and execute ephemeris queries.
+
+    This function parses command-line arguments to determine whether to perform a single
+    query or batch processing from a CSV file. It supports querying ephemeris data using
+    either the JPL Horizons or Miriade services.
+
+    Command-line Arguments:
+        service (str): The service to use for querying ('horizons' or 'miriade').
+        --csv (str): Path to the CSV file for batch processing (optional).
+        --target (str): Target object for a single query (optional).
+        --target_type (str): Target object type for a single query (optional).
+        --start (str): Start time for a single query (optional).
+        --end (str): End time for a single query (optional).
+        --step (str): Time step for a single query (optional).
+        --location (str): Observer location code (default is 'X05').
+        --save_data (bool): Flag to save query results as ECSV files (default is False).
+
+    Behavior:
+        - If the --csv argument is provided, the function will process multiple queries from the specified
+        CSV file.
+        - If all single query parameters (--target, --target_type, --start, --end, --step) are provided,
+        the function will perform a single query.
+        - If neither a CSV file nor all single query parameters are provided, the function will display
+        an error message.
+
+    Example Usage:
+        python ephemeris_service.py horizons --csv queries.csv
+        python ephemeris_service.py miriade --target Ceres --target_type smallbody --start 2023-01-01
+        --end 2023-01-02 --step 1h
+
+    Returns:
+        None
+    """
+    parser = argparse.ArgumentParser(description="Query ephemeris data using Horizons or Miriade services.")
     parser.add_argument('service', choices=['horizons', 'miriade'], help="Service to use for querying")
     parser.add_argument('--csv', help="Path to CSV file for batch processing")
     parser.add_argument('--target', help="Target object for single query")
@@ -103,6 +146,7 @@ def main():
     parser.add_argument('--step', help="Time step for single query")
     parser.add_argument('--location', default=EphemerisClient.DEFAULT_OBSERVER_LOCATION,
                         help="Observer location code")
+    parser.add_argument('--save_data', action='store_true', help="Save query results as ECSV files")
 
     args = parser.parse_args()
 
@@ -116,7 +160,7 @@ def main():
         results = [result] if result else []
     else:
         parser.error("Either provide a CSV file or all single query parameters"
-                     "like target, target_type,start, end, step")
+                    " like target, target_type,start, end, step")
 
     if results:
         print(f"Successfully queried {len(results)} object(s)")
