@@ -25,12 +25,3 @@ associated metadata and optionally, image cutouts.
 ## Installation
 
 (Instructions for installation will be added once more components are completed)
-
-## License
-
-(Add appropriate license information)
-
-## Contact
-
-(Add contact information or link to issues page)
-
