@@ -1,11 +1,36 @@
+import logging
+from typing import list
+
 import numpy as np
-from astropy.io import ascii
-from astropy.time import Time
 from astropy.table import Table
-from typing import List
+from astropy.time import Time
+
 from forcedphot.ephemeris.local_dataclasses import EphemerisData
 
+
 class DataLoader:
+    """
+    DataLoader is a class for loading ephemeris data from ECSV files and converting it into the
+    EphemerisData class.
+
+    This class provides methods to load ephemeris data from ECSV files and convert it to the
+    EphemerisData class. It supports loading ephemeris data from a single ECSV file or from
+    multiple ECSV files.
+
+    Attributes:
+        logger (logging.Logger): Logger for the class.
+
+    Methods:
+        load_ephemeris_from_ecsv(file_path: str) -> EphemerisData:
+            Load ephemeris data from an ECSV file and return it as an EphemerisData object.
+        load_multiple_ephemeris_files(file_paths: list[str]) -> list[EphemerisData]:
+            Load ephemeris data from multiple ECSV files and return them as a list of EphemerisData objects.
+    """
+
+    # Set up logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+
     @staticmethod
     def load_ephemeris_from_ecsv(file_path: str) -> EphemerisData:
         """
@@ -63,12 +88,12 @@ class DataLoader:
             return ephemeris_data
 
         except FileNotFoundError:
-            raise FileNotFoundError(f"The file {file_path} was not found.")
+            raise FileNotFoundError(f"The file {file_path} was not found.") from None
         except Exception as e:
-            raise ValueError(f"Error loading ECSV file: {str(e)}")
+            raise ValueError(f"Error loading ECSV file: {str(e)}") from None
 
     @staticmethod
-    def load_multiple_ephemeris_files(file_paths: List[str]) -> List[EphemerisData]:
+    def load_multiple_ephemeris_files(file_paths: list[str]) -> list[EphemerisData]:
         """
         Load multiple ephemeris files and return a list of EphemerisData objects.
 
@@ -94,7 +119,8 @@ if __name__ == "__main__":
     #     print(f"Error: {str(e)}")
 
     # Example of loading multiple files
-    file_paths = ["./Ceres_2024-01-01_00-00-00.000_2025-12-31_23-59-00.000.ecsv", "./Encke_2024-01-01_00-00-00.000_2024-06-30_23-59-00.000.ecsv"]
+    file_paths = ["./Ceres_2024-01-01_00-00-00.000_2025-12-31_23-59-00.000.ecsv",
+                  "./Encke_2024-01-01_00-00-00.000_2024-06-30_23-59-00.000.ecsv"]
     try:
         ephemeris_list = DataLoader.load_multiple_ephemeris_files(file_paths)
         print(f"Loaded {len(ephemeris_list)} ephemeris files.")

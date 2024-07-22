@@ -7,7 +7,7 @@ from astropy.time import Time
 from forcedphot.ephemeris.horizons_interface import HorizonsInterface
 from forcedphot.ephemeris.local_dataclasses import QueryInput
 from forcedphot.ephemeris.miriade_interface import MiriadeInterface
-from forcedphot.ephemeris.data_loader import DataLoader
+# from forcedphot.ephemeris.data_loader import DataLoader
 
 class EphemerisClient:
     """
