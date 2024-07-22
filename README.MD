@@ -19,7 +19,7 @@ associated metadata and optionally, image cutouts.
 - Conduct forced photometry at the expected position of given objects
 
 <h1 align="center">
-<img src="https://raw.githubusercontent.com/lsst-sssc/ssoforcedphot/ephemeris_service/docs/SSSC_Faint_object_service.png" width="500">
+<img src="https://raw.githubusercontent.com/lsst-sssc/ssoforcedphot/ephemeris_service/docs/SSSC_Faint_object_service.png" width="800">
 </h1><br>
 
 ## Installation
