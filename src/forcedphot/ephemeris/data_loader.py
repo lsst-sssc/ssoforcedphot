@@ -1,5 +1,4 @@
 import logging
-from typing import list
 
 import numpy as np
 from astropy.table import Table
@@ -83,14 +82,20 @@ class DataLoader:
                 RSS_3sigma_arcsec=np.array(table['RSS_3sigma_arcsec'])
             )
 
-            print(f"Loaded ephemeris data with {len(ephemeris_data.datetime_jd)} points from {file_path}.")
+            DataLoader.logger.info(f"Loaded ephemeris data with {len(ephemeris_data.datetime_jd)} points from {file_path}.")
 
             return ephemeris_data
 
+
         except FileNotFoundError:
-            raise FileNotFoundError(f"The file {file_path} was not found.") from None
+            DataLoader.logger.error(f"The file {file_path} was not found.")
+            raise
+        except ValueError as ve:
+            DataLoader.logger.error(f"Value error in file {file_path}: {str(ve)}")
+            raise
         except Exception as e:
-            raise ValueError(f"Error loading ECSV file: {str(e)}") from None
+            DataLoader.logger.error(f"Unexpected error loading ECSV file {file_path}: {str(e)}")
+            raise ValueError(f"Error loading ECSV file: {str(e)}") from e
 
     @staticmethod
     def load_multiple_ephemeris_files(file_paths: list[str]) -> list[EphemerisData]:
@@ -107,7 +112,16 @@ class DataLoader:
         List[EphemerisData]
             A list of EphemerisData objects, each populated with data from one ECSV file.
         """
-        return [DataLoader.load_ephemeris_from_ecsv(file_path) for file_path in file_paths]
+        ephemeris_list = []
+        for file_path in file_paths:
+            try:
+                ephemeris_data = DataLoader.load_ephemeris_from_ecsv(file_path)
+                ephemeris_list.append(ephemeris_data)
+            except (FileNotFoundError, ValueError) as e:
+                DataLoader.logger.error(f"Error loading file {file_path}: {str(e)}")
+                raise  # Re-raise the exception to be caught by the calling function
+
+        return ephemeris_list
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from astropy.time import Time
 from astropy.table import Table
-from forcedphot.ephemeris import data_loader
+from forcedphot.ephemeris.data_loader import DataLoader
 from forcedphot.ephemeris.local_dataclasses import EphemerisData
 
 @pytest.fixture
