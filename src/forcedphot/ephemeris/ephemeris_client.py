@@ -179,7 +179,7 @@ def main():
     )
     parser.add_argument("service", choices=["horizons", "miriade"], help="Service to use for querying")
     parser.add_argument(
-        "--ecsv", help= "Path to ECSV file (or a list separated with ,) containing ephemeris data"
+        "--ecsv", help="Path to ECSV file (or a list separated with ,) containing ephemeris data"
     )
     parser.add_argument("--csv", help="Path to CSV file for batch processing")
     parser.add_argument("--target", help="Target object for single query")

@@ -186,7 +186,6 @@ class HorizonsInterface:
         result_table.write("./" + output_filename, format="ascii.ecsv", overwrite=True)
         self.logger.info(f"Ephemeris data successfully saved to {output_filename}")
 
-
     def query_single_range(self, query: QueryInput, save_data: bool = False) -> QueryResult:
         """
         Query ephemeris for a single time range.
