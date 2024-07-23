@@ -131,7 +131,7 @@ class HorizonsInterface:
 
         return time_ranges
 
-    def save_data_to_ecsv(self, query_input, ephemeris_data):
+    def save_horizons_data_to_ecsv(self, query_input, ephemeris_data):
         """
         Save queried ephemeris data to an ECSV file.
 
@@ -267,7 +267,7 @@ class HorizonsInterface:
 
             # Save the data to an ECSV file
             if save_data:
-                self.save_data_to_ecsv(query, ephemeris_data)
+                self.save_horizons_data_to_ecsv(query, ephemeris_data)
 
             return QueryResult(query.target, query.start, query.end, ephemeris_data)
         except Exception as e:
@@ -343,7 +343,7 @@ class HorizonsInterface:
                     results.append(query_result)
 
                 if save_data:
-                    horizons_interface.save_data_to_ecsv(query, query_result.ephemeris)
+                    horizons_interface.save_horizons_data_to_ecsv(query, query_result.ephemeris)
 
             total_end_time = time.time()
             cls.logger.info(
