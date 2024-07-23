@@ -27,7 +27,7 @@ def mock_csv_data():
             "target_type": ["smallbody"],
             "start": ["2020-01-01"],
             "end": ["2020-01-02"],
-            "step": ["1h"]
+            "step": ["1h"],
         }
     )
 
@@ -84,7 +84,7 @@ def test_query_single_range_failure(mock_horizons):
 
     hi = horizons_interface.HorizonsInterface()
     query = local_dataclasses.QueryInput(
-        "Invalid Target",  "smallbody", Time("2020-01-01"), Time("2020-01-02"), "1h"
+        "Invalid Target", "smallbody", Time("2020-01-01"), Time("2020-01-02"), "1h"
     )
     result = hi.query_single_range(query)
 

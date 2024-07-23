@@ -16,6 +16,7 @@ def miriade_interface():
     """
     return MiriadeInterface()
 
+
 @pytest.fixture
 def mock_csv_data():
     """
@@ -27,9 +28,10 @@ def mock_csv_data():
             "target_type": ["smallbody"],
             "start": ["2020-01-01"],
             "end": ["2020-01-02"],
-            "step": ["1h"]
+            "step": ["1h"],
         }
     )
+
 
 def test_init():
     """
@@ -60,11 +62,7 @@ def test_calc_nsteps_for_miriade_query_invalid_step():
     Test the calculation of the number of steps for a Miriade query with an invalid step.
     """
     query = QueryInput(
-        target="Ceres",
-        target_type="smallbody",
-        start=Time("2023-01-01"),
-        end=Time("2023-01-02"),
-        step="1x"
+        target="Ceres", target_type="smallbody", start=Time("2023-01-01"), end=Time("2023-01-02"), step="1x"
     )
     mi = MiriadeInterface()
     with pytest.raises(ValueError):
@@ -90,7 +88,7 @@ def test_query_single_range(mock_get_ephemerides, miriade_interface):
             "delta": [1.0],
             "V": [5.0],
             "alpha": [60.0],
-            "posunc": [0.01]
+            "posunc": [0.01],
         }
     )
 

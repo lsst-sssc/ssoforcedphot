@@ -1,10 +1,10 @@
 
-from unittest.mock import Mock, patch, ANY
+from unittest.mock import ANY, Mock, patch
 
 import pytest
 from astropy.time import Time
 from forcedphot.ephemeris.ephemeris_client import EphemerisClient
-from forcedphot.ephemeris.local_dataclasses import QueryResult, EphemerisData
+from forcedphot.ephemeris.local_dataclasses import EphemerisData, QueryResult
 
 
 @pytest.fixture

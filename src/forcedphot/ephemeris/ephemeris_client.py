@@ -41,16 +41,16 @@ class EphemerisClient:
         logging.basicConfig(level=logging.INFO)
 
     def query_single(
-            self,
-            service: str,
-            target: str,
-            target_type: str,
-            start: str,
-            end: str,
-            step: str,
-            observer_location: str,
-            save_data: bool = DEFAUT_SAVE_DATA,
-        ) -> Union[QueryInput, None]:
+        self,
+        service: str,
+        target: str,
+        target_type: str,
+        start: str,
+        end: str,
+        step: str,
+        observer_location: str,
+        save_data: bool = DEFAUT_SAVE_DATA,
+    ) -> Union[QueryInput, None]:
         """
         Query ephemeris for a single target using the specified service.
 
@@ -75,9 +75,9 @@ class EphemerisClient:
             step=step,
         )
 
-        if service.lower() == 'horizons':
+        if service.lower() == "horizons":
             interface = HorizonsInterface(observer_location)
-        elif service.lower() == 'miriade':
+        elif service.lower() == "miriade":
             interface = MiriadeInterface(observer_location)
         else:
             self.logger.error(f"Invalid service: {service}. Use 'horizons' or 'miriade'.")
@@ -100,11 +100,11 @@ class EphemerisClient:
         Returns:
             List of query results.
         """
-        if service.lower() == 'horizons':
+        if service.lower() == "horizons":
             return HorizonsInterface.query_ephemeris_from_csv(
                 csv_file, observer_location, save_data=save_data
-                )
-        elif service.lower() == 'miriade':
+            )
+        elif service.lower() == "miriade":
             return MiriadeInterface.query_ephemeris_from_csv(csv_file, observer_location, save_data=save_data)
         else:
             self.logger.error(f"Invalid service: {service}. Use 'horizons' or 'miriade'.")
@@ -177,21 +177,22 @@ def main():
         description="Query ephemeris data using Horizons or Miriade services or"
         " load ephemeris data from existing ECSV."
     )
-    parser.add_argument('service', choices=['horizons', 'miriade'], help="Service to use for querying")
+    parser.add_argument("service", choices=["horizons", "miriade"], help="Service to use for querying")
     parser.add_argument(
-        '--ecsv', help= "Path to ECSV file (or a list separated with ,) containing ephemeris data"
+        "--ecsv", help= "Path to ECSV file (or a list separated with ,) containing ephemeris data"
     )
-    parser.add_argument('--csv', help="Path to CSV file for batch processing")
-    parser.add_argument('--target', help="Target object for single query")
-    parser.add_argument('--target_type', help="Target object type for single query")
-    parser.add_argument('--start', help="Start time for single query")
-    parser.add_argument('--end', help="End time for single query")
-    parser.add_argument('--step', help="Time step for single query")
+    parser.add_argument("--csv", help="Path to CSV file for batch processing")
+    parser.add_argument("--target", help="Target object for single query")
+    parser.add_argument("--target_type", help="Target object type for single query")
+    parser.add_argument("--start", help="Start time for single query")
+    parser.add_argument("--end", help="End time for single query")
+    parser.add_argument("--step", help="Time step for single query")
     parser.add_argument(
-        '--location', default=EphemerisClient.DEFAULT_OBSERVER_LOCATION,
+        "--location",
+        default=EphemerisClient.DEFAULT_OBSERVER_LOCATION,
         help="Observer location code, default: Rubin(X05)",
     )
-    parser.add_argument('--save_data', action='store_true', help="Save query results as ECSV files")
+    parser.add_argument("--save_data", action="store_true", help="Save query results as ECSV files")
 
     args = parser.parse_args()
 

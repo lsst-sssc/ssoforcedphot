@@ -88,7 +88,7 @@ class DataLoader:
                 delta_au=np.array(table["delta_au"]),
                 V_mag=np.array(table["V_mag"]),
                 alpha_deg=np.array(table["alpha_deg"]),
-                RSS_3sigma_arcsec=np.array(table["RSS_3sigma_arcsec"])
+                RSS_3sigma_arcsec=np.array(table["RSS_3sigma_arcsec"]),
             )
 
             DataLoader.logger.info(
@@ -145,7 +145,7 @@ if __name__ == "__main__":
     # Example of loading multiple files
     file_paths = [
         "./Ceres_2024-01-01_00-00-00.000_2025-12-31_23-59-00.000.ecsv",
-        "./Encke_2024-01-01_00-00-00.000_2024-06-30_23-59-00.000.ecsv"
+        "./Encke_2024-01-01_00-00-00.000_2024-06-30_23-59-00.000.ecsv",
     ]
     try:
         ephemeris_list = DataLoader.load_multiple_ephemeris_files(file_paths)

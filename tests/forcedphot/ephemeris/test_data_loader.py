@@ -22,7 +22,7 @@ def sample_ecsv_file(tmp_path):
             "delta_au": [0.5, 0.6],
             "V_mag": [15.0, 15.1],
             "alpha_deg": [30.0, 31.0],
-            "RSS_3sigma_arcsec": [0.01, 0.02]
+            "RSS_3sigma_arcsec": [0.01, 0.02],
         }
     )
     data.write(file_path, format="ascii.ecsv")
@@ -47,19 +47,22 @@ def test_load_ephemeris_from_ecsv(sample_ecsv_file):
     assert np.allclose(ephemeris_data.alpha_deg, [30.0, 31.0])
     assert np.allclose(ephemeris_data.RSS_3sigma_arcsec, [0.01, 0.02])
 
+
 def test_load_ephemeris_from_nonexistent_file():
     """Test loading ephemeris data from a non-existent file."""
     with pytest.raises(FileNotFoundError):
         DataLoader.load_ephemeris_from_ecsv("nonexistent_file.ecsv")
+
 
 def test_load_ephemeris_from_invalid_file(tmp_path):
     """Test loading ephemeris data from an invalid ECSV file (missing columns)."""
     invalid_file = tmp_path / "invalid_ephemeris.ecsv"
     data = Table({"datetime_jd": [2459000.5], "RA_deg": [100.0]})  # Missing columns
     data.write(invalid_file, format="ascii.ecsv")
-    
+
     with pytest.raises(ValueError):
         DataLoader.load_ephemeris_from_ecsv(invalid_file)
+
 
 def test_load_multiple_ephemeris_files(sample_ecsv_file, tmp_path):
     """Test loading multiple ephemeris files."""
@@ -77,7 +80,7 @@ def test_load_multiple_ephemeris_files(sample_ecsv_file, tmp_path):
             "delta_au": [0.7],
             "V_mag": [15.2],
             "alpha_deg": [32.0],
-            "RSS_3sigma_arcsec": [0.03]
+            "RSS_3sigma_arcsec": [0.03],
         }
     )
     data.write(second_file, format="ascii.ecsv")

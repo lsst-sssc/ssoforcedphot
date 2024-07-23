@@ -41,6 +41,7 @@ class MiriadeInterface:
     TODO To check if there is a row limit at the Miriade service, because so far it seems that it can
     handle more than 5000 rows
     """
+
     # Set up logging
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
@@ -96,7 +97,6 @@ class MiriadeInterface:
                 f"Unsupported target type: {target_type}. Please chose"
                 f"from 'smallbody', 'comet_name', 'asteroid_name', or 'designation'."
             )
-
 
     def calc_nsteps_for_miriade_query(self, query: QueryInput) -> QueryInputMiriade:
         """
@@ -257,19 +257,20 @@ class MiriadeInterface:
 
             # Query Miriade
             ephemeris = Miriade.get_ephemerides(
-                targetname = query_miriade.target,
-                objtype = query_miriade.objtype,
-                location = self.observer_location,
-                epoch = query_miriade.start,
-                epoch_step = query_miriade.step,
-                epoch_nsteps = query_miriade.nsteps,
-                coordtype = 5,
+                targetname=query_miriade.target,
+                objtype=query_miriade.objtype,
+                location=self.observer_location,
+                epoch=query_miriade.start,
+                epoch_step=query_miriade.step,
+                epoch_nsteps=query_miriade.nsteps,
+                coordtype=5,
             )
 
             end_time = time.time()
             self.logger.info(
                 f"Query for range {query_miriade.start} with {query_miriade.nsteps}"
-                f" completed in {end_time - start_time} seconds.")
+                f" completed in {end_time - start_time} seconds."
+            )
 
             # Selecting relevant columns
             relevant_columns = [
@@ -284,7 +285,7 @@ class MiriadeInterface:
                 "delta",
                 "V",
                 "alpha",
-                "posunc"
+                "posunc",
             ]
             relevant_data = ephemeris[relevant_columns]
 
