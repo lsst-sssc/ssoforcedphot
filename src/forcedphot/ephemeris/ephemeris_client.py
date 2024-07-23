@@ -4,10 +4,11 @@ from typing import Union
 
 from astropy.time import Time
 
+from forcedphot.ephemeris.data_loader import DataLoader
 from forcedphot.ephemeris.horizons_interface import HorizonsInterface
-from forcedphot.ephemeris.local_dataclasses import QueryInput
+from forcedphot.ephemeris.local_dataclasses import EphemerisData, QueryInput
 from forcedphot.ephemeris.miriade_interface import MiriadeInterface
-# from forcedphot.ephemeris.data_loader import DataLoader
+
 
 class EphemerisClient:
     """
@@ -60,8 +61,8 @@ class EphemerisClient:
         query = QueryInput(
             target=target,
             target_type=target_type,
-            start=Time(start, scale="utc"),
-            end=Time(end, scale="utc"),
+            start=Time(start, format="iso", scale="utc"),
+            end=Time(end, format="iso", scale="utc"),
             step=step,
         )
 
@@ -100,6 +101,29 @@ class EphemerisClient:
             self.logger.error(f"Invalid service: {service}. Use 'horizons' or 'miriade'.")
             return None
 
+    def load_ephemeris_from_ecsv(self, ecsv_file: str) -> EphemerisData:
+        """
+        Load ephemeris data from an ECSV file.
+
+        Args:
+            ecsv_file (str): Path to the ECSV file containing ephemeris data.
+
+        Returns:
+            EphemerisData: The ephemeris data as a dataclass.
+        """
+        return DataLoader.load_ephemeris_from_ecsv(ecsv_file)
+
+    def load_ephemeris_from_multi_ecsv(self, ecsv_files: list[str]) -> EphemerisData:
+        """
+        Load ephemeris data from multiple ECSV files.
+
+        Args:
+            ecsv_files (list[str]): List of paths to the ECSV files containing ephemeris data.
+
+        Returns:
+            List of EphemerisData: List of ephemeris data as a dataclass.
+        """
+        return DataLoader.load_multiple_ephemeris_files(ecsv_files)
 
 def main():
     """
@@ -112,6 +136,8 @@ def main():
     Command-line Arguments:
         service (str): The service to use for querying ('horizons' or 'miriade').
         --csv (str): Path to the CSV file for batch processing (optional).
+        --ecsv (str): Path to the ECSV file for single query (optional) or
+        list of ECSV files for batch processing (optional).
         --target (str): Target object for a single query (optional).
         --target_type (str): Target object type for a single query (optional).
         --start (str): Start time for a single query (optional).
@@ -129,15 +155,20 @@ def main():
         an error message.
 
     Example Usage:
-        python ephemeris_service.py horizons --csv queries.csv
-        python ephemeris_service.py miriade --target Ceres --target_type smallbody --start 2023-01-01
+        python ephemeris_client.py horizons --csv queries.csv
+        python ephemeris_client.py miriade --target Ceres --target_type smallbody --start 2023-01-01
         --end 2023-01-02 --step 1h
+        python ephemeris_client.py --ecsv ceres_ephemeris.ecsv,vesta_ephemeris.ecsv
 
     Returns:
-        None
+        result (list[EphemerisData]): List of ephemeris data as a dataclass.
     """
-    parser = argparse.ArgumentParser(description="Query ephemeris data using Horizons or Miriade services.")
+    parser = argparse.ArgumentParser(description=
+                                     "Query ephemeris data using Horizons or Miriade services or"
+                                     " load ephemeris data from existing ECSV.")
     parser.add_argument('service', choices=['horizons', 'miriade'], help="Service to use for querying")
+    parser.add_argument('--ecsv',
+                        help= "Path to ECSV file (or a list separated with ,) containing ephemeris data")
     parser.add_argument('--csv', help="Path to CSV file for batch processing")
     parser.add_argument('--target', help="Target object for single query")
     parser.add_argument('--target_type', help="Target object type for single query")
@@ -145,7 +176,7 @@ def main():
     parser.add_argument('--end', help="End time for single query")
     parser.add_argument('--step', help="Time step for single query")
     parser.add_argument('--location', default=EphemerisClient.DEFAULT_OBSERVER_LOCATION,
-                        help="Observer location code")
+                        help="Observer location code, default: Rubin(X05)")
     parser.add_argument('--save_data', action='store_true', help="Save query results as ECSV files")
 
     args = parser.parse_args()
@@ -158,12 +189,20 @@ def main():
         result = client.query_single(args.service, args.target, args.target_type, args.start, args.end,
             args.step, args.location)
         results = [result] if result else []
+    elif args.ecsv:
+        ecsv_files = args.ecsv.split(',')  # Assume multiple files are comma-separated
+        if len(ecsv_files) > 1:
+            results = client.load_ephemeris_from_multi_ecsv(ecsv_files)
+        else:
+            results = client.load_ephemeris_from_ecsv(args.ecsv)
     else:
         parser.error("Either provide a CSV file or all single query parameters"
-                    " like target, target_type,start, end, step")
+                    " like target, target_type,start, end, step"
+                    " or ECSV file containing ephemeris data")
 
     if results:
         print(f"Successfully queried {len(results)} object(s)")
+        return results
     else:
         print("No results obtained")
 
