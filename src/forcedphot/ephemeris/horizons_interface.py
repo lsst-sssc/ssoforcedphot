@@ -187,7 +187,7 @@ class HorizonsInterface:
         self.logger.info(f"Ephemeris data successfully saved to {output_filename}")
 
 
-    def query_single_range(self, query: QueryInput,  save_data: bool = False) -> QueryResult:
+    def query_single_range(self, query: QueryInput, save_data: bool = False) -> QueryResult:
         """
         Query ephemeris for a single time range.
 
@@ -231,8 +231,10 @@ class HorizonsInterface:
 
                 if query.target_type == "comet_name":
                     mag_type = "Tmag"
-                    ephemeris = obj.ephemerides(closest_apparition=True, no_fragments=True,
-                                                skip_daylight=True)
+                    ephemeris = obj.ephemerides(
+                        closest_apparition=True, no_fragments=True,
+                        skip_daylight=True
+                    )
 
                 else:
                     mag_type = "V"
@@ -281,7 +283,7 @@ class HorizonsInterface:
 
     @classmethod
     def query_ephemeris_from_csv(
-        cls, csv_filename: str, observer_location=DEFAULT_OBSERVER_LOCATION,  save_data: bool = False
+        cls, csv_filename: str, observer_location=DEFAULT_OBSERVER_LOCATION, save_data: bool = False
     ):
         """
         Query ephemeris for multiple celestial objects from JPL Horizons based on a CSV file and save

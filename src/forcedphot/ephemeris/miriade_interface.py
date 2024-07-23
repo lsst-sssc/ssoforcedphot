@@ -92,8 +92,10 @@ class MiriadeInterface:
         elif target_type == "designation":
             return "comet"
         else:
-            raise ValueError(f"Unsupported target type: {target_type}. Please chose"
-                             f"from 'smallbody', 'comet_name', 'asteroid_name', or 'designation'.")
+            raise ValueError(
+                f"Unsupported target type: {target_type}. Please chose"
+                f"from 'smallbody', 'comet_name', 'asteroid_name', or 'designation'."
+            )
 
 
     def calc_nsteps_for_miriade_query(self, query: QueryInput) -> QueryInputMiriade:
@@ -123,21 +125,21 @@ class MiriadeInterface:
         Raises:
         -------
         ValueError
-        If the step unit in the input query is not recognized (valid units are 's', 'm', 'h', 'd').
+        If the step unit in the input query is not recognized (valid units are "s", "m", "h", "d").
 
         Notes:
         ------
-        The method supports time steps in seconds ('s'), minutes ('m'), hours ('h'), or days ('d').
+        The method supports time steps in seconds ("s"), minutes ("m"), hours ("h"), or days ("d").
         """
 
         value, unit = int(query.step[:-1]), query.step[-1]
-        if unit == 's':
+        if unit == "s":
             step_freqency = value * u.s
-        elif unit == 'm':
+        elif unit == "m":
             step_freqency = value * u.min
-        elif unit == 'h':
+        elif unit == "h":
             step_freqency = value * u.hour
-        elif unit == 'd':
+        elif unit == "d":
             step_freqency = value * u.day
         else:
             raise ValueError("Error in the input field.")
@@ -148,7 +150,7 @@ class MiriadeInterface:
 
         if query.target_type == "comet_name":
             resolved_target = ESASky.find_sso(sso_name=query.target, sso_type="COMET")
-            sso_name=resolved_target[0].get("sso_name")
+            sso_name = resolved_target[0].get("sso_name")
         else:
             sso_name = query.target
 
@@ -157,11 +159,11 @@ class MiriadeInterface:
             objtype=self.set_target_type(query.target_type),
             start=query.start,
             step=query.step,
-            nsteps=nsteps
+            nsteps=nsteps,
         )
 
         return query_miriade
-    
+
     def save_miriade_data_to_ecsv(self, query_input, ephemeris_data):
         """
         Save queried ephemeris data to an ECSV file.
@@ -254,26 +256,41 @@ class MiriadeInterface:
             query_miriade = self.calc_nsteps_for_miriade_query(query)
 
             # Query Miriade
-            ephemeris = Miriade.get_ephemerides(targetname = query_miriade.target,
-                                                objtype = query_miriade.objtype,
-                                                location = self.observer_location,
-                                                epoch = query_miriade.start,
-                                                epoch_step = query_miriade.step,
-                                                epoch_nsteps = query_miriade.nsteps, coordtype = 5)
+            ephemeris = Miriade.get_ephemerides(
+                targetname = query_miriade.target,
+                objtype = query_miriade.objtype,
+                location = self.observer_location,
+                epoch = query_miriade.start,
+                epoch_step = query_miriade.step,
+                epoch_nsteps = query_miriade.nsteps,
+                coordtype = 5,
+            )
 
             end_time = time.time()
-            self.logger.info(f"Query for range {query_miriade.start} with {query_miriade.nsteps}"
-                             f" completed in {end_time - start_time} seconds.")
+            self.logger.info(
+                f"Query for range {query_miriade.start} with {query_miriade.nsteps}"
+                f" completed in {end_time - start_time} seconds.")
 
             # Selecting relevant columns
-            relevant_columns = ['epoch','RAJ2000', 'DECJ2000', 'RAcosD_rate', 'DEC_rate',
-                                'AZ', 'EL', 'heldist', 'delta', 'V', 'alpha', 'posunc']
+            relevant_columns = [
+                "epoch",
+                "RAJ2000",
+                "DECJ2000",
+                "RAcosD_rate",
+                "DEC_rate",
+                "AZ",
+                "EL",
+                "heldist",
+                "delta",
+                "V",
+                "alpha",
+                "posunc"
+            ]
             relevant_data = ephemeris[relevant_columns]
 
             ephemeris_data = EphemerisData()
 
             if ephemeris_data is not None:
-
                 ephemeris_data.datetime_jd = relevant_data["epoch"]
                 ephemeris_data.RA_deg = relevant_data["RAJ2000"]
                 ephemeris_data.DEC_deg = relevant_data["DECJ2000"]
@@ -294,16 +311,17 @@ class MiriadeInterface:
             return QueryResult(query.target, query.start, query.end, ephemeris_data)
 
         except Exception as e:
-            self.logger.error(f"An error occurred during query for range {query_miriade.start}"
-                              f"with {query_miriade.nsteps} for target {query_miriade.target}")
+            self.logger.error(
+                f"An error occurred during query for range {query_miriade.start}"
+                f"with {query_miriade.nsteps} for target {query_miriade.target}"
+            )
             self.logger.error(f"Error details: {str(e)}")
 
             return None
 
-
     @classmethod
     def query_ephemeris_from_csv(
-        cls, csv_file: str, observer_location=DEFAULT_OBSERVER_LOCATION,  save_data: bool = False
+        cls, csv_file: str, observer_location=DEFAULT_OBSERVER_LOCATION, save_data: bool = False
     ):
         """
         Process multiple ephemeris queries from a CSV file and save results as ECSV files.
@@ -370,7 +388,7 @@ class MiriadeInterface:
 
                 if save_data:
                     # Save the queried ephemeris data to ECSV file
-                    miriade_interface.save_miriade_data_to_ecsv(query, query_result.ephemeris_data)
+                    miriade_interface.save_miriade_data_to_ecsv(query, query_result.ephemeris)
 
             total_end_time = time.time()
             cls.logger.info(

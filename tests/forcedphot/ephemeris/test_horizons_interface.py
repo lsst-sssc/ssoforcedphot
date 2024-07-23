@@ -21,7 +21,15 @@ def mock_csv_data():
     """
     Fixture to provide mock CSV data for testing.
     """
-    return pd.DataFrame({"target": ["Ceres"], "target_type": ["smallbody"], "start": ["2020-01-01"], "end": ["2020-01-02"], "step": ["1h"]})
+    return pd.DataFrame(
+        {
+            "target": ["Ceres"],
+            "target_type": ["smallbody"],
+            "start": ["2020-01-01"],
+            "end": ["2020-01-02"],
+            "step": ["1h"]
+        }
+    )
 
 
 def test_init():
@@ -75,7 +83,9 @@ def test_query_single_range_failure(mock_horizons):
     mock_horizons.side_effect = Exception("Query failed")
 
     hi = horizons_interface.HorizonsInterface()
-    query = local_dataclasses.QueryInput("Invalid Target",  "smallbody", Time("2020-01-01"), Time("2020-01-02"), "1h")
+    query = local_dataclasses.QueryInput(
+        "Invalid Target",  "smallbody", Time("2020-01-01"), Time("2020-01-02"), "1h"
+    )
     result = hi.query_single_range(query)
 
     assert result is None

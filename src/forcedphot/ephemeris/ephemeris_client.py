@@ -40,8 +40,17 @@ class EphemerisClient:
         self.logger = logging.getLogger(__name__)
         logging.basicConfig(level=logging.INFO)
 
-    def query_single(self, service: str, target: str, target_type: str, start: str, end: str, step: str,
-                     observer_location: str, save_data: bool = DEFAUT_SAVE_DATA) -> Union[QueryInput, None]:
+    def query_single(
+            self,
+            service: str,
+            target: str,
+            target_type: str,
+            start: str,
+            end: str,
+            step: str,
+            observer_location: str,
+            save_data: bool = DEFAUT_SAVE_DATA,
+        ) -> Union[QueryInput, None]:
         """
         Query ephemeris for a single target using the specified service.
 
@@ -125,6 +134,7 @@ class EphemerisClient:
         """
         return DataLoader.load_multiple_ephemeris_files(ecsv_files)
 
+
 def main():
     """
     Main function to handle command-line arguments and execute ephemeris queries.
@@ -163,20 +173,24 @@ def main():
     Returns:
         result (list[EphemerisData]): List of ephemeris data as a dataclass.
     """
-    parser = argparse.ArgumentParser(description=
-                                     "Query ephemeris data using Horizons or Miriade services or"
-                                     " load ephemeris data from existing ECSV.")
+    parser = argparse.ArgumentParser(
+        description="Query ephemeris data using Horizons or Miriade services or"
+        " load ephemeris data from existing ECSV."
+    )
     parser.add_argument('service', choices=['horizons', 'miriade'], help="Service to use for querying")
-    parser.add_argument('--ecsv',
-                        help= "Path to ECSV file (or a list separated with ,) containing ephemeris data")
+    parser.add_argument(
+        '--ecsv', help= "Path to ECSV file (or a list separated with ,) containing ephemeris data"
+    )
     parser.add_argument('--csv', help="Path to CSV file for batch processing")
     parser.add_argument('--target', help="Target object for single query")
     parser.add_argument('--target_type', help="Target object type for single query")
     parser.add_argument('--start', help="Start time for single query")
     parser.add_argument('--end', help="End time for single query")
     parser.add_argument('--step', help="Time step for single query")
-    parser.add_argument('--location', default=EphemerisClient.DEFAULT_OBSERVER_LOCATION,
-                        help="Observer location code, default: Rubin(X05)")
+    parser.add_argument(
+        '--location', default=EphemerisClient.DEFAULT_OBSERVER_LOCATION,
+        help="Observer location code, default: Rubin(X05)",
+    )
     parser.add_argument('--save_data', action='store_true', help="Save query results as ECSV files")
 
     args = parser.parse_args()
@@ -186,19 +200,22 @@ def main():
     if args.csv:
         results = client.query_from_csv(args.service, args.csv, args.location)
     elif all([args.target, args.target_type, args.start, args.end, args.step]):
-        result = client.query_single(args.service, args.target, args.target_type, args.start, args.end,
-            args.step, args.location)
+        result = client.query_single(
+            args.service, args.target, args.target_type, args.start, args.end, args.step, args.location
+        )
         results = [result] if result else []
     elif args.ecsv:
-        ecsv_files = args.ecsv.split(',')  # Assume multiple files are comma-separated
+        ecsv_files = args.ecsv.split(",")  # Assume multiple files are comma-separated
         if len(ecsv_files) > 1:
             results = client.load_ephemeris_from_multi_ecsv(ecsv_files)
         else:
             results = client.load_ephemeris_from_ecsv(args.ecsv)
     else:
-        parser.error("Either provide a CSV file or all single query parameters"
-                    " like target, target_type,start, end, step"
-                    " or ECSV file containing ephemeris data")
+        parser.error(
+            "Either provide a CSV file or all single query parameters"
+            " like target, target_type,start, end, step"
+            " or ECSV file containing ephemeris data"
+        )
 
     if results:
         print(f"Successfully queried {len(results)} object(s)")

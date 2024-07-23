@@ -54,13 +54,22 @@ class DataLoader:
         """
         try:
             # Read the ECSV file
-            table = Table.read(file_path, format='ascii.ecsv')
+            table = Table.read(file_path, format="ascii.ecsv")
 
             # Check if all required columns are present
             required_columns = [
-                'datetime_jd', 'RA_deg', 'DEC_deg', 'RA_rate_arcsec_per_h',
-                'DEC_rate_arcsec_per_h', 'AZ_deg', 'EL_deg', 'r_au', 'delta_au',
-                'V_mag', 'alpha_deg', 'RSS_3sigma_arcsec'
+                "datetime_jd",
+                "RA_deg",
+                "DEC_deg",
+                "RA_rate_arcsec_per_h",
+                "DEC_rate_arcsec_per_h",
+                "AZ_deg",
+                "EL_deg",
+                "r_au",
+                "delta_au",
+                "V_mag",
+                "alpha_deg",
+                "RSS_3sigma_arcsec",
             ]
             missing_columns = [col for col in required_columns if col not in table.colnames]
             if missing_columns:
@@ -68,24 +77,25 @@ class DataLoader:
 
             # Create and populate the EphemerisData object
             ephemeris_data = EphemerisData(
-                datetime_jd=Time(table['datetime_jd'], format='jd'),
-                RA_deg=np.array(table['RA_deg']),
-                DEC_deg=np.array(table['DEC_deg']),
-                RA_rate_arcsec_per_h=np.array(table['RA_rate_arcsec_per_h']),
-                DEC_rate_arcsec_per_h=np.array(table['DEC_rate_arcsec_per_h']),
-                AZ_deg=np.array(table['AZ_deg']),
-                EL_deg=np.array(table['EL_deg']),
-                r_au=np.array(table['r_au']),
-                delta_au=np.array(table['delta_au']),
-                V_mag=np.array(table['V_mag']),
-                alpha_deg=np.array(table['alpha_deg']),
-                RSS_3sigma_arcsec=np.array(table['RSS_3sigma_arcsec'])
+                datetime_jd=Time(table["datetime_jd"], format="jd"),
+                RA_deg=np.array(table["RA_deg"]),
+                DEC_deg=np.array(table["DEC_deg"]),
+                RA_rate_arcsec_per_h=np.array(table["RA_rate_arcsec_per_h"]),
+                DEC_rate_arcsec_per_h=np.array(table["DEC_rate_arcsec_per_h"]),
+                AZ_deg=np.array(table["AZ_deg"]),
+                EL_deg=np.array(table["EL_deg"]),
+                r_au=np.array(table["r_au"]),
+                delta_au=np.array(table["delta_au"]),
+                V_mag=np.array(table["V_mag"]),
+                alpha_deg=np.array(table["alpha_deg"]),
+                RSS_3sigma_arcsec=np.array(table["RSS_3sigma_arcsec"])
             )
 
-            DataLoader.logger.info(f"Loaded ephemeris data with {len(ephemeris_data.datetime_jd)} points from {file_path}.")
+            DataLoader.logger.info(
+                f"Loaded ephemeris data with {len(ephemeris_data.datetime_jd)} points from {file_path}."
+            )
 
             return ephemeris_data
-
 
         except FileNotFoundError:
             DataLoader.logger.error(f"The file {file_path} was not found.")
@@ -133,8 +143,10 @@ if __name__ == "__main__":
     #     print(f"Error: {str(e)}")
 
     # Example of loading multiple files
-    file_paths = ["./Ceres_2024-01-01_00-00-00.000_2025-12-31_23-59-00.000.ecsv",
-                  "./Encke_2024-01-01_00-00-00.000_2024-06-30_23-59-00.000.ecsv"]
+    file_paths = [
+        "./Ceres_2024-01-01_00-00-00.000_2025-12-31_23-59-00.000.ecsv",
+        "./Encke_2024-01-01_00-00-00.000_2024-06-30_23-59-00.000.ecsv"
+    ]
     try:
         ephemeris_list = DataLoader.load_multiple_ephemeris_files(file_paths)
         print(f"Loaded {len(ephemeris_list)} ephemeris files.")
