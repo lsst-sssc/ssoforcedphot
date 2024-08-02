@@ -10,6 +10,7 @@ from astroquery.imcce import Miriade
 
 from forcedphot.ephemeris.data_model import EphemerisData, QueryInput, QueryInputMiriade, QueryResult
 
+
 class MiriadeInterface:
     """
     A class for querying ephemeris data for celestial objects using the Miriade service.

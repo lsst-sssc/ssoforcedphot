@@ -4,9 +4,8 @@ import numpy as np
 import pandas as pd
 import pytest
 from astropy.time import Time
-from forcedphot.ephemeris import horizons_interface
 
-from forcedphot.ephemeris import data_model
+from forcedphot.ephemeris import data_model, horizons_interface
 
 
 @pytest.fixture
@@ -85,9 +84,7 @@ def test_query_single_range_failure(mock_horizons):
     mock_horizons.side_effect = Exception("Query failed")
 
     hi = horizons_interface.HorizonsInterface()
-    query = data_model.QueryInput(
-        "Invalid Target", "smallbody", Time("2020-01-01"), Time("2020-01-02"), "1h"
-    )
+    query = data_model.QueryInput("Invalid Target", "smallbody", Time("2020-01-01"), Time("2020-01-02"), "1h")
     result = hi.query_single_range(query)
 
     assert result is None

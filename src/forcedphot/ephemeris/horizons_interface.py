@@ -229,6 +229,7 @@ class HorizonsInterface:
                 )
 
                 if query.target_type == "comet_name":
+                    jd_mid = (start + (end - start) / 2).jd
                     mag_type = "Tmag"
                     ephemeris = obj.ephemerides(
                         closest_apparition=True, no_fragments=True, skip_daylight=True
