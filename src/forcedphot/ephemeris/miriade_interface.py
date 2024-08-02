@@ -8,9 +8,7 @@ from astropy.time import Time
 from astroquery.esasky import ESASky
 from astroquery.imcce import Miriade
 
-# from .local_dataclasses import EphemerisData, QueryInput, QueryResult
-from forcedphot.ephemeris.local_dataclasses import EphemerisData, QueryInput, QueryInputMiriade, QueryResult
-
+from forcedphot.ephemeris.data_model import EphemerisData, QueryInput, QueryInputMiriade, QueryResult
 
 class MiriadeInterface:
     """

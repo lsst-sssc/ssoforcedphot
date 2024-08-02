@@ -3,7 +3,7 @@ from unittest.mock import ANY, Mock, patch
 import pytest
 from astropy.time import Time
 from forcedphot.ephemeris.ephemeris_client import EphemerisClient
-from forcedphot.ephemeris.local_dataclasses import EphemerisData, QueryResult
+from forcedphot.ephemeris.data_model import EphemerisData, QueryResult
 
 
 @pytest.fixture

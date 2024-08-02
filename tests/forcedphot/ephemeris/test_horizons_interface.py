@@ -4,7 +4,9 @@ import numpy as np
 import pandas as pd
 import pytest
 from astropy.time import Time
-from forcedphot.ephemeris import horizons_interface, local_dataclasses
+from forcedphot.ephemeris import horizons_interface
+
+from forcedphot.ephemeris import data_model
 
 
 @pytest.fixture
@@ -66,14 +68,14 @@ def test_query_single_range_success(mock_horizons):
     mock_horizons.return_value.ephemerides = mock_ephemerides
 
     hi = horizons_interface.HorizonsInterface()
-    query = local_dataclasses.QueryInput("Ceres", "smallbody", Time("2020-01-01"), Time("2020-01-02"), "1h")
+    query = data_model.QueryInput("Ceres", "smallbody", Time("2020-01-01"), Time("2020-01-02"), "1h")
     result = hi.query_single_range(query)
 
     assert result is not None
     assert result.target == "Ceres"
     assert result.start == Time("2020-01-01")
     assert result.end == Time("2020-01-02")
-    assert isinstance(result.ephemeris, local_dataclasses.EphemerisData)
+    assert isinstance(result.ephemeris, data_model.EphemerisData)
 
 
 def test_query_single_range_failure(mock_horizons):
@@ -83,7 +85,7 @@ def test_query_single_range_failure(mock_horizons):
     mock_horizons.side_effect = Exception("Query failed")
 
     hi = horizons_interface.HorizonsInterface()
-    query = local_dataclasses.QueryInput(
+    query = data_model.QueryInput(
         "Invalid Target", "smallbody", Time("2020-01-01"), Time("2020-01-02"), "1h"
     )
     result = hi.query_single_range(query)
@@ -102,7 +104,7 @@ def test_query_input_creation(target, target_type, start, end, step):
     """
     Test creation of QueryInput objects with various parameters.
     """
-    query = local_dataclasses.QueryInput(target, target_type, Time(start), Time(end), step)
+    query = data_model.QueryInput(target, target_type, Time(start), Time(end), step)
     assert query.target == target
     assert query.target_type == target_type
     assert query.start == Time(start)
@@ -114,7 +116,7 @@ def test_ephemeris_data_creation():
     """
     Test creation of EphemerisData object and verify its attribute types.
     """
-    ephemeris = local_dataclasses.EphemerisData()
+    ephemeris = data_model.EphemerisData()
     assert isinstance(ephemeris.datetime_jd, Time)
     assert isinstance(ephemeris.RA_deg, np.ndarray)
     assert isinstance(ephemeris.DEC_deg, np.ndarray)
@@ -141,7 +143,7 @@ def test_query_ephemeris_from_csv(
     """
     mock_read_csv.return_value = mock_csv_data
 
-    mock_ephemeris = local_dataclasses.EphemerisData(
+    mock_ephemeris = data_model.EphemerisData(
         datetime_jd=Time([2459000.5], format="jd"),
         RA_deg=np.array([100.0]),
         DEC_deg=np.array([-20.0]),
@@ -155,7 +157,7 @@ def test_query_ephemeris_from_csv(
         alpha_deg=np.array([30.0]),
         RSS_3sigma_arcsec=np.array([0.1]),
     )
-    mock_query_result = local_dataclasses.QueryResult(
+    mock_query_result = data_model.QueryResult(
         "Ceres", Time("2020-01-01"), Time("2020-01-02"), mock_ephemeris
     )
     mock_query_single_range.return_value = mock_query_result

@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 from astropy.table import Table
 from astropy.time import Time
-from forcedphot.ephemeris.local_dataclasses import EphemerisData, QueryInput, QueryInputMiriade, QueryResult
+from forcedphot.ephemeris.data_model import EphemerisData, QueryInput, QueryInputMiriade, QueryResult
 from forcedphot.ephemeris.miriade_interface import MiriadeInterface
 
 
