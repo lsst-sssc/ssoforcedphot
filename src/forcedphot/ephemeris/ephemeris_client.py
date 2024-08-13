@@ -204,8 +204,14 @@ def main():
         results = client.query_from_csv(args.service, args.csv, args.location, args.save_data)
     elif all([args.target, args.target_type, args.start, args.end, args.step]):
         result = client.query_single(
-            args.service, args.target, args.target_type, args.start, args.end, args.step, args.location,
-            args.save_data
+            args.service,
+            args.target,
+            args.target_type,
+            args.start,
+            args.end,
+            args.step,
+            args.location,
+            args.save_data,
         )
         results = [result] if result else []
     elif args.ecsv:
