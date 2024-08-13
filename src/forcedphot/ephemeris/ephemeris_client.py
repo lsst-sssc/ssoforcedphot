@@ -144,7 +144,7 @@ def main():
     either the JPL Horizons or Miriade services.
 
     Command-line Arguments:
-        service (str): The service to use for querying ('horizons' or 'miriade').
+        --service (str): The service to use for querying ('horizons' or 'miriade') deafult is 'horizons'.
         --csv (str): Path to the CSV file for batch processing (optional).
         --ecsv (str): Path to the ECSV file for single query (optional) or
         list of ECSV files for batch processing (optional).
@@ -165,9 +165,9 @@ def main():
         an error message.
 
     Example Usage:
-        python ephemeris_client.py horizons --csv queries.csv
-        python ephemeris_client.py miriade --target Ceres --target_type smallbody --start 2023-01-01
-        --end 2023-01-02 --step 1h
+        python ephemeris_client.py --service horizons --csv queries.csv --save_data
+        python ephemeris_client.py --service miriade --target Ceres --target_type smallbody
+        --start 2023-01-01 --end 2023-01-02 --step 1h
         python ephemeris_client.py --ecsv ceres_ephemeris.ecsv,vesta_ephemeris.ecsv
 
     Returns:
@@ -177,7 +177,9 @@ def main():
         description="Query ephemeris data using Horizons or Miriade services or"
         " load ephemeris data from existing ECSV."
     )
-    parser.add_argument("service", choices=["horizons", "miriade"], help="Service to use for querying")
+    parser.add_argument(
+        "--service", choices=["horizons", "miriade"], default="horizons", help="Service to use for querying"
+    )
     parser.add_argument(
         "--ecsv", help="Path to ECSV file (or a list separated with ,) containing ephemeris data"
     )
@@ -199,10 +201,11 @@ def main():
     client = EphemerisClient()
 
     if args.csv:
-        results = client.query_from_csv(args.service, args.csv, args.location)
+        results = client.query_from_csv(args.service, args.csv, args.location, args.save_data)
     elif all([args.target, args.target_type, args.start, args.end, args.step]):
         result = client.query_single(
-            args.service, args.target, args.target_type, args.start, args.end, args.step, args.location
+            args.service, args.target, args.target_type, args.start, args.end, args.step, args.location,
+            args.save_data
         )
         results = [result] if result else []
     elif args.ecsv:
