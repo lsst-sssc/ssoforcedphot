@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, call, mock_open, patch
+from unittest.mock import call, mock_open, patch
 
 import numpy as np
 import pandas as pd
@@ -44,7 +44,7 @@ def test_init():
     assert mi_custom.observer_location == "500"
 
 
-def test_calc_nsteps_for_miriade_query():
+def test_convert_to_miriade_query():
     """
     Test the calculation of the number of steps for a Miriade query.
     """
@@ -52,12 +52,12 @@ def test_calc_nsteps_for_miriade_query():
         target="Ceres", target_type="smallbody", start=Time("2023-01-01"), end=Time("2023-01-02"), step="1h"
     )
     mi = MiriadeInterface()
-    result = mi.calc_nsteps_for_miriade_query(query)
+    result = mi.convert_to_miriade_query(query)
     assert isinstance(result, QueryInputMiriade)
     assert result.nsteps == 24
 
 
-def test_calc_nsteps_for_miriade_query_invalid_step():
+def test_convert_to_miriade_query_invalid_step():
     """
     Test the calculation of the number of steps for a Miriade query with an invalid step.
     """
@@ -66,7 +66,7 @@ def test_calc_nsteps_for_miriade_query_invalid_step():
     )
     mi = MiriadeInterface()
     with pytest.raises(ValueError):
-        mi.calc_nsteps_for_miriade_query(query)
+        mi.convert_to_miriade_query(query)
 
 
 @patch("forcedphot.ephemeris.miriade_interface.Miriade.get_ephemerides")
@@ -103,7 +103,7 @@ def test_query_single_range(mock_get_ephemerides, miriade_interface):
     assert result.end == Time("2023-01-02")
 
     assert isinstance(result.ephemeris, EphemerisData)
-    assert len(result.ephemeris.datetime_jd) == 1
+    assert len(result.ephemeris.datetime) == 1
     assert result.ephemeris.RA_deg[0] == 10.5
     assert result.ephemeris.DEC_deg[0] == 20.5
     assert result.ephemeris.RA_rate_arcsec_per_h[0] == 0.1
@@ -122,7 +122,7 @@ def test_ephemeris_data_creation():
     Test creation of EphemerisData object and verify its attribute types.
     """
     ephemeris = EphemerisData()
-    assert isinstance(ephemeris.datetime_jd, Time)
+    assert isinstance(ephemeris.datetime, Time)
     assert isinstance(ephemeris.RA_deg, np.ndarray)
     assert isinstance(ephemeris.DEC_deg, np.ndarray)
     assert isinstance(ephemeris.RA_rate_arcsec_per_h, np.ndarray)
@@ -138,18 +138,16 @@ def test_ephemeris_data_creation():
 
 @patch("pandas.read_csv")
 @patch("forcedphot.ephemeris.miriade_interface.MiriadeInterface.query_single_range")
-@patch("astropy.table.Table.from_pandas")
 @patch("astropy.table.Table.write")
 def test_query_ephemeris_from_csv(
-    mock_table_write, mock_table_from_pandas, mock_query_single_range, mock_read_csv, mock_csv_data
-):
+    mock_table_write, mock_query_single_range, mock_read_csv, mock_csv_data):
     """
     Test querying ephemeris data from a CSV file using mocked dependencies.
     """
     mock_read_csv.return_value = mock_csv_data
 
     mock_ephemeris = EphemerisData(
-        datetime_jd=Time([2459000.5], format="jd"),
+        datetime=Time([2459000.5], format="jd"),
         RA_deg=np.array([100.0]),
         DEC_deg=np.array([-20.0]),
         RA_rate_arcsec_per_h=np.array([0.5]),
@@ -165,20 +163,64 @@ def test_query_ephemeris_from_csv(
     mock_query_result = QueryResult("Ceres", Time("2020-01-01"), Time("2020-01-02"), mock_ephemeris)
     mock_query_single_range.return_value = mock_query_result
 
-    mock_table = MagicMock()
-    mock_table_from_pandas.return_value = mock_table
-
     mi = MiriadeInterface()
     with patch("builtins.open", mock_open()) as _mock_file:
         mi.query_ephemeris_from_csv("test.csv", save_data=True)
 
     mock_read_csv.assert_called_once_with("test.csv")
     mock_query_single_range.assert_called_once()
-    mock_table_from_pandas.assert_called_once()
 
     expected_filename = "./Ceres_2020-01-01_00-00-00.000_2020-01-02_00-00-00.000.ecsv"
     expected_call = call(expected_filename, format="ascii.ecsv", overwrite=True)
     print(f"Expected call: {expected_call}")
-    print(f"Actual calls: {mock_table.write.mock_calls}")
+    print(f"Actual calls: {mock_table_write.mock_calls}")
 
-    assert expected_call in mock_table.write.mock_calls, "Expected write call not found"
+    assert expected_call in mock_table_write.mock_calls, "Expected write call not found"
+
+
+# @patch("pandas.read_csv")
+# @patch("forcedphot.ephemeris.miriade_interface.MiriadeInterface.query_single_range")
+# @patch("astropy.table.Table.from_pandas")
+# @patch("astropy.table.Table.write")
+# def test_query_ephemeris_from_csv(
+#     mock_table_write, mock_table_from_pandas, mock_query_single_range, mock_read_csv, mock_csv_data
+# ):
+#     """
+#     Test querying ephemeris data from a CSV file using mocked dependencies.
+#     """
+#     mock_read_csv.return_value = mock_csv_data
+
+#     mock_ephemeris = EphemerisData(
+#         datetime=Time([2459000.5], format="jd"),
+#         RA_deg=np.array([100.0]),
+#         DEC_deg=np.array([-20.0]),
+#         RA_rate_arcsec_per_h=np.array([0.5]),
+#         DEC_rate_arcsec_per_h=np.array([-0.3]),
+#         AZ_deg=np.array([250.0]),
+#         EL_deg=np.array([45.0]),
+#         r_au=np.array([1.5]),
+#         delta_au=np.array([0.8]),
+#         V_mag=np.array([15.0]),
+#         alpha_deg=np.array([30.0]),
+#         RSS_3sigma_arcsec=np.array([0.1]),
+#     )
+#     mock_query_result = QueryResult("Ceres", Time("2020-01-01"), Time("2020-01-02"), mock_ephemeris)
+#     mock_query_single_range.return_value = mock_query_result
+
+#     mock_table = MagicMock()
+#     mock_table_from_pandas.return_value = mock_table
+
+#     mi = MiriadeInterface()
+#     with patch("builtins.open", mock_open()) as _mock_file:
+#         mi.query_ephemeris_from_csv("test.csv", save_data=True)
+
+#     mock_read_csv.assert_called_once_with("test.csv")
+#     mock_query_single_range.assert_called_once()
+#     mock_table_from_pandas.assert_called_once()
+
+#     expected_filename = "./Ceres_2020-01-01_00-00-00.000_2020-01-02_00-00-00.000.ecsv"
+#     expected_call = call(expected_filename, format="ascii.ecsv", overwrite=True)
+#     print(f"Expected call: {expected_call}")
+#     print(f"Actual calls: {mock_table.write.mock_calls}")
+
+#     assert expected_call in mock_table.write.mock_calls, "Expected write call not found"

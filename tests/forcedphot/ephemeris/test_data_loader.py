@@ -11,7 +11,7 @@ def sample_ecsv_file(tmp_path):
     file_path = tmp_path / "test_ephemeris.ecsv"
     data = Table(
         {
-            "datetime_jd": [2459000.5, 2459001.5],
+            "datetime": [2459000.5, 2459001.5],
             "RA_deg": [100.0, 101.0],
             "DEC_deg": [-20.0, -19.5],
             "RA_rate_arcsec_per_h": [0.1, 0.2],
@@ -34,7 +34,7 @@ def test_load_ephemeris_from_ecsv(sample_ecsv_file):
     ephemeris_data = DataLoader.load_ephemeris_from_ecsv(sample_ecsv_file)
 
     assert isinstance(ephemeris_data, EphemerisData)
-    assert len(ephemeris_data.datetime_jd) == 2
+    assert len(ephemeris_data.datetime) == 2
     assert np.allclose(ephemeris_data.RA_deg, [100.0, 101.0])
     assert np.allclose(ephemeris_data.DEC_deg, [-20.0, -19.5])
     assert np.allclose(ephemeris_data.RA_rate_arcsec_per_h, [0.1, 0.2])
@@ -69,7 +69,7 @@ def test_load_multiple_ephemeris_files(sample_ecsv_file, tmp_path):
     second_file = tmp_path / "test_ephemeris2.ecsv"
     data = Table(
         {
-            "datetime_jd": [2459002.5],
+            "datetime": [2459002.5],
             "RA_deg": [102.0],
             "DEC_deg": [-19.0],
             "RA_rate_arcsec_per_h": [0.3],
@@ -91,8 +91,8 @@ def test_load_multiple_ephemeris_files(sample_ecsv_file, tmp_path):
     assert len(ephemeris_list) == 2
     assert isinstance(ephemeris_list[0], EphemerisData)
     assert isinstance(ephemeris_list[1], EphemerisData)
-    assert len(ephemeris_list[0].datetime_jd) == 2
-    assert len(ephemeris_list[1].datetime_jd) == 1
+    assert len(ephemeris_list[0].datetime) == 2
+    assert len(ephemeris_list[1].datetime) == 1
 
 
 def test_load_multiple_ephemeris_files_with_error(sample_ecsv_file):

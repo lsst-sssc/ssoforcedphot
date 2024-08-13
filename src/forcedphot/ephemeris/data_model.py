@@ -50,7 +50,7 @@ class EphemerisData:
     A data class representing the ephemeris data for a celestial object.
 
     Attributes:
-        datetime_jd (Time): Julian date times for the ephemeris data points.
+        datetime (Time): Time for the ephemeris data points.
         RA_deg (np.ndarray): Right Ascension in degrees.
         DEC_deg (np.ndarray): Declination in degrees.
         RA_rate_arcsec_per_h (np.ndarray): Rate of change of Right Ascension in arcseconds per hour.
@@ -64,7 +64,7 @@ class EphemerisData:
         RSS_3sigma_arcsec (np.ndarray): Root Sum Square 3-sigma positional uncertainty in arcseconds.
     """
 
-    datetime_jd: Time = field(default_factory=lambda: Time([], format="jd"))
+    datetime: Time = field(default_factory=lambda: Time([], scale="utc", format="jd"))
     RA_deg: np.ndarray = field(default_factory=lambda: np.array([]))
     DEC_deg: np.ndarray = field(default_factory=lambda: np.array([]))
     RA_rate_arcsec_per_h: np.ndarray = field(default_factory=lambda: np.array([]))

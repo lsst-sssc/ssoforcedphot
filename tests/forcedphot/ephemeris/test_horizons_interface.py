@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import pytest
 from astropy.time import Time
-
 from forcedphot.ephemeris import data_model, horizons_interface
 
 
@@ -114,7 +113,7 @@ def test_ephemeris_data_creation():
     Test creation of EphemerisData object and verify its attribute types.
     """
     ephemeris = data_model.EphemerisData()
-    assert isinstance(ephemeris.datetime_jd, Time)
+    assert isinstance(ephemeris.datetime, Time)
     assert isinstance(ephemeris.RA_deg, np.ndarray)
     assert isinstance(ephemeris.DEC_deg, np.ndarray)
     assert isinstance(ephemeris.RA_rate_arcsec_per_h, np.ndarray)
@@ -130,10 +129,9 @@ def test_ephemeris_data_creation():
 
 @patch("pandas.read_csv")
 @patch("forcedphot.ephemeris.horizons_interface.HorizonsInterface.query_single_range")
-@patch("astropy.table.Table.from_pandas")
 @patch("astropy.table.Table.write")
 def test_query_ephemeris_from_csv(
-    mock_table_write, mock_table_from_pandas, mock_query_single_range, mock_read_csv, mock_csv_data
+    mock_table_write, mock_query_single_range, mock_read_csv, mock_csv_data
 ):
     """
     Test querying ephemeris data from a CSV file using mocked dependencies.
@@ -141,7 +139,7 @@ def test_query_ephemeris_from_csv(
     mock_read_csv.return_value = mock_csv_data
 
     mock_ephemeris = data_model.EphemerisData(
-        datetime_jd=Time([2459000.5], format="jd"),
+        datetime=Time([2459000.5], format="jd"),
         RA_deg=np.array([100.0]),
         DEC_deg=np.array([-20.0]),
         RA_rate_arcsec_per_h=np.array([0.5]),
@@ -159,19 +157,16 @@ def test_query_ephemeris_from_csv(
     )
     mock_query_single_range.return_value = mock_query_result
 
-    mock_table = MagicMock()
-    mock_table_from_pandas.return_value = mock_table
-
+    hi = horizons_interface.HorizonsInterface()
     with patch("builtins.open", mock_open()) as _mock_file:
-        horizons_interface.HorizonsInterface.query_ephemeris_from_csv("test.csv", save_data=True)
+        hi.query_ephemeris_from_csv("test.csv", save_data=True)
 
     mock_read_csv.assert_called_once_with("test.csv")
     mock_query_single_range.assert_called_once()
-    mock_table_from_pandas.assert_called_once()
 
     expected_filename = "./Ceres_2020-01-01_00-00-00.000_2020-01-02_00-00-00.000.ecsv"
     expected_call = call(expected_filename, format="ascii.ecsv", overwrite=True)
     print(f"Expected call: {expected_call}")
-    print(f"Actual calls: {mock_table.write.mock_calls}")
+    print(f"Actual calls: {mock_table_write.mock_calls}")
 
-    assert expected_call in mock_table.write.mock_calls, "Expected write call not found"
+    assert expected_call in mock_table_write.mock_calls, "Expected write call not found"

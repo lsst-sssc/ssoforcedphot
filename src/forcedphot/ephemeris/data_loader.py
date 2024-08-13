@@ -58,7 +58,7 @@ class DataLoader:
 
             # Check if all required columns are present
             required_columns = [
-                "datetime_jd",
+                "datetime",
                 "RA_deg",
                 "DEC_deg",
                 "RA_rate_arcsec_per_h",
@@ -77,7 +77,7 @@ class DataLoader:
 
             # Create and populate the EphemerisData object
             ephemeris_data = EphemerisData(
-                datetime_jd=Time(table["datetime_jd"], format="jd"),
+                datetime=Time(table["datetime"], scale="utc", format="jd"),
                 RA_deg=np.array(table["RA_deg"]),
                 DEC_deg=np.array(table["DEC_deg"]),
                 RA_rate_arcsec_per_h=np.array(table["RA_rate_arcsec_per_h"]),
@@ -92,7 +92,7 @@ class DataLoader:
             )
 
             DataLoader.logger.info(
-                f"Loaded ephemeris data with {len(ephemeris_data.datetime_jd)} points from {file_path}."
+                f"Loaded ephemeris data with {len(ephemeris_data.datetime)} points from {file_path}."
             )
 
             return ephemeris_data
