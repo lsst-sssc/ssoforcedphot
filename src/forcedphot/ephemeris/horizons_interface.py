@@ -91,7 +91,7 @@ class HorizonsInterface:
             "m" for minutes
             "h" for hours
             "d" for days
-        - Time ranges are calculated using astropy's Time objects and are returned as such.
+        - Time ranges are calculated using astropy Time objects and are returned as such.
         - The method uses astropy units (u) for time calculations.
         """
         # Define the step frequency with astropy units
@@ -165,46 +165,48 @@ class HorizonsInterface:
 
         # Save the data to an ECSV file
 
-        result_table = Table({
-            "datetime": ephemeris_data.datetime.jd,
-            "RA_deg": ephemeris_data.RA_deg,
-            "DEC_deg": ephemeris_data.DEC_deg,
-            "RA_rate_arcsec_per_h": ephemeris_data.RA_rate_arcsec_per_h,
-            "DEC_rate_arcsec_per_h": ephemeris_data.DEC_rate_arcsec_per_h,
-            "AZ_deg": ephemeris_data.AZ_deg,
-            "EL_deg": ephemeris_data.EL_deg,
-            "r_au": ephemeris_data.r_au,
-            "delta_au": ephemeris_data.delta_au,
-            "V_mag": ephemeris_data.V_mag,
-            "alpha_deg": ephemeris_data.alpha_deg,
-            "RSS_3sigma_arcsec": ephemeris_data.RSS_3sigma_arcsec,
-        })
+        result_table = Table(
+            {
+                "datetime": ephemeris_data.datetime.jd,
+                "RA_deg": ephemeris_data.RA_deg,
+                "DEC_deg": ephemeris_data.DEC_deg,
+                "RA_rate_arcsec_per_h": ephemeris_data.RA_rate_arcsec_per_h,
+                "DEC_rate_arcsec_per_h": ephemeris_data.DEC_rate_arcsec_per_h,
+                "AZ_deg": ephemeris_data.AZ_deg,
+                "EL_deg": ephemeris_data.EL_deg,
+                "r_au": ephemeris_data.r_au,
+                "delta_au": ephemeris_data.delta_au,
+                "V_mag": ephemeris_data.V_mag,
+                "alpha_deg": ephemeris_data.alpha_deg,
+                "RSS_3sigma_arcsec": ephemeris_data.RSS_3sigma_arcsec,
+            }
+        )
 
-        result_table['datetime'].unit = u.day
-        result_table['datetime'].description = "Time for the ephemeris data points."
-        result_table['RA_deg'].unit = u.deg
-        result_table['RA_deg'].description = "Right Ascension in degrees"
-        result_table['DEC_deg'].unit = u.deg
-        result_table['DEC_deg'].description = "Declination in degrees"
-        result_table['RA_rate_arcsec_per_h'].unit = u.arcsec / u.hour
-        result_table['RA_rate_arcsec_per_h'].description = "Rate of change in Right Ascension"
+        result_table["datetime"].unit = u.day
+        result_table["datetime"].description = "Time for the ephemeris data points."
+        result_table["RA_deg"].unit = u.deg
+        result_table["RA_deg"].description = "Right Ascension in degrees"
+        result_table["DEC_deg"].unit = u.deg
+        result_table["DEC_deg"].description = "Declination in degrees"
+        result_table["RA_rate_arcsec_per_h"].unit = u.arcsec / u.hour
+        result_table["RA_rate_arcsec_per_h"].description = "Rate of change in Right Ascension"
         "in arcseconds per hour"
-        result_table['DEC_rate_arcsec_per_h'].unit = u.arcsec / u.hour
-        result_table['DEC_rate_arcsec_per_h'].description = "Rate of change in Declination"
+        result_table["DEC_rate_arcsec_per_h"].unit = u.arcsec / u.hour
+        result_table["DEC_rate_arcsec_per_h"].description = "Rate of change in Declination"
         "in arcseconds per hour"
-        result_table['AZ_deg'].unit = u.deg
-        result_table['AZ_deg'].description = "Azimuth in degrees"
-        result_table['EL_deg'].unit = u.deg
-        result_table['EL_deg'].description = "Elevation in degrees"
-        result_table['r_au'].unit = u.au
-        result_table['r_au'].description = "Heliocentric distance in astronomical units"
-        result_table['delta_au'].unit = u.au
-        result_table['delta_au'].description = "Geocentric distance in astronomical units"
-        result_table['V_mag'].description = "Visual magnitude"
-        result_table['alpha_deg'].unit = u.deg
-        result_table['alpha_deg'].description = "Phase angle in degrees"
-        result_table['RSS_3sigma_arcsec'].unit = u.arcsec
-        result_table['RSS_3sigma_arcsec'].description = "3-sigma uncertainty in arcseconds"
+        result_table["AZ_deg"].unit = u.deg
+        result_table["AZ_deg"].description = "Azimuth in degrees"
+        result_table["EL_deg"].unit = u.deg
+        result_table["EL_deg"].description = "Elevation in degrees"
+        result_table["r_au"].unit = u.au
+        result_table["r_au"].description = "Heliocentric distance in astronomical units"
+        result_table["delta_au"].unit = u.au
+        result_table["delta_au"].description = "Geocentric distance in astronomical units"
+        result_table["V_mag"].description = "Visual magnitude"
+        result_table["alpha_deg"].unit = u.deg
+        result_table["alpha_deg"].description = "Phase angle in degrees"
+        result_table["RSS_3sigma_arcsec"].unit = u.arcsec
+        result_table["RSS_3sigma_arcsec"].description = "3-sigma uncertainty in arcseconds"
 
         result_table.write("./" + output_filename, format="ascii.ecsv", overwrite=True)
         self.logger.info(f"Ephemeris data successfully saved to {output_filename}")
@@ -256,7 +258,9 @@ class HorizonsInterface:
                     mag_type = "Tmag"
                     ephemeris = obj.ephemerides(
                         # closest_apparition=True, no_fragments=True, skip_daylight=True
-                        closest_apparition=f"<{jd_mid:.0f}", no_fragments=True, skip_daylight=False
+                        closest_apparition=f"<{jd_mid:.0f}", 
+                        no_fragments=True, 
+                        skip_daylight=False,
                     )
 
                 else:

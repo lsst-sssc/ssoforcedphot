@@ -130,9 +130,7 @@ def test_ephemeris_data_creation():
 @patch("pandas.read_csv")
 @patch("forcedphot.ephemeris.horizons_interface.HorizonsInterface.query_single_range")
 @patch("astropy.table.Table.write")
-def test_query_ephemeris_from_csv(
-    mock_table_write, mock_query_single_range, mock_read_csv, mock_csv_data
-):
+def test_query_ephemeris_from_csv(mock_table_write, mock_query_single_range, mock_read_csv, mock_csv_data):
     """
     Test querying ephemeris data from a CSV file using mocked dependencies.
     """

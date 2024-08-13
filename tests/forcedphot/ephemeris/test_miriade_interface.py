@@ -139,8 +139,7 @@ def test_ephemeris_data_creation():
 @patch("pandas.read_csv")
 @patch("forcedphot.ephemeris.miriade_interface.MiriadeInterface.query_single_range")
 @patch("astropy.table.Table.write")
-def test_query_ephemeris_from_csv(
-    mock_table_write, mock_query_single_range, mock_read_csv, mock_csv_data):
+def test_query_ephemeris_from_csv(mock_table_write, mock_query_single_range, mock_read_csv, mock_csv_data):
     """
     Test querying ephemeris data from a CSV file using mocked dependencies.
     """
@@ -176,51 +175,3 @@ def test_query_ephemeris_from_csv(
     print(f"Actual calls: {mock_table_write.mock_calls}")
 
     assert expected_call in mock_table_write.mock_calls, "Expected write call not found"
-
-
-# @patch("pandas.read_csv")
-# @patch("forcedphot.ephemeris.miriade_interface.MiriadeInterface.query_single_range")
-# @patch("astropy.table.Table.from_pandas")
-# @patch("astropy.table.Table.write")
-# def test_query_ephemeris_from_csv(
-#     mock_table_write, mock_table_from_pandas, mock_query_single_range, mock_read_csv, mock_csv_data
-# ):
-#     """
-#     Test querying ephemeris data from a CSV file using mocked dependencies.
-#     """
-#     mock_read_csv.return_value = mock_csv_data
-
-#     mock_ephemeris = EphemerisData(
-#         datetime=Time([2459000.5], format="jd"),
-#         RA_deg=np.array([100.0]),
-#         DEC_deg=np.array([-20.0]),
-#         RA_rate_arcsec_per_h=np.array([0.5]),
-#         DEC_rate_arcsec_per_h=np.array([-0.3]),
-#         AZ_deg=np.array([250.0]),
-#         EL_deg=np.array([45.0]),
-#         r_au=np.array([1.5]),
-#         delta_au=np.array([0.8]),
-#         V_mag=np.array([15.0]),
-#         alpha_deg=np.array([30.0]),
-#         RSS_3sigma_arcsec=np.array([0.1]),
-#     )
-#     mock_query_result = QueryResult("Ceres", Time("2020-01-01"), Time("2020-01-02"), mock_ephemeris)
-#     mock_query_single_range.return_value = mock_query_result
-
-#     mock_table = MagicMock()
-#     mock_table_from_pandas.return_value = mock_table
-
-#     mi = MiriadeInterface()
-#     with patch("builtins.open", mock_open()) as _mock_file:
-#         mi.query_ephemeris_from_csv("test.csv", save_data=True)
-
-#     mock_read_csv.assert_called_once_with("test.csv")
-#     mock_query_single_range.assert_called_once()
-#     mock_table_from_pandas.assert_called_once()
-
-#     expected_filename = "./Ceres_2020-01-01_00-00-00.000_2020-01-02_00-00-00.000.ecsv"
-#     expected_call = call(expected_filename, format="ascii.ecsv", overwrite=True)
-#     print(f"Expected call: {expected_call}")
-#     print(f"Actual calls: {mock_table.write.mock_calls}")
-
-#     assert expected_call in mock_table.write.mock_calls, "Expected write call not found"
