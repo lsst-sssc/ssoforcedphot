@@ -1,0 +1,31 @@
+name: "When Opened"
+
+on:
+  issues:
+    types:
+      - opened
+  pull_request_target:
+    types:
+      - opened
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Reviewer Checklist"
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request_target'
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `Thank you for your contribution to ssoforcedphot, a LINCC Framework package! 🌌 This checklist is meant to remind pull request reviewers of some common things to look for.
+
+              - [ ] Do the proposed changes accomplish the desired goals and meet the acceptance criteria of the related issue?
+              - [ ] Do the proposed changes follow the coding guidelines?
+              - [ ] Are tests added/updated as needed?  Are methods requiring network access mocked for offline testing?
+              - [ ] Is there sufficient documentation for the changes?
+            })
