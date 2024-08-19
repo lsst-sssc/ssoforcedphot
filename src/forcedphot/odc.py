@@ -115,7 +115,7 @@ class ObjectDetectionController:
 
         # Ephemeris Service selection
         parser.add_argument(
-            "-e", "--ephemeris-service",
+            "-es", "--ephemeris-service",
             choices=["Horizons", "Miriade"],
             default="Horizons",
             help="Ephemeris service to use"
@@ -177,8 +177,8 @@ class ObjectDetectionController:
         # Image service
         parser.add_argument(
             "--image-service",
-            choices=["Rubin", "ZTF"],
-            default="Rubin",
+            choices=["LSST-Butler", "ZTF"],
+            default="LSST-Butler",
             help="Image service to use"
         )
 
