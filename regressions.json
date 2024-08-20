@@ -1,1 +1,1 @@
-{"regressions": []}
+{"regressions": [["benchmarks.mem_list", "graphs/Cython/branch-HEAD/build/machine-gh-runner/packaging/python-3.10/benchmarks.mem_list.json", {}, null, 656.0, 336.0, [[null, 5, 336.0, 656.0]]]]}
