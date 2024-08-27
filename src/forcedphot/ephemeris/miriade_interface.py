@@ -3,7 +3,6 @@ import time
 
 import astropy.units as u
 import numpy as np
-import pandas as pd
 from astropy.table import Table
 from astropy.time import Time
 from astroquery.esasky import ESASky
@@ -349,91 +348,91 @@ class MiriadeInterface:
 
             return None
 
-    @classmethod
-    def query_ephemeris_from_csv(
-        cls, csv_file: str, observer_location=DEFAULT_OBSERVER_LOCATION, save_data: bool = False
-    ):
-        """
-        Process multiple ephemeris queries from a CSV file and save results as ECSV files.
+    # @classmethod
+    # def query_ephemeris_from_csv(
+    #     cls, csv_file: str, observer_location=DEFAULT_OBSERVER_LOCATION, save_data: bool = False
+    # ):
+    #     """
+    #     Process multiple ephemeris queries from a CSV file and save results as ECSV files.
 
-        This class method reads query parameters from a CSV file, performs ephemeris queries
-        for each row, and saves the results in individual ECSV files.
+    #     This class method reads query parameters from a CSV file, performs ephemeris queries
+    #     for each row, and saves the results in individual ECSV files.
 
-        Parameters:
-        -----------
-        csv_file : str
-            Path to the input CSV file containing query parameters.
-            The CSV should have columns in the order: target, start_time, end_time, step.
+    #     Parameters:
+    #     -----------
+    #     csv_file : str
+    #         Path to the input CSV file containing query parameters.
+    #         The CSV should have columns in the order: target, start_time, end_time, step.
 
-        observer_location : str, optional
-            The observer location code to use for all queries.
-            Defaults to the class's DEFAULT_OBSERVER_LOCATION.
+    #     observer_location : str, optional
+    #         The observer location code to use for all queries.
+    #         Defaults to the class's DEFAULT_OBSERVER_LOCATION.
 
-        save_data : bool, optional
-            Whether to save the queried ephemeris data to ECSV files.
+    #     save_data : bool, optional
+    #         Whether to save the queried ephemeris data to ECSV files.
 
-        Returns:
-        --------
-        QueryResult or None
-            The queried ephemeris data wrapped in a QueryResult object if successful,
-            or None if an error occurs. Also, the method saves the data to ECSV files.
+    #     Returns:
+    #     --------
+    #     QueryResult or None
+    #         The queried ephemeris data wrapped in a QueryResult object if successful,
+    #         or None if an error occurs. Also, the method saves the data to ECSV files.
 
-        Raises:
-        -------
-        Exception
-            Any exception during the process is caught and logged, but not re-raised.
+    #     Raises:
+    #     -------
+    #     Exception
+    #         Any exception during the process is caught and logged, but not re-raised.
 
-        Notes:
-        ------
-        - The input CSV file should have no header and contain four columns:
-        target, start_time, end_time, step.
-        - Each query's results are saved in a separate ECSV file.
-        - The method logs the total processing time for the entire CSV file.
-        - If an error occurs for a single query, it's logged and the method continues
-        with the next row in the CSV.
-        """
+    #     Notes:
+    #     ------
+    #     - The input CSV file should have no header and contain four columns:
+    #     target, start_time, end_time, step.
+    #     - Each query's results are saved in a separate ECSV file.
+    #     - The method logs the total processing time for the entire CSV file.
+    #     - If an error occurs for a single query, it's logged and the method continues
+    #     with the next row in the CSV.
+    #     """
 
-        try:
-            total_start_time = time.time()
-            # Create an empty list to store the results
-            results = []
-            # Read the CSV file
-            df = pd.read_csv(csv_file)
+    #     try:
+    #         total_start_time = time.time()
+    #         # Create an empty list to store the results
+    #         results = []
+    #         # Read the CSV file
+    #         df = pd.read_csv(csv_file)
 
-            # Create Miriade interface instance with the specified observer location
-            miriade_interface = cls(observer_location)
+    #         # Create Miriade interface instance with the specified observer location
+    #         miriade_interface = cls(observer_location)
 
-            # Process each row in the CSV file
-            for _index, row in df.iterrows():
-                query = QueryInput(
-                    target=row.iloc[0],
-                    target_type=row.iloc[1],
-                    start=Time(row.iloc[2], scale="utc"),
-                    end=Time(row.iloc[3], scale="utc"),
-                    step=row.iloc[4],
-                )
+    #         # Process each row in the CSV file
+    #         for _index, row in df.iterrows():
+    #             query = QueryInput(
+    #                 target=row.iloc[0],
+    #                 target_type=row.iloc[1],
+    #                 start=Time(row.iloc[2], scale="utc"),
+    #                 end=Time(row.iloc[3], scale="utc"),
+    #                 step=row.iloc[4],
+    #             )
 
-                # Query Miriade for the current row
-                query_result = miriade_interface.query_single_range(query)
+    #             # Query Miriade for the current row
+    #             query_result = miriade_interface.query_single_range(query)
 
-                if query_result is not None:
-                    # Append the result to the list
-                    results.append(query_result)
+    #             if query_result is not None:
+    #                 # Append the result to the list
+    #                 results.append(query_result)
 
-                if save_data:
-                    # Save the queried ephemeris data to ECSV file
-                    miriade_interface.save_miriade_data_to_ecsv(query, query_result.ephemeris)
+    #             if save_data:
+    #                 # Save the queried ephemeris data to ECSV file
+    #                 miriade_interface.save_miriade_data_to_ecsv(query, query_result.ephemeris)
 
-            total_end_time = time.time()
-            cls.logger.info(
-                f"Total time taken for processing the ECSV file:"
-                f"{total_end_time - total_start_time:.2f} seconds."
-            )
-            return results
+    #         total_end_time = time.time()
+    #         cls.logger.info(
+    #             f"Total time taken for processing the ECSV file:"
+    #             f"{total_end_time - total_start_time:.2f} seconds."
+    #         )
+    #         return results
 
-        except Exception as e:
-            cls.logger.error(f"An error occurred during query for CSV file {csv_file}")
-            cls.logger.error(f"Error details: {str(e)}")
+    #     except Exception as e:
+    #         cls.logger.error(f"An error occurred during query for CSV file {csv_file}")
+    #         cls.logger.error(f"Error details: {str(e)}")
 
 
 if __name__ == "__main__":

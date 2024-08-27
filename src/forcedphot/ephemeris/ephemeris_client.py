@@ -1,7 +1,7 @@
-import argparse
 import logging
 from typing import Union
 
+import pandas as pd
 from astropy.time import Time
 
 from forcedphot.ephemeris.data_loader import DataLoader
@@ -100,15 +100,39 @@ class EphemerisClient:
         Returns:
             List of query results.
         """
-        if service.lower() == "horizons":
-            return HorizonsInterface.query_ephemeris_from_csv(
-                csv_file, observer_location, save_data=save_data
-            )
-        elif service.lower() == "miriade":
-            return MiriadeInterface.query_ephemeris_from_csv(csv_file, observer_location, save_data=save_data)
-        else:
-            self.logger.error(f"Invalid service: {service}. Use 'horizons' or 'miriade'.")
-            return None
+        try:
+            results = []
+            df = pd.read_csv(csv_file)
+
+            for _index, row in df.iterrows():
+                query = QueryInput(
+                    target=row.iloc[0],
+                    target_type=row.iloc[1],
+                    start=Time(row.iloc[2], format="iso", scale="utc"),
+                    end=Time(row.iloc[3], format="iso", scale="utc"),
+                    step=row.iloc[4],
+                )
+
+                query_result = self.query_single(
+                    service,
+                    query.target,
+                    query.target_type,
+                    query.start,
+                    query.end,
+                    query.step,
+                    observer_location,
+                    save_data=save_data
+                )
+
+                if query_result is not None:
+                    results.append(query_result)
+
+            return results
+
+        except Exception as e:
+            self.logger.error(f"An error occured during query for CSV file {csv_file}")
+            self.logger.error(f"Error details: {str(e)}")
+
 
     def load_ephemeris_from_ecsv(self, ecsv_file: str) -> EphemerisData:
         """

@@ -77,9 +77,9 @@ class ObjectDetectionController:
         python odc.py --ephemeris-service Horizons --target Ceres --target-type smallbody
         --start-time "2023-01-01 00:00:00" --day-range 30 --step 1h --save-data
 
-        python odc2.py --csv targets.csv --save-data
+        python odc.py --csv targets.csv --save-data
 
-        python odc2.py @query_args.txt
+        python odc.py @query_args.txt
     """
 
     def __init__(self):
