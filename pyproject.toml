@@ -16,6 +16,10 @@ classifiers = [
 dynamic = ["version"]
 requires-python = ">=3.9"
 dependencies = [
+    "astropy",
+    "astroquery",
+    "pandas",
+    "numpy"
 ]
 
 [project.urls]
@@ -45,6 +49,9 @@ write_to = "src/forcedphot/_version.py"
 [tool.pytest.ini_options]
 testpaths = [
     "tests",
+]
+pythonpath = [
+    "src",
 ]
 
 [tool.black]
