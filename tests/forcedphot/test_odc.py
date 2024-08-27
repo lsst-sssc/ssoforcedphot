@@ -7,7 +7,7 @@ from forcedphot.odc import ObjectDetectionController
 
 @pytest.fixture
 def controller():
-    """Fixture for the ObjectDetectionController."""
+    """Fixture for ObjectDetectionController."""
     return ObjectDetectionController()
 
 
