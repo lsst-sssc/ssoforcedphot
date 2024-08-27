@@ -134,7 +134,7 @@ class DataLoader:
         return ephemeris_list
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     # Example usage
     # file_path = "./Ceres_2024-01-01_00-00-00.000_2025-12-31_23-59-00.000.ecsv"
     # try:
@@ -143,12 +143,11 @@ if __name__ == "__main__":
     #     print(f"Error: {str(e)}")
 
     # Example of loading multiple files
-    file_paths = [
-        "./Ceres_2024-01-01_00-00-00.000_2025-12-31_23-59-00.000.ecsv",
-        "./Encke_2024-01-01_00-00-00.000_2024-06-30_23-59-00.000.ecsv",
-    ]
-    try:
-        ephemeris_list = DataLoader.load_multiple_ephemeris_files(file_paths)
-        print(f"Loaded {len(ephemeris_list)} ephemeris files.")
-    except Exception as e:
-        print(f"Error: {str(e)}")
+    # file_paths = [
+    #     "./Encke_2024-01-01_00-00-00.000_2024-06-30_23-59-00.000.ecsv",
+    # ]
+    # try:
+    #     ephemeris_list = DataLoader.load_multiple_ephemeris_files(file_paths)
+    #     print(f"Loaded {len(ephemeris_list)} ephemeris files.")
+    # except Exception as e:
+    #     print(f"Error: {str(e)}")
