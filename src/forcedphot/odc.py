@@ -17,6 +17,7 @@ class ObjectDetectionController:
 
     Command-line Arguments:
 
+
         --service-selection {all, ephemeris, catalog, image, photometry}: 
             Selects the service to use.
 
