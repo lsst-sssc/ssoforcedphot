@@ -29,14 +29,22 @@ def test_parse_args_default(controller):
 
 def test_parse_args_custom(controller):
     """Test if custom arguments are parsed correctly."""
-    args = controller.parse_args([
-        "--ephemeris-service", "Miriade",
-        "--target", "Ceres",
-        "--target-type", "smallbody",
-        "--start-time", "2023-01-01 00:00:00",
-        "--day-range", "30",
-        "--step", "2h"
-    ])
+    args = controller.parse_args(
+        [
+            "--ephemeris-service",
+            "Miriade",
+            "--target",
+            "Ceres",
+            "--target-type",
+            "smallbody",
+            "--start-time",
+            "2023-01-01 00:00:00",
+            "--day-range",
+            "30",
+            "--step",
+            "2h",
+        ]
+    )
     assert args.ephemeris_service == "Miriade"
     assert args.target == "Ceres"
     assert args.target_type == "smallbody"
@@ -70,7 +78,7 @@ def test_run_ephemeris_query_csv(mock_client, controller):
     mock_client_instance.query_from_csv.return_value = ["mock_data"]
     controller.args = MagicMock(
         ecsv=None, csv="test.csv", ephemeris_service="Horizons", location="X05", save_data=True
-        )
+    )
     result = controller.run_ephemeris_query()
     assert result == ["mock_data"]
     mock_client_instance.query_from_csv.assert_called_once_with("Horizons", "test.csv", "X05", True)
@@ -96,9 +104,16 @@ def test_run_ephemeris_query_single(mock_client, controller):
     result = controller.run_ephemeris_query()
     assert result == "mock_data"
     mock_client_instance.query_single.assert_called_once_with(
-        "Horizons", "Ceres", "smallbody", "2023-01-01 00:00:00.000",
-        "2023-01-31 00:00:00.000", "1h", "X05", True
+        "Horizons",
+        "Ceres",
+        "smallbody",
+        "2023-01-01 00:00:00.000",
+        "2023-01-31 00:00:00.000",
+        "1h",
+        "X05",
+        True,
     )
+
 
 def test_run_ephemeris_query_missing_args(controller):
     """Test if system exits when required arguments are missing."""
