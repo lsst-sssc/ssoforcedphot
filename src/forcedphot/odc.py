@@ -16,9 +16,7 @@ class ObjectDetectionController:
     handling, and various service configurations.
 
     Command-line Arguments:
-
-
-        --service-selection {all, ephemeris, catalog, image, photometry}: 
+        --service-selection {all, ephemeris, catalog, image, photometry}:
             Selects the service to use.
 
         -e, --ephemeris-service {Horizons,Miriade}:
