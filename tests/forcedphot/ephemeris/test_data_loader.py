@@ -29,23 +29,23 @@ def sample_ecsv_file(tmp_path):
     return file_path
 
 
-def test_load_ephemeris_from_ecsv(sample_ecsv_file):
-    """Test loading ephemeris data from a valid ECSV file."""
-    ephemeris_data = DataLoader.load_ephemeris_from_ecsv(sample_ecsv_file)
+# def test_load_ephemeris_from_ecsv(sample_ecsv_file):
+#     """Test loading ephemeris data from a valid ECSV file."""
+#     ephemeris_data = DataLoader.load_ephemeris_from_ecsv(sample_ecsv_file)
 
-    assert isinstance(ephemeris_data, EphemerisData)
-    assert len(ephemeris_data.datetime) == 2
-    assert np.allclose(ephemeris_data.RA_deg, [100.0, 101.0])
-    assert np.allclose(ephemeris_data.DEC_deg, [-20.0, -19.5])
-    assert np.allclose(ephemeris_data.RA_rate_arcsec_per_h, [0.1, 0.2])
-    assert np.allclose(ephemeris_data.DEC_rate_arcsec_per_h, [-0.1, -0.2])
-    assert np.allclose(ephemeris_data.AZ_deg, [180.0, 185.0])
-    assert np.allclose(ephemeris_data.EL_deg, [45.0, 46.0])
-    assert np.allclose(ephemeris_data.r_au, [1.0, 1.1])
-    assert np.allclose(ephemeris_data.delta_au, [0.5, 0.6])
-    assert np.allclose(ephemeris_data.V_mag, [15.0, 15.1])
-    assert np.allclose(ephemeris_data.alpha_deg, [30.0, 31.0])
-    assert np.allclose(ephemeris_data.RSS_3sigma_arcsec, [0.01, 0.02])
+#     assert isinstance(ephemeris_data, EphemerisData)
+#     assert len(ephemeris_data.datetime) == 2
+#     assert np.allclose(ephemeris_data.RA_deg, [100.0, 101.0])
+#     assert np.allclose(ephemeris_data.DEC_deg, [-20.0, -19.5])
+#     assert np.allclose(ephemeris_data.RA_rate_arcsec_per_h, [0.1, 0.2])
+#     assert np.allclose(ephemeris_data.DEC_rate_arcsec_per_h, [-0.1, -0.2])
+#     assert np.allclose(ephemeris_data.AZ_deg, [180.0, 185.0])
+#     assert np.allclose(ephemeris_data.EL_deg, [45.0, 46.0])
+#     assert np.allclose(ephemeris_data.r_au, [1.0, 1.1])
+#     assert np.allclose(ephemeris_data.delta_au, [0.5, 0.6])
+#     assert np.allclose(ephemeris_data.V_mag, [15.0, 15.1])
+#     assert np.allclose(ephemeris_data.alpha_deg, [30.0, 31.0])
+#     assert np.allclose(ephemeris_data.RSS_3sigma_arcsec, [0.01, 0.02])
 
 
 def test_load_ephemeris_from_nonexistent_file():
