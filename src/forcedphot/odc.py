@@ -141,7 +141,7 @@ class ObjectDetectionController:
 
         # Other options
         parser.add_argument(
-            "--location", default="X05",help="Observer location code (default: X05 for Rubin Observatory)"
+            "--location", default="X05", help="Observer location code (default: X05 for Rubin Observatory)"
         )
         parser.add_argument("--save-data", action="store_true", help="Save query results (Ephemeris data)")
 
