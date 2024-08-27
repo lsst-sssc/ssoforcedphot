@@ -133,7 +133,6 @@ class EphemerisClient:
             self.logger.error(f"An error occured during query for CSV file {csv_file}")
             self.logger.error(f"Error details: {str(e)}")
 
-
     def load_ephemeris_from_ecsv(self, ecsv_file: str) -> EphemerisData:
         """
         Load ephemeris data from an ECSV file.
