@@ -10,11 +10,13 @@ def controller():
     """Fixture for the ObjectDetectionController."""
     return ObjectDetectionController()
 
+
 def test_create_parser(controller):
     """Test if the parser is created with correct description and prefix chars."""
     parser = controller.create_parser()
     assert parser.description == "Object Detection Controller"
-    assert parser.fromfile_prefix_chars == '@'
+    assert parser.fromfile_prefix_chars == "@"
+
 
 def test_parse_args_default(controller):
     """Test if default arguments are parsed correctly."""
@@ -23,6 +25,7 @@ def test_parse_args_default(controller):
     assert args.service_selection == "ephemeris"
     assert args.location == "X05"
     assert args.threshold == 3
+
 
 def test_parse_args_custom(controller):
     """Test if custom arguments are parsed correctly."""
@@ -41,44 +44,39 @@ def test_parse_args_custom(controller):
     assert isinstance(args.end_time, Time)
     assert args.step == "2h"
 
+
 def test_parse_args_time_handling(controller):
     """Test if time-related arguments are parsed and converted correctly."""
-    args = controller.parse_args([
-        "--start-time", "2023-01-01 00:00:00",
-        "--day-range", "30"
-    ])
+    args = controller.parse_args(["--start-time", "2023-01-01 00:00:00", "--day-range", "30"])
     assert args.start_time == Time("2023-01-01 00:00:00", scale="utc")
     assert args.end_time == Time("2023-01-31 00:00:00", scale="utc")
 
-@patch('forcedphot.odc.EphemerisClient')
+
+@patch("forcedphot.odc.EphemerisClient")
 def test_run_ephemeris_query_ecsv(mock_client, controller):
     """Test ephemeris query with ECSV file input."""
-    with patch('forcedphot.odc.DataLoader.load_ephemeris_from_ecsv') as mock_load:
+    with patch("forcedphot.odc.DataLoader.load_ephemeris_from_ecsv") as mock_load:
         mock_load.return_value = ["mock_data"]
         controller.args = MagicMock(ecsv="test.ecsv")
         result = controller.run_ephemeris_query()
         assert result == ["mock_data"]
         mock_load.assert_called_once_with("test.ecsv")
 
-@patch('forcedphot.odc.EphemerisClient')
+
+@patch("forcedphot.odc.EphemerisClient")
 def test_run_ephemeris_query_csv(mock_client, controller):
     """Test ephemeris query with CSV file input."""
     mock_client_instance = mock_client.return_value
     mock_client_instance.query_from_csv.return_value = ["mock_data"]
     controller.args = MagicMock(
-        ecsv=None,
-        csv="test.csv",
-        ephemeris_service="Horizons",
-        location="X05",
-        save_data=True
-    )
+        ecsv=None, csv="test.csv", ephemeris_service="Horizons", location="X05", save_data=True
+        )
     result = controller.run_ephemeris_query()
     assert result == ["mock_data"]
-    mock_client_instance.query_from_csv.assert_called_once_with(
-        "Horizons", "test.csv", "X05", True
-    )
+    mock_client_instance.query_from_csv.assert_called_once_with("Horizons", "test.csv", "X05", True)
 
-@patch('forcedphot.odc.EphemerisClient')
+
+@patch("forcedphot.odc.EphemerisClient")
 def test_run_ephemeris_query_single(mock_client, controller):
     """Test single ephemeris query with directly provided parameters."""
     mock_client_instance = mock_client.return_value
@@ -93,7 +91,7 @@ def test_run_ephemeris_query_single(mock_client, controller):
         end_time=Time("2023-01-31 00:00:00", scale="utc"),
         step="1h",
         location="X05",
-        save_data=True
+        save_data=True,
     )
     result = controller.run_ephemeris_query()
     assert result == "mock_data"
@@ -108,8 +106,9 @@ def test_run_ephemeris_query_missing_args(controller):
     with pytest.raises(SystemExit):
         controller.run_ephemeris_query()
 
-@patch.object(ObjectDetectionController, 'parse_args')
-@patch.object(ObjectDetectionController, 'run_ephemeris_query')
+
+@patch.object(ObjectDetectionController, "parse_args")
+@patch.object(ObjectDetectionController, "run_ephemeris_query")
 def test_run(mock_run_query, mock_parse_args, controller):
     """Test the main run method of the controller."""
     mock_run_query.return_value = ["result1", "result2"]
@@ -118,8 +117,9 @@ def test_run(mock_run_query, mock_parse_args, controller):
     mock_parse_args.assert_called_once()
     mock_run_query.assert_called_once()
 
-@patch.object(ObjectDetectionController, 'parse_args')
-@patch.object(ObjectDetectionController, 'run_ephemeris_query')
+
+@patch.object(ObjectDetectionController, "parse_args")
+@patch.object(ObjectDetectionController, "run_ephemeris_query")
 def test_run_no_results(mock_run_query, mock_parse_args, controller):
     """Test the run method when no results are returned from the query."""
     mock_run_query.return_value = None

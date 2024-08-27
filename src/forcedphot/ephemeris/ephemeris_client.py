@@ -121,7 +121,7 @@ class EphemerisClient:
                     query.end,
                     query.step,
                     observer_location,
-                    save_data=save_data
+                    save_data=save_data,
                 )
 
                 if query_result is not None:

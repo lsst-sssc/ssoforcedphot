@@ -16,7 +16,8 @@ class ObjectDetectionController:
     handling, and various service configurations.
 
     Command-line Arguments:
-        --service-selection {all, ephemeris, catalog, image, photometry }: 
+
+        --service-selection {all, ephemeris, catalog, image, photometry}: 
         Selects the service to use.
 
         -e, --ephemeris-service {Horizons,Miriade}:
@@ -100,112 +101,79 @@ class ObjectDetectionController:
             argparse.ArgumentParser: Configured argument parser object.
         """
 
-        parser = argparse.ArgumentParser(
-            description="Object Detection Controller",
-            fromfile_prefix_chars='@'
-        )
+        parser = argparse.ArgumentParser(description="Object Detection Controller", fromfile_prefix_chars='@')
 
-        # Selection of services 
+        # Selection of services
         parser.add_argument(
             "--service-selection",
             choices=["all", "ephemeris", "catalog", "image", "photometry"],
             default="ephemeris",
-            help="Select which services to use (default: ephemeris)"
+            help="Select which services to use (default: ephemeris)",
         )
 
         # Ephemeris Service selection
         parser.add_argument(
-            "-es", "--ephemeris-service",
+            "-es",
+            "--ephemeris-service",
             choices=["Horizons", "Miriade"],
             default="Horizons",
-            help="Ephemeris service to use"
+            help="Ephemeris service to use",
         )
 
         # Target options
-        parser.add_argument(
-            "-t", "--target",
-            help="Target object for single query"
-        )
-        parser.add_argument(
-            "--target-type",
-            help="Target object type for single query"
-        )
+        parser.add_argument("-t", "--target", help="Target object for single query")
+        parser.add_argument("--target-type", help="Target object type for single query")
 
         # Time range options
         parser.add_argument(
-            "-s", "--start-time",
-            help="Start time for the search (format: YYYY-MM-DD HH:MM:SS)"
-        )
-        parser.add_argument(
-            "-e", "--end-time",
-            help="End time for the search (format: YYYY-MM-DD HH:MM:SS)"
-        )
-        parser.add_argument(
-            "-d", "--day-range",
-            type=int,
-            help="Number of days to search forward from start time"
-        )
+            "-s", "--start-time", help="Start time for the search (format: YYYY-MM-DD HH:MM:SS)")
+        parser.add_argument("-e", "--end-time", help="End time for the search (format: YYYY-MM-DD HH:MM:SS)")
+        parser.add_argument("-d", "--day-range", type=int, help="Number of days to search forward from start time")
 
-        parser.add_argument(
-            "--step",
-            default="1h",
-            help="Time step for ephemeris query (default: 1h)"
-        )
+        parser.add_argument("--step", default="1h", help="Time step for ephemeris query (default: 1h)")
 
         # Input options
-        parser.add_argument(
-            "--ecsv",
-            help="Path to ECSV file containing input data"
-        )
-        parser.add_argument(
-            "--csv",
-            help="Path to CSV file for batch processing"
-        )
+        parser.add_argument("--ecsv", help="Path to ECSV file containing input data")
+        parser.add_argument("--csv", help="Path to CSV file for batch processing")
 
         # Other options
-        parser.add_argument(
-            "--location",
-            default="X05",
-            help="Observer location code (default: X05 for Rubin Observatory)"
-        )
-        parser.add_argument(
-            "--save-data",
-            action="store_true",
-            help="Save query results (Ephemeris data)"
-        )
+        parser.add_argument("--location", default="X05",help="Observer location code (default: X05 for Rubin Observatory)")
+        parser.add_argument("--save-data", action="store_true", help="Save query results (Ephemeris data)")
 
         # Image service
         parser.add_argument(
             "--image-service",
             choices=["LSST-Butler", "ZTF"],
             default="LSST-Butler",
-            help="Image service to use"
+            help="Image service to use",
         )
 
         parser.add_argument(
             "--return-coutouts",
             action="store_false",
-            help="Return cutouts from image service (default is False)"
+            help="Return cutouts from image service (default is False)",
         )
 
         parser.add_argument(
-            "-m", "--min-cutout-size",
+            "-m",
+            "--min-cutout-size",
             type=int,
-            help="Minimum size of cutouts to return (max is error ellipse size)"
+            help="Minimum size of cutouts to return (max is error ellipse size)",
         )
 
         # Catalog service
         parser.add_argument(
             "--catalog-service",
-             choices=["LSST-TAP", "ZTF"],
-             default="LSST-TAP",
-             help="Catalog service to use"
+            choices=["LSST-TAP", "ZTF"],
+            default="LSST-TAP",
+            help="Catalog service to use",
         )
 
         parser.add_argument(
-            "-x", "--max-search-ellipse",
+            "-x",
+            "--max-search-ellipse",
             type=float,
-            help="Maximum size of error ellipse to search (3-sigma value)"
+            help="Maximum size of error ellipse to search (3-sigma value)",
         )
 
         # Phometry service
@@ -213,15 +181,10 @@ class ObjectDetectionController:
             "--photometry-service",
             choices=["choice1", "choice2"],
             default="choice1",
-            help="Photometry service to use"
+            help="Photometry service to use",
         )
 
-        parser.add_argument(
-            "--threshold",
-            type=int,
-            default=3,
-            help="Threshold SNR for forced photometry (defaullt: 3)"
-        )
+        parser.add_argument("--threshold", type=int, default=3, help="Threshold SNR for forced photometry (defaullt: 3)")
 
         return parser
 
@@ -264,10 +227,7 @@ class ObjectDetectionController:
             return DataLoader.load_ephemeris_from_ecsv(self.args.ecsv)
         elif self.args.csv:
             return client.query_from_csv(
-                self.args.ephemeris_service,
-                self.args.csv,
-                self.args.location,
-                self.args.save_data
+                self.args.ephemeris_service, self.args.csv, self.args.location, self.args.save_data
             )
         elif all([self.args.target, self.args.target_type, self.args.start_time, self.args.end_time]):
             return client.query_single(
@@ -278,12 +238,10 @@ class ObjectDetectionController:
                 self.args.end_time.iso,
                 self.args.step,
                 self.args.location,
-                self.args.save_data
+                self.args.save_data,
             )
         else:
-            self.parser.error(
-                "Either provide a CSV/ECSV file or all single query parameters"
-            )
+            self.parser.error("Either provide a CSV/ECSV file or all single query parameters")
 
     def run(self):
         """
@@ -303,6 +261,7 @@ class ObjectDetectionController:
             return results
         else:
             print("No results obtained")
+
 
 if __name__ == "__main__":
     controller = ObjectDetectionController()

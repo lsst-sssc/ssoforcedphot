@@ -102,9 +102,12 @@ def test_load_multiple_ephemeris_files_with_error(sample_ecsv_file):
     with pytest.raises(FileNotFoundError):
         DataLoader.load_multiple_ephemeris_files(file_paths)
 
+
 def test_load_ephemeris_from_ecsv():
     """Test loading ephemeris data from an ECSV file."""
-    ephemeris_file = "./tests/forcedphot/ephemeris/data/Encke_2024-01-01_00-00-00.000_2024-06-30_23-59-00.000.ecsv"
+    ephemeris_file = (
+        "./tests/forcedphot/ephemeris/data/Encke_2024-01-01_00-00-00.000_2024-06-30_23-59-00.000.ecsv"
+    )
     ephemeris_data = DataLoader.load_ephemeris_from_ecsv(ephemeris_file)
     assert len(ephemeris_data.datetime) == 4367
     assert isinstance(ephemeris_data.RA_deg, np.ndarray)
