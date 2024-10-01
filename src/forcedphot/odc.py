@@ -283,54 +283,54 @@ class ObjectDetectionController:
         try:
             results = {}
 
-            if 'ephemeris' in input_data:
-                ephemeris_data = input_data['ephemeris']
+            if "ephemeris" in input_data:
+                ephemeris_data = input_data["ephemeris"]
 
-                if 'ecsv_file' in ephemeris_data:
-                    results['ephemeris'] = self.ephemeris_client.load_ephemeris_from_ecsv(ephemeris_data['ecsv_file'])
+                if "ecsv_file" in ephemeris_data:
+                    results["ephemeris"] = self.ephemeris_client.load_ephemeris_from_ecsv(ephemeris_data["ecsv_file"])
 
-                elif 'ecsv_files' in ephemeris_data:
-                    results['ephemeris'] = self.ephemeris_client.load_ephemeris_from_multi_ecsv(ephemeris_data['ecsv_files'])
+                elif "ecsv_files" in ephemeris_data:
+                    results["ephemeris"] = self.ephemeris_client.load_ephemeris_from_multi_ecsv(ephemeris_data["ecsv_files"])
 
-                elif 'service' in ephemeris_data:
-                    if 'csv_file' in ephemeris_data:
-                        results['ephemeris'] = self.ephemeris_client.query_from_csv(
-                            service=ephemeris_data['service'],
-                            csv_file=ephemeris_data['csv_file'],
-                            observer_location=ephemeris_data.get('observer_location', EphemerisClient.DEFAULT_OBSERVER_LOCATION),
-                            save_data=ephemeris_data.get('save_data', EphemerisClient.DEFAUT_SAVE_DATA)
+                elif "service" in ephemeris_data:
+                    if "csv_file" in ephemeris_data:
+                        results["ephemeris"] = self.ephemeris_client.query_from_csv(
+                            service=ephemeris_data["service"],
+                            csv_file=ephemeris_data["csv_file"],
+                            observer_location=ephemeris_data.get("observer_location", EphemerisClient.DEFAULT_OBSERVER_LOCATION),
+                            save_data=ephemeris_data.get("save_data", EphemerisClient.DEFAUT_SAVE_DATA)
                         )
                     else:
-                        results['ephemeris'] = self.ephemeris_client.query_single(
-                            service=ephemeris_data['service'],
-                            target=ephemeris_data['target'],
-                            target_type=ephemeris_data['target_type'],
-                            start=ephemeris_data['start'],
-                            end=ephemeris_data['end'],
-                            step=ephemeris_data['step'],
-                            observer_location=ephemeris_data.get('observer_location', EphemerisClient.DEFAULT_OBSERVER_LOCATION),
-                            save_data=ephemeris_data.get('save_data', EphemerisClient.DEFAUT_SAVE_DATA)
+                        results["ephemeris"] = self.ephemeris_client.query_single(
+                            service=ephemeris_data["service"],
+                            target=ephemeris_data["target"],
+                            target_type=ephemeris_data["target_type"],
+                            start=ephemeris_data["start"],
+                            end=ephemeris_data["end"],
+                            step=ephemeris_data["step"],
+                            observer_location=ephemeris_data.get("observer_location", EphemerisClient.DEFAULT_OBSERVER_LOCATION),
+                            save_data=ephemeris_data.get("save_data", EphemerisClient.DEFAUT_SAVE_DATA)
                         )
                 else:
                     raise ValueError("Invalid ephemeris query parameters")
 
             # Placeholder for other services (to be implemented)
-            if 'catalog' in input_data:
-                # results['catalog'] = self.run_catalog_query(input_data['catalog'])
+            if "catalog" in input_data:
+                # results["catalog"] = self.run_catalog_query(input_data["catalog"])
                 pass
 
-            if 'image' in input_data:
-                # results['image'] = self.run_image_query(input_data['image'])
+            if "image" in input_data:
+                # results["image"] = self.run_image_query(input_data["image"])
                 pass
 
-            if 'photometry' in input_data:
-                # results['photometry'] = self.run_photometry_query(input_data['photometry'])
+            if "photometry" in input_data:
+                # results["photometry"] = self.run_photometry_query(input_data["photometry"])
                 pass
 
             return results
 
         except Exception as e:
-            return {'error': str(e)}
+            return {"error": str(e)}
 
     def run(self):
         """
