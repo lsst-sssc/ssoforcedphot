@@ -87,8 +87,7 @@ def test_load_multiple_ephemeris_files_with_error(sample_ecsv_file):
 def test_load_ephemeris_from_ecsv():
     """Test loading ephemeris data from an ECSV file."""
     ephemeris_file = (
-        "./tests/forcedphot/ephemeris/data/template_ephemeris.ecsv"
-    )
+        "./tests/forcedphot/ephemeris/data/template_ephemeris.ecsv")
     ephemeris_data = DataLoader.load_ephemeris_from_ecsv(ephemeris_file)
     assert len(ephemeris_data.datetime) == 8
     assert isinstance(ephemeris_data.RA_deg, np.ndarray)
