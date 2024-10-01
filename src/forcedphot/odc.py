@@ -285,12 +285,12 @@ class ObjectDetectionController:
             args = argparse.Namespace(**input_data)
 
             # Validate and process time-related arguments
-            if 'start_time' in input_data:
-                args.start_time = Time(input_data['start_time'], scale="utc")
-            if 'end_time' in input_data:
-                args.end_time = Time(input_data['end_time'], scale="utc")
-            elif 'day_range' in input_data:
-                args.end_time = args.start_time + (input_data['day_range'] * u.day)
+            if "start_time" in input_data:
+                args.start_time = Time(input_data["start_time"], scale="utc")
+            if "end_time" in input_data:
+                args.end_time = Time(input_data["end_time"], scale="utc")
+            elif "day_range" in input_data:
+                args.end_time = args.start_time + (input_data["day_range"] * u.day)
 
             # Store the processed args
             self.args = args
@@ -298,9 +298,9 @@ class ObjectDetectionController:
             # Execute the appropriate sub-modules based on the service selection
             results = {}
 
-            if args.service_selection in ['all', 'ephemeris']:
+            if args.service_selection in ["all", "ephemeris"]:
                 ephemeris_results = self.run_ephemeris_query()
-                results['ephemeris'] = ephemeris_results
+                results["ephemeris"] = ephemeris_results
 
                 if results:
                     print(f"Successfully queried {len(results) if isinstance(results, list) else 1} objects")
@@ -308,22 +308,22 @@ class ObjectDetectionController:
                     print("No results obtained")
 
             # Placeholder for other services (to be implemented)
-            if args.service_selection in ['all', 'catalog']:
-                # results['catalog'] = self.run_catalog_query()
+            if args.service_selection in ["all", "catalog"]:
+                # results["catalog"] = self.run_catalog_query()
                 pass
 
-            if args.service_selection in ['all', 'image']:
-                # results['image'] = self.run_image_query()
+            if args.service_selection in ["all", "image"]:
+                # results["image"] = self.run_image_query()
                 pass
 
-            if args.service_selection in ['all', 'photometry']:
-                # results['photometry'] = self.run_photometry()
+            if args.service_selection in ["all", "photometry"]:
+                # results["photometry"] = self.run_photometry()
                 pass
 
             return results
 
         except Exception as e:
-            return {'error': str(e)}
+            return {"error": str(e)}
 
     def run(self):
         """
