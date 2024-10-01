@@ -1,0 +1,25 @@
+# %ECSV 1.0
+# ---
+# datatype:
+# - {name: datetime, unit: d, datatype: float64, description: Time for the ephemeris data points.}
+# - {name: RA_deg, unit: deg, datatype: float64, description: Right Ascension in degrees}
+# - {name: DEC_deg, unit: deg, datatype: float64, description: Declination in degrees}
+# - {name: RA_rate_arcsec_per_h, unit: arcsec / h, datatype: float64, description: Rate of change in Right Ascension}
+# - {name: DEC_rate_arcsec_per_h, unit: arcsec / h, datatype: float64, description: Rate of change in Declination}
+# - {name: AZ_deg, unit: deg, datatype: float64, description: Azimuth in degrees}
+# - {name: EL_deg, unit: deg, datatype: float64, description: Elevation in degrees}
+# - {name: r_au, unit: AU, datatype: float64, description: Heliocentric distance in astronomical units}
+# - {name: delta_au, unit: AU, datatype: float64, description: Geocentric distance in astronomical units}
+# - {name: V_mag, datatype: float32, description: Visual magnitude}
+# - {name: alpha_deg, unit: deg, datatype: float64, description: Phase angle in degrees}
+# - {name: RSS_3sigma_arcsec, unit: arcsec, datatype: float64, description: 3-sigma uncertainty in arcseconds}
+# schema: astropy-2.0
+datetime RA_deg DEC_deg RA_rate_arcsec_per_h DEC_rate_arcsec_per_h AZ_deg EL_deg r_au delta_au V_mag alpha_deg RSS_3sigma_arcsec
+2460310.5 289.80837499999996 -26.675005555555558 1.6653 0.28184 242.28680555555556 5.5937472222222215 1.423762035 2.38655764 18.02 6.29 nan
+2460310.5416666665 289.8394583333333 -26.67031111111111 1.6679 0.28159 234.70525833333332 -5.469316666666667 1.424335257 2.38720305 18.02 6.28 nan
+2460310.5833333335 289.87058333333334 -26.665622222222222 1.6701 0.28094 225.57729166666667 -15.43721388888889 1.424908341 2.38784734 18.02 6.27 nan
+2460310.625 289.90174999999994 -26.66094722222222 1.6717 0.27998 214.43453333333335 -23.795605555555557 1.425481284 2.38849 18.02 6.25 nan
+2460310.6666666665 289.9329583333333 -26.656291666666664 1.6725 0.27876 201.0165388888889 -29.856025000000002 1.426054089 2.38913064 18.02 6.24 nan
+2460310.7083333335 289.96412499999997 -26.651655555555553 1.6725 0.2774 185.70170833333333 -32.87339166666667 1.426626754 2.38976897 18.02 6.23 nan
+2460310.75 289.9953333333333 -26.647044444444443 1.6715 0.276 169.7798666666667 -32.36371388888889 1.42719928 2.39040485 18.02 6.22 nan
+2460310.7916666665 290.02645833333327 -26.642455555555554 1.6696 0.27467 154.90873055555556 -28.414975 1.427771667 2.39103832 18.03 6.21 nan

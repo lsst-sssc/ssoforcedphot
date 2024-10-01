@@ -1,0 +1,13 @@
+--ephemeris-service
+Horizons
+--target
+Ceres
+--target-type
+smallbody
+--start-time
+2023-01-01 00:00:00
+--day-range
+30
+--step
+1h
+--save-data
