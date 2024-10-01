@@ -1,4 +1,5 @@
 import argparse
+from typing import Any, dict
 
 import astropy.units as u
 from astropy.time import Time
@@ -41,7 +42,8 @@ class ObjectDetectionController:
             Time step for ephemeris query. Default is "1h".
 
         --ecsv:
-            Path to ECSV file containing input data.
+            Path to ECSV file containing input ephemeris data. (see template_ephemeris.ecsv
+            in tests/forcedphot/data)
 
         --csv:
             Path to CSV file for batch processing.
@@ -60,6 +62,9 @@ class ObjectDetectionController:
 
         -m, --min-cutout-size:
             Minimum size of cutouts to return (max is error ellipse size).
+
+        -f, --filter:
+            Filter for image service. Default is "r".
 
         --catalog-service {Rubin,ZTF}:
             Catalog service to use. Default is "Rubin".
@@ -80,6 +85,7 @@ class ObjectDetectionController:
         python odc.py --csv targets.csv --save-data
 
         python odc.py @query_args.txt
+            query_args.txt shoud contain the arguments for the query 1 per line (see query_args.txt)
     """
 
     def __init__(self):
@@ -165,6 +171,14 @@ class ObjectDetectionController:
             help="Minimum size of cutouts to return (max is error ellipse size)",
         )
 
+        parser.add_argument(
+            "--f",
+            "--filters",
+            choices=["u", "g", "r", "i", "z", "y"],
+            default="r",
+            help="Comma-separated list of filters to use for image service",
+        )
+
         # Catalog service
         parser.add_argument(
             "--catalog-service",
@@ -248,6 +262,68 @@ class ObjectDetectionController:
             )
         else:
             self.parser.error("Either provide a CSV/ECSV file or all single query parameters")
+
+    def api_connection(self, input_data: dict[str, Any]) -> dict[str, Any]:
+        """
+        Handle API connections and execute the object detection process based on input data.
+
+        This method accepts a dictionary of input parameters, validates them, and then
+        executes the appropriate sub-modules based on the input.
+
+        Args:
+            input_data (Dict[str, Any]): A dictionary containing input parameters for the object
+            detection process and other related sub-modules.
+
+        Returns:
+            Dict[str, Any]: A dictionary containing the results.
+
+        Raises:
+            ValueError: If required parameters are missing or invalid.
+        """
+        try:
+            # Convert input_data to Namespace object to maintain compatibility with existing methods
+            args = argparse.Namespace(**input_data)
+
+            # Validate and process time-related arguments
+            if 'start_time' in input_data:
+                args.start_time = Time(input_data['start_time'], scale="utc")
+            if 'end_time' in input_data:
+                args.end_time = Time(input_data['end_time'], scale="utc")
+            elif 'day_range' in input_data:
+                args.end_time = args.start_time + (input_data['day_range'] * u.day)
+
+            # Store the processed args
+            self.args = args
+
+            # Execute the appropriate sub-modules based on the service selection
+            results = {}
+
+            if args.service_selection in ['all', 'ephemeris']:
+                ephemeris_results = self.run_ephemeris_query()
+                results['ephemeris'] = ephemeris_results
+
+                if results:
+                    print(f"Successfully queried {len(results) if isinstance(results, list) else 1} objects")
+                else:
+                    print("No results obtained")
+
+            # Placeholder for other services (to be implemented)
+            if args.service_selection in ['all', 'catalog']:
+                # results['catalog'] = self.run_catalog_query()
+                pass
+
+            if args.service_selection in ['all', 'image']:
+                # results['image'] = self.run_image_query()
+                pass
+
+            if args.service_selection in ['all', 'photometry']:
+                # results['photometry'] = self.run_photometry()
+                pass
+
+            return results
+
+        except Exception as e:
+            return {'error': str(e)}
 
     def run(self):
         """

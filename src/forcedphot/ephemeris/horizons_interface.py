@@ -306,96 +306,19 @@ class HorizonsInterface:
 
             return None
 
-    # @classmethod
-    # def query_ephemeris_from_csv(
-    #     cls, csv_filename: str, observer_location=DEFAULT_OBSERVER_LOCATION, save_data: bool = False
-    # ):
-    #     """
-    #     Query ephemeris for multiple celestial objects from JPL Horizons based on a CSV file and save
-    #     the data to CSV files.
-
-    #     Parameters
-    #     ----------
-    #     csv_filename : str
-    #         The filename of the input CSV file containing target, start time, end time, and step.
-    #     observer_location : str, optional
-    #         The observer location code. Default is "X05" (Rubin location).
-    #     save_data : bool, optional
-    #         Whether to save the data to ECSV files. Default is False.
-
-    #     Returns
-    #     -------
-    #     List of QueryResult or None
-    #         The queried ephemeris data wrapped in a QueryResult object if successful,
-    #         or None if an error occurs. Also, the method saves the data to ECSV files.
-
-    #     Raises
-    #     ------
-    #     Exception
-    #         If an error occurs during the ECSV processing or querying. The error is logged,
-    #         but not re-raised.
-
-    #     Notes
-    #     -----
-    #     - The input CSV file should have columns for target, start time, end time, and step.
-    #     - The method creates a separate ECSV file for each target in the input file.
-    #     - The method logs information about the query process and any errors that occur.
-    #     """
-    #     try:
-    #         total_start_time = time.time()
-
-    #         # Create an empty list to store the results
-    #         results = []
-    #         # Read the CSV file
-    #         df = pd.read_csv(csv_filename)
-
-    #         # Create HorizonsInterface instance with the specified observer location
-    #         horizons_interface = cls(observer_location)
-
-    #         # Process each row in the CSV file
-    #         for _index, row in df.iterrows():
-    #             query = QueryInput(
-    #                 target=row.iloc[0],
-    #                 target_type=row.iloc[1],
-    #                 start=Time(row.iloc[2], scale="utc"),
-    #                 end=Time(row.iloc[3], scale="utc"),
-    #                 step=row.iloc[4],
-    #             )
-
-    #             # Initialze the query
-    #             query_result = horizons_interface.query_single_range(query)
-
-    #             if query_result is not None:
-    #                 # Append the result to the list
-    #                 results.append(query_result)
-
-    #             if save_data:
-    #                 horizons_interface.save_horizons_data_to_ecsv(query, query_result.ephemeris)
-
-    #         total_end_time = time.time()
-    #         cls.logger.info(
-    #             f"Total time taken for processing the ECSV file:"
-    #             f"{total_end_time - total_start_time:.2f} seconds."
-    #         )
-    #         return results
-
-    #     except Exception as e:
-    #         cls.logger.error(f"An error occurred during query for CSV file {csv_filename}")
-    #         cls.logger.error(f"Error details: {str(e)}")
-
 
 # Example usage
 if __name__ == "__main__":
-    HorizonsInterface.query_ephemeris_from_csv("./targets.csv", save_data=True)
+    # HorizonsInterface.query_ephemeris_from_csv("./targets.csv", save_data=True)
 
     # Define the target query parameters
-    target_query = QueryInput(
-        target="Ceres",
-        target_type="smallbody",
-        start=Time("2024-01-01 00:00"),
-        end=Time("2025-11-30 23:59"),
-        step="1h",
-    )
+    # target_query = QueryInput(
+    #     target="Ceres",
+    #     target_type="smallbody",
+    #     start=Time("2024-01-01 00:00"),
+    #     end=Time("2025-11-30 23:59"),
+    #     step="1h",
+    # )
     # horizons = HorizonsInterface()
     # result = horizons.query_single_range(query=target_query)
 
@@ -403,8 +326,8 @@ if __name__ == "__main__":
         target="Encke",
         target_type="comet_name",
         start=Time("2024-01-01 00:00"),
-        end=Time("2025-11-30 23:59"),
+        end=Time("2025-12-31 23:59"),
         step="1h",
     )
-    # horizons = HorizonsInterface()
-    # result = horizons.query_single_range(query=target_query, save_data=True)
+    horizons = HorizonsInterface()
+    result = horizons.query_single_range(query=target_query, save_data=False)
