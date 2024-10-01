@@ -1,5 +1,5 @@
 import argparse
-from typing import Any, dict
+from typing import Any
 
 import astropy.units as u
 from astropy.time import Time
