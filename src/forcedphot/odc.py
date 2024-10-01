@@ -287,18 +287,24 @@ class ObjectDetectionController:
                 ephemeris_data = input_data["ephemeris"]
 
                 if "ecsv_file" in ephemeris_data:
-                    results["ephemeris"] = self.ephemeris_client.load_ephemeris_from_ecsv(ephemeris_data["ecsv_file"])
+                    results["ephemeris"] = self.ephemeris_client.load_ephemeris_from_ecsv(
+                        ephemeris_data["ecsv_file"]
+                    )
 
                 elif "ecsv_files" in ephemeris_data:
-                    results["ephemeris"] = self.ephemeris_client.load_ephemeris_from_multi_ecsv(ephemeris_data["ecsv_files"])
+                    results["ephemeris"] = self.ephemeris_client.load_ephemeris_from_multi_ecsv(
+                        ephemeris_data["ecsv_files"]
+                    )
 
                 elif "service" in ephemeris_data:
                     if "csv_file" in ephemeris_data:
                         results["ephemeris"] = self.ephemeris_client.query_from_csv(
                             service=ephemeris_data["service"],
                             csv_file=ephemeris_data["csv_file"],
-                            observer_location=ephemeris_data.get("observer_location", EphemerisClient.DEFAULT_OBSERVER_LOCATION),
-                            save_data=ephemeris_data.get("save_data", EphemerisClient.DEFAUT_SAVE_DATA)
+                            observer_location=ephemeris_data.get(
+                                "observer_location", EphemerisClient.DEFAULT_OBSERVER_LOCATION
+                            ),
+                            save_data=ephemeris_data.get("save_data", EphemerisClient.DEFAUT_SAVE_DATA),
                         )
                     else:
                         results["ephemeris"] = self.ephemeris_client.query_single(
@@ -308,8 +314,10 @@ class ObjectDetectionController:
                             start=ephemeris_data["start"],
                             end=ephemeris_data["end"],
                             step=ephemeris_data["step"],
-                            observer_location=ephemeris_data.get("observer_location", EphemerisClient.DEFAULT_OBSERVER_LOCATION),
-                            save_data=ephemeris_data.get("save_data", EphemerisClient.DEFAUT_SAVE_DATA)
+                            observer_location=ephemeris_data.get(
+                                "observer_location", EphemerisClient.DEFAULT_OBSERVER_LOCATION
+                            ),
+                            save_data=ephemeris_data.get("save_data", EphemerisClient.DEFAUT_SAVE_DATA),
                         )
                 else:
                     raise ValueError("Invalid ephemeris query parameters")
