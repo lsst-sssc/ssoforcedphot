@@ -57,7 +57,7 @@ class ObjectDetectionController:
         --image-service {Rubin,ZTF}:
             Image service to use. Default is "Rubin".
 
-        --return-coutouts:
+        --return-cutouts:
             Flag to return cutouts from image service. Default is False.
 
         -m, --min-cutout-size:
@@ -159,7 +159,7 @@ class ObjectDetectionController:
         )
 
         parser.add_argument(
-            "--return-coutouts",
+            "--return-cutouts",
             action="store_false",
             help="Return cutouts from image service (default is False)",
         )
