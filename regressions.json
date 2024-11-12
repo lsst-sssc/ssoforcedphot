@@ -1,1 +1,1 @@
-{"regressions": []}
+{"regressions": [["benchmarks.time_computation", "graphs/Cython/branch-HEAD/build/machine-gh-runner/packaging/python-3.10/benchmarks.time_computation.json", {}, null, 3.879906062999993, 1.3814265720000094, [[null, 69, 1.3814265720000094, 2.6541203019999955], [null, 97, 2.6541203019999955, 3.879906062999993]]]]}
