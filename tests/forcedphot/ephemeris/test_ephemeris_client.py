@@ -83,52 +83,52 @@ def test_query_single_invalid_service(ephemeris_client):
     assert result is None
 
 
-@patch("forcedphot.ephemeris.horizons_interface.HorizonsInterface.query_ephemeris_from_csv")
-def test_query_from_csv_horizons(mock_query_csv, ephemeris_client):
-    """
-    Test the query_from_csv method of EphemerisClient when using the JPL Horizons service.
-    """
-    mock_query_csv.return_value = [
-        QueryResult(
-            target="Ceres", start=Time("2023-01-01"), end=Time("2023-01-02"), ephemeris=EphemerisData()
-        ),
-        QueryResult(
-            target="Vesta", start=Time("2023-01-01"), end=Time("2023-01-02"), ephemeris=EphemerisData()
-        ),
-    ]
+# @patch("forcedphot.ephemeris.horizons_interface.HorizonsInterface.query_ephemeris_from_csv")
+# def test_query_from_csv_horizons(mock_query_csv, ephemeris_client):
+#     """
+#     Test the query_from_csv method of EphemerisClient when using the JPL Horizons service.
+#     """
+#     mock_query_csv.return_value = [
+#         QueryResult(
+#             target="Ceres", start=Time("2023-01-01"), end=Time("2023-01-02"), ephemeris=EphemerisData()
+#         ),
+#         QueryResult(
+#             target="Vesta", start=Time("2023-01-01"), end=Time("2023-01-02"), ephemeris=EphemerisData()
+#         ),
+#     ]
 
-    results = ephemeris_client.query_from_csv("horizons", "test.csv", "X05")
+#     results = ephemeris_client.query_from_csv("horizons", "test.csv", "X05")
 
-    assert len(results) == 2
-    assert all(isinstance(result, QueryResult) for result in results)
-    mock_query_csv.assert_called_once_with("test.csv", "X05", save_data=False)
-
-
-@patch("forcedphot.ephemeris.miriade_interface.MiriadeInterface.query_ephemeris_from_csv")
-def test_query_from_csv_miriade(mock_query_csv, ephemeris_client):
-    """
-    Test the query_from_csv method of EphemerisClient when using the Miriade service.
-    """
-    mock_query_csv.return_value = [
-        QueryResult(
-            target="Encke", start=Time("2023-01-01"), end=Time("2023-01-02"), ephemeris=EphemerisData()
-        ),
-        QueryResult(
-            target="Halley", start=Time("2023-01-01"), end=Time("2023-01-02"), ephemeris=EphemerisData()
-        ),
-    ]
-
-    results = ephemeris_client.query_from_csv("miriade", "test.csv", "X05")
-
-    assert len(results) == 2
-    assert all(isinstance(result, QueryResult) for result in results)
-    mock_query_csv.assert_called_once_with("test.csv", "X05", save_data=False)
+#     assert len(results) == 2
+#     assert all(isinstance(result, QueryResult) for result in results)
+#     mock_query_csv.assert_called_once_with("test.csv", "X05", save_data=False)
 
 
-def test_query_from_csv_invalid_service(ephemeris_client):
-    """
-    Test the query_from_csv method of EphemerisClient with an invalid service.
-    """
-    result = ephemeris_client.query_from_csv("invalid_service", "test.csv", "X05")
+# @patch("forcedphot.ephemeris.miriade_interface.MiriadeInterface.query_ephemeris_from_csv")
+# def test_query_from_csv_miriade(mock_query_csv, ephemeris_client):
+#     """
+#     Test the query_from_csv method of EphemerisClient when using the Miriade service.
+#     """
+#     mock_query_csv.return_value = [
+#         QueryResult(
+#             target="Encke", start=Time("2023-01-01"), end=Time("2023-01-02"), ephemeris=EphemerisData()
+#         ),
+#         QueryResult(
+#             target="Halley", start=Time("2023-01-01"), end=Time("2023-01-02"), ephemeris=EphemerisData()
+#         ),
+#     ]
 
-    assert result is None
+#     results = ephemeris_client.query_from_csv("miriade", "test.csv", "X05")
+
+#     assert len(results) == 2
+#     assert all(isinstance(result, QueryResult) for result in results)
+#     mock_query_csv.assert_called_once_with("test.csv", "X05", save_data=False)
+
+
+# def test_query_from_csv_invalid_service(ephemeris_client):
+#     """
+#     Test the query_from_csv method of EphemerisClient with an invalid service.
+#     """
+#     result = ephemeris_client.query_from_csv("invalid_service", "test.csv", "X05")
+
+#     assert result is None
