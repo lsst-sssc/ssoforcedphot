@@ -216,6 +216,9 @@ class MiriadeInterface:
                 "V_mag": ephemeris_data.V_mag,
                 "alpha_deg": ephemeris_data.alpha_deg,
                 "RSS_3sigma_arcsec": ephemeris_data.RSS_3sigma_arcsec,
+                "SMAA_3sigma_arcsec": np.full_like(ephemeris_data.RSS_3sigma_arcsec, np.nan),
+                "SMIA_3sigma_arcsec": np.full_like(ephemeris_data.RSS_3sigma_arcsec, np.nan),
+                "Theta_3sigma_deg": np.full_like(ephemeris_data.RSS_3sigma_arcsec, np.nan),
             }
         )
 
@@ -244,6 +247,12 @@ class MiriadeInterface:
         result_table["alpha_deg"].description = "Phase angle in degrees"
         result_table["RSS_3sigma_arcsec"].unit = u.arcsec
         result_table["RSS_3sigma_arcsec"].description = "3-sigma uncertainty in arcseconds"
+        result_table["SMAA_3sigma_arcsec"].unit = u.arcsec
+        result_table["SMAA_3sigma_arcsec"].description = "Semi-major axis of error ellipse"
+        result_table["SMIA_3sigma_arcsec"].unit = u.arcsec
+        result_table["SMIA_3sigma_arcsec"].description = "Semi-minor axis of error ellipse"
+        result_table["Theta_3sigma_deg"].unit = u.deg
+        result_table["Theta_3sigma_deg"].description = "Position angle of error ellipse"
 
         result_table.write("./" + output_filename, format="ascii.ecsv", overwrite=True)
         self.logger.info(f"Ephemeris data successfully saved to {output_filename}")
@@ -318,6 +327,9 @@ class MiriadeInterface:
             ]
             relevant_data = ephemeris[relevant_columns]
 
+            # Create arrays of NaN values for error ellipse data
+            nan_array = np.full(len(relevant_data), np.nan)
+
             ephemeris_data = EphemerisData(
                 datetime=Time(relevant_data["epoch"], scale="utc", format="jd"),
                 RA_deg=np.array(relevant_data["RAJ2000"]),
@@ -331,6 +343,9 @@ class MiriadeInterface:
                 V_mag=np.array(relevant_data["V"]),
                 alpha_deg=np.array(relevant_data["alpha"]),
                 RSS_3sigma_arcsec=np.array(relevant_data["posunc"]),
+                SMAA_3sigma_arcsec=nan_array,  # Not available in Miriade
+                SMIA_3sigma_arcsec=nan_array,  # Not available in Miriade
+                Theta_3sigma_deg=nan_array,    # Not available in Miriade
             )
 
             if save_data:
@@ -364,4 +379,4 @@ if __name__ == "__main__":
         step="1h",
     )
     miriade = MiriadeInterface()
-    result = miriade.query_single_range(query=target_query, save_data=False)
+    result = miriade.query_single_range(query=target_query, save_data=True)

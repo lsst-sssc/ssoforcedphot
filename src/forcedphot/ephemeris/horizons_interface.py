@@ -178,6 +178,9 @@ class HorizonsInterface:
                 "V_mag": ephemeris_data.V_mag,
                 "alpha_deg": ephemeris_data.alpha_deg,
                 "RSS_3sigma_arcsec": ephemeris_data.RSS_3sigma_arcsec,
+                "SMAA_3sigma_arcsec": ephemeris_data.SMAA_3sigma_arcsec,
+                "SMIA_3sigma_arcsec": ephemeris_data.SMIA_3sigma_arcsec,
+                "Theta_3sigma_deg": ephemeris_data.Theta_3sigma_deg,
             }
         )
 
@@ -206,6 +209,12 @@ class HorizonsInterface:
         result_table["alpha_deg"].description = "Phase angle in degrees"
         result_table["RSS_3sigma_arcsec"].unit = u.arcsec
         result_table["RSS_3sigma_arcsec"].description = "3-sigma uncertainty in arcseconds"
+        result_table["SMAA_3sigma_arcsec"].unit = u.arcsec
+        result_table["SMAA_3sigma_arcsec"].description = "Semi-major axis of error ellipse"
+        result_table["SMIA_3sigma_arcsec"].unit = u.arcsec
+        result_table["SMIA_3sigma_arcsec"].description = "Semi-minor axis of error ellipse"
+        result_table["Theta_3sigma_deg"].unit = u.deg
+        result_table["Theta_3sigma_deg"].description = "Position angle of error ellipse"
 
         result_table.write("./" + output_filename, format="ascii.ecsv", overwrite=True)
         self.logger.info(f"Ephemeris data successfully saved to {output_filename}")
@@ -290,6 +299,10 @@ class HorizonsInterface:
                 V_mag=np.array(combined_ephemeris[mag_type]),
                 alpha_deg=np.array(combined_ephemeris["alpha"]),
                 RSS_3sigma_arcsec=np.array(combined_ephemeris["RSS_3sigma"]),
+                SMAA_3sigma_arcsec=np.array(combined_ephemeris["SMAA_3sigma"]),
+                SMIA_3sigma_arcsec=np.array(combined_ephemeris["SMIA_3sigma"]),
+                Theta_3sigma_deg=np.array(combined_ephemeris["Theta_3sigma"]),
+                
             )
 
             # Save the data to an ECSV file
@@ -330,4 +343,4 @@ if __name__ == "__main__":
         step="1h",
     )
     horizons = HorizonsInterface()
-    result = horizons.query_single_range(query=target_query, save_data=False)
+    result = horizons.query_single_range(query=target_query, save_data=True)

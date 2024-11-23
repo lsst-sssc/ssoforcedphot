@@ -76,6 +76,9 @@ class EphemerisData:
     V_mag: np.ndarray = field(default_factory=lambda: np.array([]))
     alpha_deg: np.ndarray = field(default_factory=lambda: np.array([]))
     RSS_3sigma_arcsec: np.ndarray = field(default_factory=lambda: np.array([]))
+    SMAA_3sigma_arcsec: np.ndarray = field(default_factory=lambda: np.array([])) 
+    SMIA_3sigma_arcsec: np.ndarray = field(default_factory=lambda: np.array([]))  
+    Theta_3sigma_deg: np.ndarray = field(default_factory=lambda: np.array([]))  
 
 
 @dataclass

@@ -1,0 +1,26 @@
+# %ECSV 1.0
+# ---
+# datatype:
+# - {name: datetime, unit: d, datatype: float64, description: Time for the ephemeris data points.}
+# - {name: RA_deg, unit: deg, datatype: float64, description: Right Ascension in degrees}
+# - {name: DEC_deg, unit: deg, datatype: float64, description: Declination in degrees}
+# - {name: RA_rate_arcsec_per_h, unit: arcsec / h, datatype: float64, description: Rate of change in Right Ascension}
+# - {name: DEC_rate_arcsec_per_h, unit: arcsec / h, datatype: float64, description: Rate of change in Declination}
+# - {name: AZ_deg, unit: deg, datatype: float64, description: Azimuth in degrees}
+# - {name: EL_deg, unit: deg, datatype: float64, description: Elevation in degrees}
+# - {name: r_au, unit: AU, datatype: float64, description: Heliocentric distance in astronomical units}
+# - {name: delta_au, unit: AU, datatype: float64, description: Geocentric distance in astronomical units}
+# - {name: V_mag, datatype: float64, description: Visual magnitude}
+# - {name: alpha_deg, unit: deg, datatype: float64, description: Phase angle in degrees}
+# - {name: RSS_3sigma_arcsec, unit: arcsec, datatype: float64, description: 3-sigma uncertainty in arcseconds}
+# - {name: SMAA_3sigma_arcsec, unit: arcsec, datatype: float64, description: Semi-major axis of error ellipse}
+# - {name: SMIA_3sigma_arcsec, unit: arcsec, datatype: float64, description: Semi-minor axis of error ellipse}
+# - {name: Theta_3sigma_deg, unit: deg, datatype: float64, description: Position angle of error ellipse}
+# schema: astropy-2.0
+datetime RA_deg DEC_deg RA_rate_arcsec_per_h DEC_rate_arcsec_per_h AZ_deg EL_deg r_au delta_au V_mag alpha_deg RSS_3sigma_arcsec SMAA_3sigma_arcsec SMIA_3sigma_arcsec Theta_3sigma_deg
+60610.1762 61.3 -38.0 99.88192 17.15154 242.49141 5.849219 1.424217235644 2.38654504100278 18.18 6.2864 0.427 0.409 0.121 13.897
+60610.8762 61.7 -37.5 100.0382 17.13654 234.938469 -5.23956 1.424792462213 2.38719045101001 18.181 6.275 0.426 0.409 0.121 13.914
+60611.1762 62.0 -37.0 100.1709 17.09827 225.850341 -15.243947 1.425367547231 2.38783473730495 18.183 6.2636 0.426 0.409 0.121 13.931
+60611.5762 62.4 -36.7 99.88192 17.15154 242.49141 5.849219 1.424217235644 2.38654504100278 18.18 6.2864 0.427 0.409 0.121 13.897
+60611.8762 62.9 -36.3 100.0382 17.13654 234.938469 -5.23956 1.424792462213 2.38719045101001 18.181 6.275 0.426 0.409 0.121 13.914
+60612.1762 63.0 -36.0 100.1709 17.09827 225.850341 -15.243947 1.425367547231 2.38783473730495 18.183 6.2636 0.426 0.409 0.121 13.931
