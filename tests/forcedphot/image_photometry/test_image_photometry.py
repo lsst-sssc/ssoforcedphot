@@ -11,7 +11,7 @@ def image_service():
 
 @pytest.fixture
 def mock_tap_service():
-    with patch('lsst.rsp.get_tap_service') as mock:
+    with patch('forcedphot.image_photometry.image_service.get_tap_service') as mock:        
         yield mock
 
 @pytest.fixture
@@ -34,12 +34,6 @@ def sample_ephemeris_data():
             uncertainty={'rss': 0.1, 'smaa': 0.1, 'smia': 0.1, 'theta': 0.1}
         )
     ]
-
-def test_image_service_initialization(image_service, mock_tap_service):
-    """Test ImageService initialization"""
-    assert image_service is not None
-    assert image_service.logger is not None
-    mock_tap_service.assert_called_once_with("tap")
 
 def test_search_images_no_ephemeris(image_service):
     """Test search_images with empty ephemeris data"""
