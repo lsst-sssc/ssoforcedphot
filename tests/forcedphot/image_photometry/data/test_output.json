@@ -1,0 +1,890 @@
+[
+  {
+    "target_name": "Example Target",
+    "target_type": "smallbody",
+    "ephemeris_service": "JPL Horizons",
+    "visit_id": 697978,
+    "detector_id": 81,
+    "band": "g",
+    "coordinates_central": [
+      70.99077921365443,
+      -29.733343650385457
+    ],
+    "obs_time": "60610.18546761111",
+    "cutout_size": 800,
+    "saved_image_name": "",
+    "uncertainty": {
+      "rss": 6.427,
+      "smaa": 40.409,
+      "smia": 15.121,
+      "theta": 13.897
+    },
+    "forced_phot_on_target": {
+      "ra": 70.8294180402635,
+      "dec": -30.0590972848884,
+      "ra_err": 0,
+      "dec_err": 0,
+      "x": 0,
+      "y": 0,
+      "x_err": 0,
+      "y_err": 0,
+      "snr": 0,
+      "flux": 0,
+      "flux_err": 0,
+      "mag": 0,
+      "mag_err": 0,
+      "separation": 0,
+      "sigma": 0,
+      "flags": {}
+    },
+    "phot_within_error_ellipse": []
+  },
+  {
+    "target_name": "Example Target",
+    "target_type": "smallbody",
+    "ephemeris_service": "JPL Horizons",
+    "visit_id": 697948,
+    "detector_id": 82,
+    "band": "g",
+    "coordinates_central": [
+      70.98146374747937,
+      -29.711447043672788
+    ],
+    "obs_time": "60610.17176061111",
+    "cutout_size": 800,
+    "saved_image_name": "",
+    "uncertainty": {
+      "rss": 6.427,
+      "smaa": 40.409,
+      "smia": 15.121,
+      "theta": 13.897
+    },
+    "forced_phot_on_target": {
+      "ra": 70.82603213423748,
+      "dec": -30.05828540097177,
+      "ra_err": 0,
+      "dec_err": 0,
+      "x": 0,
+      "y": 0,
+      "x_err": 0,
+      "y_err": 0,
+      "snr": 0,
+      "flux": 0,
+      "flux_err": 0,
+      "mag": 0,
+      "mag_err": 0,
+      "separation": 0,
+      "sigma": 0,
+      "flags": {}
+    },
+    "phot_within_error_ellipse": []
+  },
+  {
+    "target_name": "Example Target",
+    "target_type": "smallbody",
+    "ephemeris_service": "JPL Horizons",
+    "visit_id": 697948,
+    "detector_id": 86,
+    "band": "g",
+    "coordinates_central": [
+      70.8205506998233,
+      -30.01299001237554
+    ],
+    "obs_time": "60610.17176061111",
+    "cutout_size": 800,
+    "saved_image_name": "",
+    "uncertainty": {
+      "rss": 6.427,
+      "smaa": 40.409,
+      "smia": 15.121,
+      "theta": 13.897
+    },
+    "forced_phot_on_target": {
+      "ra": 70.82603213423748,
+      "dec": -30.05828540097177,
+      "ra_err": 0,
+      "dec_err": 0,
+      "x": 0,
+      "y": 0,
+      "x_err": 0,
+      "y_err": 0,
+      "snr": 1.2642207174404927,
+      "flux": 192.21745485892967,
+      "flux_err": 152.04422155657122,
+      "mag": 25.690517943792532,
+      "mag_err": 0.858818551048809,
+      "separation": 0,
+      "sigma": 0,
+      "flags": {}
+    },
+    "phot_within_error_ellipse": [
+      {
+        "ra": 1.236111152649044,
+        "dec": 1.236111152649044,
+        "ra_err": 1.94096742234251e-07,
+        "dec_err": 2.1440055775201472e-07,
+        "x": 2875.128855181936,
+        "y": 2244.6746541045236,
+        "x_err": 0.21934626996517181,
+        "y_err": 0.23262816667556763,
+        "snr": 12.133393606757059,
+        "flux": 1972.94565832739,
+        "flux_err": 162.60460364762758,
+        "mag": 23.162212191346924,
+        "mag_err": 0.08948330862302907,
+        "separation": 15.116001295904109,
+        "sigma": 1.1222253430600195,
+        "flags": {
+          "base_PsfFlux_flag_badCentroid": "False",
+          "base_PsfFlux_flag_badCentroid_edge": "False",
+          "slot_Centroid_flag_edge": "False"
+        }
+      },
+      {
+        "ra": 1.2362213794375594,
+        "dec": 1.2362213794375594,
+        "ra_err": 9.90119474408857e-07,
+        "dec_err": 8.68957215516275e-07,
+        "x": 2918.7135512345276,
+        "y": 2155.9620719799673,
+        "x_err": 0.8427491784095764,
+        "y_err": 1.2171257734298706,
+        "snr": 8.65006183850029,
+        "flux": 1364.6647630083958,
+        "flux_err": 157.76358464103134,
+        "mag": 23.562435055544842,
+        "mag_err": 0.12551773906698102,
+        "separation": 20.522419062626795,
+        "sigma": 1.5236025931817263,
+        "flags": {
+          "base_PsfFlux_flag_badCentroid": "False",
+          "base_PsfFlux_flag_badCentroid_edge": "False",
+          "slot_Centroid_flag_edge": "False"
+        }
+      },
+      {
+        "ra": 1.2362723818623336,
+        "dec": 1.2362723818623336,
+        "ra_err": 5.295094638313458e-07,
+        "dec_err": 3.908345718173223e-07,
+        "x": 2855.902179264425,
+        "y": 2084.415516860928,
+        "x_err": 0.35425442457199097,
+        "y_err": 0.6588897109031677,
+        "snr": 10.661361307394692,
+        "flux": 1711.3132234090426,
+        "flux_err": 160.51545145759954,
+        "mag": 23.316676234551068,
+        "mag_err": 0.10183842132852827,
+        "separation": 22.32579070755781,
+        "sigma": 1.6574865035678545,
+        "flags": {
+          "base_PsfFlux_flag_badCentroid": "False",
+          "base_PsfFlux_flag_badCentroid_edge": "False",
+          "slot_Centroid_flag_edge": "False"
+        }
+      },
+      {
+        "ra": 1.2360202525845594,
+        "dec": 1.2360202525845594,
+        "ra_err": 3.9076257962733507e-07,
+        "dec_err": 4.426295845405548e-07,
+        "x": 2817.965205690564,
+        "y": 2310.0370186074288,
+        "x_err": 0.45476460456848145,
+        "y_err": 0.4666222035884857,
+        "snr": 5.180070915194983,
+        "flux": 806.1963622657834,
+        "flux_err": 155.63423270923258,
+        "mag": 24.133897914525456,
+        "mag_err": 0.2095987144834795,
+        "separation": 23.894026704097612,
+        "sigma": 1.7739137348682927,
+        "flags": {
+          "base_PsfFlux_flag_badCentroid": "False",
+          "base_PsfFlux_flag_badCentroid_edge": "False",
+          "slot_Centroid_flag_edge": "False"
+        }
+      },
+      {
+        "ra": 1.2362572315320268,
+        "dec": 1.2362572315320268,
+        "ra_err": 3.064763234306156e-07,
+        "dec_err": 3.6358161992211535e-07,
+        "x": 2932.9059222902133,
+        "y": 2127.1138673065743,
+        "x_err": 0.37623417377471924,
+        "y_err": 0.3633270561695099,
+        "snr": 14.095165602709434,
+        "flux": 2306.0935646743283,
+        "flux_err": 163.60883083424298,
+        "mag": 22.992807690351107,
+        "mag_err": 0.07702897825829196,
+        "separation": 25.547702621448348,
+        "sigma": 1.8966841016690599,
+        "flags": {
+          "base_PsfFlux_flag_badCentroid": "False",
+          "base_PsfFlux_flag_badCentroid_edge": "False",
+          "slot_Centroid_flag_edge": "False"
+        }
+      }
+    ]
+  },
+  {
+    "target_name": "Example Target",
+    "target_type": "smallbody",
+    "ephemeris_service": "JPL Horizons",
+    "visit_id": 697978,
+    "detector_id": 86,
+    "band": "g",
+    "coordinates_central": [
+      70.93787272514275,
+      -30.25645917842121
+    ],
+    "obs_time": "60610.18546761111",
+    "cutout_size": 800,
+    "saved_image_name": "",
+    "uncertainty": {
+      "rss": 6.427,
+      "smaa": 40.409,
+      "smia": 15.121,
+      "theta": 13.897
+    },
+    "forced_phot_on_target": {
+      "ra": 70.8294180402635,
+      "dec": -30.0590972848884,
+      "ra_err": 0,
+      "dec_err": 0,
+      "x": 0,
+      "y": 0,
+      "x_err": 0,
+      "y_err": 0,
+      "snr": 0,
+      "flux": 0,
+      "flux_err": 0,
+      "mag": 0,
+      "mag_err": 0,
+      "separation": 0,
+      "sigma": 0,
+      "flags": {}
+    },
+    "phot_within_error_ellipse": []
+  },
+  {
+    "target_name": "Example Target",
+    "target_type": "smallbody",
+    "ephemeris_service": "JPL Horizons",
+    "visit_id": 697978,
+    "detector_id": 85,
+    "band": "g",
+    "coordinates_central": [
+      70.83819953725701,
+      -30.037983381295444
+    ],
+    "obs_time": "60610.18546761111",
+    "cutout_size": 800,
+    "saved_image_name": "",
+    "uncertainty": {
+      "rss": 6.427,
+      "smaa": 40.409,
+      "smia": 15.121,
+      "theta": 13.897
+    },
+    "forced_phot_on_target": {
+      "ra": 70.8294180402635,
+      "dec": -30.0590972848884,
+      "ra_err": 0,
+      "dec_err": 0,
+      "x": 0,
+      "y": 0,
+      "x_err": 0,
+      "y_err": 0,
+      "snr": -0.7328595546257968,
+      "flux": 0,
+      "flux_err": 141.47256609648343,
+      "mag": 0,
+      "mag_err": 0,
+      "separation": 0,
+      "sigma": 0,
+      "flags": {}
+    },
+    "phot_within_error_ellipse": [
+      {
+        "ra": 1.236222048901976,
+        "dec": 1.236222048901976,
+        "ra_err": 5.666410061166971e-07,
+        "dec_err": 5.366649702409632e-07,
+        "x": 2396.682643575952,
+        "y": 2267.0906371843294,
+        "x_err": 0.5278615355491638,
+        "y_err": 0.6948026418685913,
+        "snr": 7.828417200712867,
+        "flux": 1168.9940923413942,
+        "flux_err": 149.32700472771737,
+        "mag": 23.730469208985937,
+        "mag_err": 0.13869166357910268,
+        "separation": 13.052996593358046,
+        "sigma": 0.9690660441999093,
+        "flags": {
+          "base_PsfFlux_flag_badCentroid": "False",
+          "base_PsfFlux_flag_badCentroid_edge": "False",
+          "slot_Centroid_flag_edge": "False"
+        }
+      },
+      {
+        "ra": 1.2362573029475552,
+        "dec": 1.2362573029475552,
+        "ra_err": 2.1026369267929113e-07,
+        "dec_err": 2.433905876841891e-07,
+        "x": 2411.013376552027,
+        "y": 2238.938456050915,
+        "x_err": 0.2510231137275696,
+        "y_err": 0.250286728143692,
+        "snr": 14.548861374127624,
+        "flux": 2269.054251185394,
+        "flux_err": 155.96095067758873,
+        "mag": 23.01038780093465,
+        "mag_err": 0.0746268850075721,
+        "separation": 16.13989887168188,
+        "sigma": 1.1982404072123942,
+        "flags": {
+          "base_PsfFlux_flag_badCentroid": "False",
+          "base_PsfFlux_flag_badCentroid_edge": "False",
+          "slot_Centroid_flag_edge": "False"
+        }
+      },
+      {
+        "ra": 1.2360960999843427,
+        "dec": 1.2360960999843427,
+        "ra_err": 3.2857471410352446e-08,
+        "dec_err": 3.4835675677413747e-08,
+        "x": 2280.741768987009,
+        "y": 2342.158302359405,
+        "x_err": 0.035291172564029694,
+        "y_err": 0.03968801349401474,
+        "snr": 64.02886257674,
+        "flux": 14129.842962662073,
+        "flux_err": 220.6792748462015,
+        "mag": 21.024656662050276,
+        "mag_err": 0.01695698097802145,
+        "separation": 19.994744917405534,
+        "sigma": 1.4844275966298746,
+        "flags": {
+          "base_PsfFlux_flag_badCentroid": "False",
+          "base_PsfFlux_flag_badCentroid_edge": "False",
+          "slot_Centroid_flag_edge": "False"
+        }
+      },
+      {
+        "ra": 1.2363340717302893,
+        "dec": 1.2363340717302893,
+        "ra_err": 2.731523238708178e-07,
+        "dec_err": 2.7038049665861763e-07,
+        "x": 2441.8287663222145,
+        "y": 2177.4810877645014,
+        "x_err": 0.26930177211761475,
+        "y_err": 0.33312827348709106,
+        "snr": 6.496724950324268,
+        "flux": 968.948931925878,
+        "flux_err": 149.1442133282117,
+        "mag": 23.93424777916679,
+        "mag_err": 0.167120543513842,
+        "separation": 27.033885222017243,
+        "sigma": 2.007019616076907,
+        "flags": {
+          "base_PsfFlux_flag_badCentroid": "False",
+          "base_PsfFlux_flag_badCentroid_edge": "False",
+          "slot_Centroid_flag_edge": "False"
+        }
+      },
+      {
+        "ra": 1.2363847110228803,
+        "dec": 1.2363847110228803,
+        "ra_err": 2.492479893589916e-07,
+        "dec_err": 2.490904762453283e-07,
+        "x": 2444.3033706405504,
+        "y": 2129.904717959329,
+        "x_err": 0.24872732162475586,
+        "y_err": 0.30359432101249695,
+        "snr": 12.171548331351623,
+        "flux": 1870.0478748825412,
+        "flux_err": 153.6409192958343,
+        "mag": 23.220368187494095,
+        "mag_err": 0.08920280108993832,
+        "separation": 33.83674850711138,
+        "sigma": 2.512070220033511,
+        "flags": {
+          "base_PsfFlux_flag_badCentroid": "False",
+          "base_PsfFlux_flag_badCentroid_edge": "False",
+          "slot_Centroid_flag_edge": "False"
+        }
+      }
+    ]
+  },
+  {
+    "target_name": "Example Target",
+    "target_type": "smallbody",
+    "ephemeris_service": "JPL Horizons",
+    "visit_id": 697941,
+    "detector_id": 125,
+    "band": "g",
+    "coordinates_central": [
+      70.93773478112068,
+      -29.765094535990976
+    ],
+    "obs_time": "60610.16863461111",
+    "cutout_size": 800,
+    "saved_image_name": "",
+    "uncertainty": {
+      "rss": 6.427,
+      "smaa": 40.409,
+      "smia": 15.121,
+      "theta": 13.897
+    },
+    "forced_phot_on_target": {
+      "ra": 70.82525994826625,
+      "dec": -30.058100243626622,
+      "ra_err": 0,
+      "dec_err": 0,
+      "x": 0,
+      "y": 0,
+      "x_err": 0,
+      "y_err": 0,
+      "snr": 0,
+      "flux": 0,
+      "flux_err": 0,
+      "mag": 0,
+      "mag_err": 0,
+      "separation": 0,
+      "sigma": 0,
+      "flags": {}
+    },
+    "phot_within_error_ellipse": []
+  },
+  {
+    "target_name": "Example Target",
+    "target_type": "smallbody",
+    "ephemeris_service": "JPL Horizons",
+    "visit_id": 697947,
+    "detector_id": 136,
+    "band": "g",
+    "coordinates_central": [
+      70.9214764603246,
+      -29.883926615595303
+    ],
+    "obs_time": "60610.17131361111",
+    "cutout_size": 800,
+    "saved_image_name": "",
+    "uncertainty": {
+      "rss": 6.427,
+      "smaa": 40.409,
+      "smia": 15.121,
+      "theta": 13.897
+    },
+    "forced_phot_on_target": {
+      "ra": 70.82592171592546,
+      "dec": -30.058258924498134,
+      "ra_err": 0,
+      "dec_err": 0,
+      "x": 0,
+      "y": 0,
+      "x_err": 0,
+      "y_err": 0,
+      "snr": 0,
+      "flux": 0,
+      "flux_err": 0,
+      "mag": 0,
+      "mag_err": 0,
+      "separation": 0,
+      "sigma": 0,
+      "flags": {}
+    },
+    "phot_within_error_ellipse": []
+  },
+  {
+    "target_name": "Example Target",
+    "target_type": "smallbody",
+    "ephemeris_service": "JPL Horizons",
+    "visit_id": 697947,
+    "detector_id": 139,
+    "band": "g",
+    "coordinates_central": [
+      70.6681822750066,
+      -29.968038569886655
+    ],
+    "obs_time": "60610.17131361111",
+    "cutout_size": 800,
+    "saved_image_name": "",
+    "uncertainty": {
+      "rss": 6.427,
+      "smaa": 40.409,
+      "smia": 15.121,
+      "theta": 13.897
+    },
+    "forced_phot_on_target": {
+      "ra": 70.82592171592546,
+      "dec": -30.058258924498134,
+      "ra_err": 0,
+      "dec_err": 0,
+      "x": 0,
+      "y": 0,
+      "x_err": 0,
+      "y_err": 0,
+      "snr": 0,
+      "flux": 0,
+      "flux_err": 0,
+      "mag": 0,
+      "mag_err": 0,
+      "separation": 0,
+      "sigma": 0,
+      "flags": {}
+    },
+    "phot_within_error_ellipse": []
+  },
+  {
+    "target_name": "Example Target",
+    "target_type": "smallbody",
+    "ephemeris_service": "JPL Horizons",
+    "visit_id": 697947,
+    "detector_id": 140,
+    "band": "g",
+    "coordinates_central": [
+      70.76518147702355,
+      -30.187396329236048
+    ],
+    "obs_time": "60610.17131361111",
+    "cutout_size": 800,
+    "saved_image_name": "",
+    "uncertainty": {
+      "rss": 6.427,
+      "smaa": 40.409,
+      "smia": 15.121,
+      "theta": 13.897
+    },
+    "forced_phot_on_target": {
+      "ra": 70.82592171592546,
+      "dec": -30.058258924498134,
+      "ra_err": 0,
+      "dec_err": 0,
+      "x": 0,
+      "y": 0,
+      "x_err": 0,
+      "y_err": 0,
+      "snr": -0.5872805784799011,
+      "flux": 0,
+      "flux_err": 143.9521641783532,
+      "mag": 0,
+      "mag_err": 0,
+      "separation": 0,
+      "sigma": 0,
+      "flags": {}
+    },
+    "phot_within_error_ellipse": [
+      {
+        "ra": 1.2361104901247166,
+        "dec": 1.2361104901247166,
+        "ra_err": 1.8512500332690252e-07,
+        "dec_err": 1.8169582460814127e-07,
+        "x": 253.20415121626198,
+        "y": 340.94302794969417,
+        "x_err": 0.1809125393629074,
+        "y_err": 0.22571401298046112,
+        "snr": 14.032533383601203,
+        "flux": 2232.767610612243,
+        "flux_err": 159.1136503706106,
+        "mag": 23.027891191292294,
+        "mag_err": 0.0773727861589804,
+        "separation": 15.104549230906695,
+        "sigma": 1.1213751315974185,
+        "flags": {
+          "base_PsfFlux_flag_badCentroid": "False",
+          "base_PsfFlux_flag_badCentroid_edge": "False",
+          "slot_Centroid_flag_edge": "False"
+        }
+      },
+      {
+        "ra": 1.236046649111572,
+        "dec": 1.236046649111572,
+        "ra_err": 3.144049571801588e-07,
+        "dec_err": 3.67147947599733e-07,
+        "x": 142.2401148984811,
+        "y": 359.3205905700243,
+        "x_err": 0.37910154461860657,
+        "y_err": 0.3737002909183502,
+        "snr": 5.16295074993391,
+        "flux": 779.1147672434987,
+        "flux_err": 150.90493885758488,
+        "mag": 24.17099641002482,
+        "mag_err": 0.21029373653661676,
+        "separation": 18.539267220639406,
+        "sigma": 1.3763716415134803,
+        "flags": {
+          "base_PsfFlux_flag_badCentroid": "False",
+          "base_PsfFlux_flag_badCentroid_edge": "False",
+          "slot_Centroid_flag_edge": "False"
+        }
+      },
+      {
+        "ra": 1.2362226644423562,
+        "dec": 1.2362226644423562,
+        "ra_err": 3.1253827614818874e-07,
+        "dec_err": 4.232664139180997e-07,
+        "x": 299.5829815335862,
+        "y": 251.5673980454297,
+        "x_err": 0.44640833139419556,
+        "y_err": 0.3599434494972229,
+        "snr": 7.707031570448753,
+        "flux": 1176.741184759931,
+        "flux_err": 152.6841007466398,
+        "mag": 23.723297616023682,
+        "mag_err": 0.14087605517553511,
+        "separation": 21.110052499306654,
+        "sigma": 1.5672290207112267,
+        "flags": {
+          "base_PsfFlux_flag_badCentroid": "False",
+          "base_PsfFlux_flag_badCentroid_edge": "False",
+          "slot_Centroid_flag_edge": "False"
+        }
+      },
+      {
+        "ra": 1.2362723991171218,
+        "dec": 1.2362723991171218,
+        "ra_err": 1.9580681964725954e-07,
+        "dec_err": 2.3695463369222125e-07,
+        "x": 236.23857159989254,
+        "y": 179.69612769548124,
+        "x_err": 0.24608682096004486,
+        "y_err": 0.2312018722295761,
+        "snr": 12.770680882398484,
+        "flux": 2011.6497954818224,
+        "flux_err": 157.52095084095555,
+        "mag": 23.14111905646537,
+        "mag_err": 0.08501787921539668,
+        "separation": 22.671120045841224,
+        "sigma": 1.6831240599253552,
+        "flags": {
+          "base_PsfFlux_flag_badCentroid": "False",
+          "base_PsfFlux_flag_badCentroid_edge": "False",
+          "slot_Centroid_flag_edge": "False"
+        }
+      },
+      {
+        "ra": 1.2362576605266873,
+        "dec": 1.2362576605266873,
+        "ra_err": 3.8958472714512027e-07,
+        "dec_err": 3.520563041092828e-07,
+        "x": 312.7447635724665,
+        "y": 223.18199932081626,
+        "x_err": 0.3423442542552948,
+        "y_err": 0.47930026054382324,
+        "snr": 14.289816507745211,
+        "flux": 2265.789415152684,
+        "flux_err": 158.55972775609857,
+        "mag": 23.011951140955418,
+        "mag_err": 0.07597971633643097,
+        "separation": 25.892311582728915,
+        "sigma": 1.9222681765989444,
+        "flags": {
+          "base_PsfFlux_flag_badCentroid": "False",
+          "base_PsfFlux_flag_badCentroid_edge": "False",
+          "slot_Centroid_flag_edge": "False"
+        }
+      },
+      {
+        "ra": 1.2362946960275514,
+        "dec": 1.2362946960275514,
+        "ra_err": 3.5098162243230036e-07,
+        "dec_err": 4.825286055165634e-07,
+        "x": 312.67166634243654,
+        "y": 187.76148448709105,
+        "x_err": 0.5098192691802979,
+        "y_err": 0.4026363492012024,
+        "snr": 5.483669413533741,
+        "flux": 824.881690168732,
+        "flux_err": 150.4251310505548,
+        "mag": 24.10902084072039,
+        "mag_err": 0.1979944673686061,
+        "separation": 30.023821769191823,
+        "sigma": 2.2289951572069455,
+        "flags": {
+          "base_PsfFlux_flag_badCentroid": "False",
+          "base_PsfFlux_flag_badCentroid_edge": "False",
+          "slot_Centroid_flag_edge": "False"
+        }
+      }
+    ]
+  },
+  {
+    "target_name": "Example Target",
+    "target_type": "smallbody",
+    "ephemeris_service": "JPL Horizons",
+    "visit_id": 697941,
+    "detector_id": 162,
+    "band": "g",
+    "coordinates_central": [
+      70.77380171553665,
+      -30.067918194066277
+    ],
+    "obs_time": "60610.16863461111",
+    "cutout_size": 800,
+    "saved_image_name": "",
+    "uncertainty": {
+      "rss": 6.427,
+      "smaa": 40.409,
+      "smia": 15.121,
+      "theta": 13.897
+    },
+    "forced_phot_on_target": {
+      "ra": 70.82525994826625,
+      "dec": -30.058100243626622,
+      "ra_err": 0,
+      "dec_err": 0,
+      "x": 0,
+      "y": 0,
+      "x_err": 0,
+      "y_err": 0,
+      "snr": -0.3836847965131469,
+      "flux": 0,
+      "flux_err": 151.79057733530337,
+      "mag": 0,
+      "mag_err": 0,
+      "separation": 0,
+      "sigma": 0,
+      "flags": {}
+    },
+    "phot_within_error_ellipse": [
+      {
+        "ra": 1.2361108114027357,
+        "dec": 1.2361108114027357,
+        "ra_err": 1.926321999690117e-07,
+        "dec_err": 2.094255364681885e-07,
+        "x": 2183.2718687020747,
+        "y": 1223.9318107926488,
+        "x_err": 0.21387040615081787,
+        "y_err": 0.23185007274150848,
+        "snr": 14.016465699808396,
+        "flux": 2328.248735536724,
+        "flux_err": 166.1081177952407,
+        "mag": 22.982426560591758,
+        "mag_err": 0.07746148194640619,
+        "separation": 14.884622652782394,
+        "sigma": 1.1050475873777423,
+        "flags": {
+          "base_PsfFlux_flag_badCentroid": "False",
+          "base_PsfFlux_flag_badCentroid_edge": "False",
+          "slot_Centroid_flag_edge": "False"
+        }
+      },
+      {
+        "ra": 1.236017771414153,
+        "dec": 1.236017771414153,
+        "ra_err": 3.8491202758450527e-07,
+        "dec_err": 4.247723666139791e-07,
+        "x": 2126.342730185342,
+        "y": 1291.7688899555758,
+        "x_err": 0.4349097013473511,
+        "y_err": 0.4623526930809021,
+        "snr": 5.615657781160343,
+        "flux": 887.6569075426255,
+        "flux_err": 158.0681982653174,
+        "mag": 24.029387157494003,
+        "mag_err": 0.19334087778649997,
+        "separation": 22.3167770655588,
+        "sigma": 1.6568173227913685,
+        "flags": {
+          "base_PsfFlux_flag_badCentroid": "False",
+          "base_PsfFlux_flag_badCentroid_edge": "False",
+          "slot_Centroid_flag_edge": "False"
+        }
+      },
+      {
+        "ra": 1.2362220782393407,
+        "dec": 1.2362220782393407,
+        "ra_err": 9.958469036064344e-07,
+        "dec_err": 6.034863417880842e-07,
+        "x": 2227.0,
+        "y": 1134.0,
+        "x_err": 0.4819801151752472,
+        "y_err": 1.2514785528182983,
+        "snr": 6.165092921581128,
+        "flux": 973.8917949860829,
+        "flux_err": 157.96871310356732,
+        "mag": 23.928723232677562,
+        "mag_err": 0.17611027417891323,
+        "separation": 22.710416817016586,
+        "sigma": 1.6860414870709435,
+        "flags": {
+          "base_PsfFlux_flag_badCentroid": "False",
+          "base_PsfFlux_flag_badCentroid_edge": "False",
+          "slot_Centroid_flag_edge": "False"
+        }
+      },
+      {
+        "ra": 1.236272295353465,
+        "dec": 1.236272295353465,
+        "ra_err": 2.403243684057088e-07,
+        "dec_err": 2.2158199897148734e-07,
+        "x": 2163.2229527369705,
+        "y": 1063.1958632018623,
+        "x_err": 0.2184152454137802,
+        "y_err": 0.29450035095214844,
+        "snr": 12.18743817953587,
+        "flux": 2004.9972956477059,
+        "flux_err": 164.5134331031381,
+        "mag": 23.144715522055968,
+        "mag_err": 0.089086499456564,
+        "separation": 24.696760181596524,
+        "sigma": 1.8335093802071216,
+        "flags": {
+          "base_PsfFlux_flag_badCentroid": "False",
+          "base_PsfFlux_flag_badCentroid_edge": "False",
+          "slot_Centroid_flag_edge": "False"
+        }
+      },
+      {
+        "ra": 1.2362574749829627,
+        "dec": 1.2362574749829627,
+        "ra_err": 4.4195257942192256e-07,
+        "dec_err": 3.9111029082050663e-07,
+        "x": 2240.620633511655,
+        "y": 1105.2860515014543,
+        "x_err": 0.38118523359298706,
+        "y_err": 0.5435430407524109,
+        "snr": 12.665695479581021,
+        "flux": 2069.5105102150496,
+        "flux_err": 163.3949366263706,
+        "mag": 23.1103309091247,
+        "mag_err": 0.08572258874441575,
+        "separation": 27.830268455913693,
+        "sigma": 2.06614381369846,
+        "flags": {
+          "base_PsfFlux_flag_badCentroid": "False",
+          "base_PsfFlux_flag_badCentroid_edge": "False",
+          "slot_Centroid_flag_edge": "False"
+        }
+      },
+      {
+        "ra": 1.2359769897918125,
+        "dec": 1.2359769897918125,
+        "ra_err": 2.2974579394485772e-07,
+        "dec_err": 1.941557314921738e-07,
+        "x": 1996.7588221316232,
+        "y": 1283.665428598502,
+        "x_err": 0.1865817904472351,
+        "y_err": 0.28356385231018066,
+        "snr": 12.911460384408867,
+        "flux": 2133.3247166210726,
+        "flux_err": 165.22722086474062,
+        "mag": 23.077357587227887,
+        "mag_err": 0.08409089076160602,
+        "separation": 32.61758178939872,
+        "sigma": 2.4215582015936095,
+        "flags": {
+          "base_PsfFlux_flag_badCentroid": "False",
+          "base_PsfFlux_flag_badCentroid_edge": "False",
+          "slot_Centroid_flag_edge": "False"
+        }
+      }
+    ]
+  }
+]

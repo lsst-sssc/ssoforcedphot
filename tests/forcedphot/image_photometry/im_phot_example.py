@@ -1,4 +1,5 @@
 from astropy.time import Time
+import time
 import json
 from dataclasses import asdict
 from forcedphot.image_photometry.photometry_service import PhotometryService
@@ -6,12 +7,12 @@ from forcedphot.image_photometry.utils import SearchParameters
 from forcedphot.image_photometry.image_service import ImageService
 
 def main():
-    start_time = Time.time()
+    start_time = time.time()
     params = SearchParameters(
-        bands={'r', 'i', 'g', 'u', 'z', 'y'},
+        bands={'r', 'i', 'g''u', 'z', 'y'},
         # bands={'r'},
         # ephemeris_file='./hygiea10_eph2.ecsv'
-        ephemeris_file='./test_eph3.ecsv'
+        ephemeris_file='./data/test_ephemeris_for_imphot.ecsv'
 
     )
     
@@ -33,8 +34,8 @@ def main():
             ephemeris_service="JPL Horizons",
             cutout_size=800,
             save_cutout=False,
-            display=True,
-            output_dir="./output",
+            display=False,
+            output_dir="./data",
             save_json=False,
             json_filename="test_output.json"
         )
@@ -44,10 +45,10 @@ def main():
     json_data = [asdict(obj) for obj in results]
     
     # Save results to a JSON file
-    with open("./output/test_endresults.json", "w") as json_file:
+    with open("./data/test_output.json", "w") as json_file:
         json.dump(json_data, json_file, indent=2, default=str)
     
-    print(f"Total time: {Time.time() - start_time:.2f} s")
+    print(f"Total time: {time.time() - start_time:.2f} s")
 
     # Print results
     print("\nTarget Information:")
