@@ -1,0 +1,122 @@
+[
+  {
+    "target_name": "65803",
+    "target_type": "smallbody",
+    "ephemeris_service": "Horizons",
+    "visit_id": 199497,
+    "detector_id": 53,
+    "band": "r",
+    "coordinates_central": [
+      51.471314664985904,
+      -33.442913687805806
+    ],
+    "obs_time": "59849.20056161111",
+    "cutout_size": 800,
+    "saved_image_name": "",
+    "uncertainty": {
+      "rss": 0.006,
+      "smaa": 0.00544,
+      "smia": 0.00338,
+      "theta": 38.766
+    },
+    "forced_phot_on_target": {
+      "ra": 51.54898938070444,
+      "dec": -33.28493316076327,
+      "ra_err": 0,
+      "dec_err": 0,
+      "x": 0,
+      "y": 0,
+      "x_err": 0,
+      "y_err": 0,
+      "snr": 0,
+      "flux": 0,
+      "flux_err": 0,
+      "mag": 0,
+      "mag_err": 0,
+      "separation": 0,
+      "sigma": 0,
+      "flags": {}
+    },
+    "phot_within_error_ellipse": []
+  },
+  {
+    "target_name": "65803",
+    "target_type": "smallbody",
+    "ephemeris_service": "Horizons",
+    "visit_id": 199497,
+    "detector_id": 60,
+    "band": "r",
+    "coordinates_central": [
+      51.704741771077536,
+      -33.310199277677995
+    ],
+    "obs_time": "59849.20056161111",
+    "cutout_size": 800,
+    "saved_image_name": "",
+    "uncertainty": {
+      "rss": 0.006,
+      "smaa": 0.00544,
+      "smia": 0.00338,
+      "theta": 38.766
+    },
+    "forced_phot_on_target": {
+      "ra": 51.54898938070444,
+      "dec": -33.28493316076327,
+      "ra_err": 0,
+      "dec_err": 0,
+      "x": 0,
+      "y": 0,
+      "x_err": 0,
+      "y_err": 0,
+      "snr": -0.5154220373918794,
+      "flux": 0,
+      "flux_err": 328.4983240051647,
+      "mag": 0,
+      "mag_err": 0,
+      "separation": 0,
+      "sigma": 0,
+      "flags": {}
+    },
+    "phot_within_error_ellipse": []
+  },
+  {
+    "target_name": "65803",
+    "target_type": "smallbody",
+    "ephemeris_service": "Horizons",
+    "visit_id": 199533,
+    "detector_id": 107,
+    "band": "r",
+    "coordinates_central": [
+      51.51526146156948,
+      -33.22142233746943
+    ],
+    "obs_time": "59849.21698761111",
+    "cutout_size": 800,
+    "saved_image_name": "",
+    "uncertainty": {
+      "rss": 0.006,
+      "smaa": 0.00544,
+      "smia": 0.00338,
+      "theta": 38.766
+    },
+    "forced_phot_on_target": {
+      "ra": 51.59553541839804,
+      "dec": -33.275262843962864,
+      "ra_err": 0,
+      "dec_err": 0,
+      "x": 0,
+      "y": 0,
+      "x_err": 0,
+      "y_err": 0,
+      "snr": 3.175072358040378,
+      "flux": 1124.5269021640206,
+      "flux_err": 354.17362987534153,
+      "mag": 23.772575376089698,
+      "mag_err": 0.3419563658159384,
+      "separation": 0,
+      "sigma": 0,
+      "flags": {}
+    },
+    "phot_within_error_ellipse": []
+  }
+]
