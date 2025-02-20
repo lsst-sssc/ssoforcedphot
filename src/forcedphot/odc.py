@@ -104,9 +104,7 @@ class ObjectDetectionController:
         )
 
         parser.add_argument(
-            "--output-dir",
-            default="./output",
-            help="Directory to save output files (default: ./output)"
+            "--output-dir", default="./output", help="Directory to save output files (default: ./output)"
         )
 
         parser.add_argument(

@@ -140,6 +140,7 @@ def serialize_query_result(result):
         "ephemeris": serialize_ephemeris(result.ephemeris),
     }
 
+
 class EphemerisTab:
     """GUI tab for managing ephemeris queries and displaying results.
 
@@ -242,7 +243,7 @@ class EphemerisTab:
                 ),
                 self.save_data,
                 self.run_button,
-                sizing_mode="stretch_width"
+                sizing_mode="stretch_width",
             ),
             self.table_view,
         )
@@ -467,7 +468,7 @@ class PhotometryTab:
                 self.display,
                 self.save_json,
                 self.run_button,
-                sizing_mode="stretch_width"
+                sizing_mode="stretch_width",
             ),
             self.table_view,
         )
@@ -654,7 +655,7 @@ class CompleteRunTab:
                 ),
                 self.run_all_button,
                 self.table_view,
-                sizing_mode="stretch_width"
+                sizing_mode="stretch_width",
             ),
         )
 
@@ -790,6 +791,7 @@ class CompleteRunTab:
         except Exception as e:
             root_logger.error(f"Photometry failed: {str(e)}")
             self.table_view.value = pd.DataFrame()
+
 
 # Documentation tab
 try:

@@ -59,9 +59,8 @@ class PhotometryService:
         self.detection_threshold = detection_threshold
         self.butler = Butler("dp02", collections="2.2i/runs/DP0.2")
 
-
     def process_image(
-        self, 
+        self,
         image_metadata: ImageMetadata,
         target_name: str,
         target_type: str,
@@ -120,7 +119,8 @@ class PhotometryService:
             )
         else:
             calexp = self.butler.get(
-                "calexp", dataId={"visit": image_metadata.visit_id, "detector": image_metadata.detector_id},
+                "calexp",
+                dataId={"visit": image_metadata.visit_id, "detector": image_metadata.detector_id},
             )
 
         # Create error ellipse from ephemeris data
@@ -505,8 +505,7 @@ class PhotometryService:
         elif (
             (x_center - half_size) < min_x
             or (x_center + half_size) > max_x
-            
-            or (y_center - half_size) < min_y 
+            or (y_center - half_size) < min_y
             or (y_center + half_size) > max_y
         ):
             print("The cutout boundaries are outside of the image.")

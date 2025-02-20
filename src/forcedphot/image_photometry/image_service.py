@@ -120,7 +120,7 @@ class ImageService:
         start_time: Time,
         end_time: Time,
         time_windows: list[tuple[Time, Time, float, float]],
-        bands: set[str]
+        bands: set[str],
     ) -> str:
         """
         Constructs a TAP query for image search based on time windows and bands.
