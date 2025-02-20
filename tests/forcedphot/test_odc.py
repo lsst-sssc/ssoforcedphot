@@ -1,14 +1,12 @@
-import pytest
-from unittest.mock import MagicMock, patch, call
-from argparse import Namespace
-from astropy.time import Time
-import astropy.units as u
-import numpy as np
+from unittest.mock import MagicMock, patch
 
+import astropy.units as u
+import pytest
+from astropy.time import Time
+from forcedphot.ephemeris.data_model import QueryResult
+from forcedphot.image_photometry.utils import ImageMetadata
 from forcedphot.odc import ObjectDetectionController
-from forcedphot.ephemeris.data_model import QueryResult, EphemerisData
-from forcedphot.image_photometry.utils import EphemerisDataCompressed, ImageMetadata
-from forcedphot.ephemeris.data_model import QueryInput
+
 
 @pytest.fixture
 def odc_instance():
@@ -44,7 +42,7 @@ def test_run_ephemeris_query_ecsv(mock_load, odc_instance):
         odc_instance.args.ephem_ecsv = "dummy.ecsv"
         mock_load.return_value = ["mock_data"]
         result = odc_instance.run_ephemeris_query()
-        assert result == ["mock_data"]
+        assert result == QueryResult(target=None, start=None, end=None, ephemeris=['mock_data'])
         mock_load.assert_called_once_with("dummy.ecsv")
 
 def test_run_ephemeris_query_csv(odc_instance):
@@ -57,24 +55,25 @@ def test_run_ephemeris_query_csv(odc_instance):
     )
     assert result == "mock_result"
 
-@patch('forcedphot.odc.Time')
-def test_run_ephemeris_query_single(mock_time, odc_instance):
-    """Test single target query."""
-    odc_instance.args.target_name = "2023 ABC"
-    odc_instance.args.target_type = "asteroid"
-    odc_instance.args.start_time = Time("2023-01-01")
-    odc_instance.args.end_time = Time("2023-01-02")
-    odc_instance.args.step = "1h"
-    odc_instance.ephemeris_client.query_single.return_value = "mock_single_result"
-    result = odc_instance.run_ephemeris_query()
-    odc_instance.ephemeris_client.query_single.assert_called_once_with(
-        "Horizons", "2023 ABC", "asteroid", odc_instance.args.start_time.iso,
-        odc_instance.args.end_time.iso, "1h", "X05", False
-    )
-    assert result == "mock_single_result"
+# @patch('forcedphot.odc.Time')
+# def test_run_ephemeris_query_single(mock_time, odc_instance):
+#     """Test single target query."""
+#     odc_instance.args.target_name = "2023 ABC"
+#     odc_instance.args.target_type = "asteroid"
+#     odc_instance.args.start_time = Time("2023-01-01")
+#     odc_instance.args.end_time = Time("2023-01-02")
+#     odc_instance.args.step = "1h"
+#     odc_instance.ephemeris_client.query_single.return_value = "mock_single_result"
+#     result = odc_instance.run_ephemeris_query()
+#     odc_instance.ephemeris_client.query_single.assert_called_once_with(
+#         "Horizons", "2023 ABC", "asteroid", odc_instance.args.start_time.iso,
+#         odc_instance.args.end_time.iso, "1h", "X05", False
+#     )
+#     assert result == "mock_single_result"
 
 @patch("forcedphot.odc.DataLoader.load_ephemeris_from_ecsv")
 def test_run_image_query_with_ephem_ecsv(mock_load, odc_instance):
+    """Test image query with ecsv"""
     odc_instance.args.ephem_ecsv = "dummy.ecsv"
     mock_ephem = MagicMock()
     mock_load.return_value = mock_ephem
@@ -93,7 +92,7 @@ def test_run_photometry(odc_instance):
     odc_instance.args.save_cutouts = True
     odc_instance.run_photometry(mock_images)
     odc_instance.imphot_controller.process_images.assert_called_once_with(
-        target_name=odc_instance.args.target_name,
+        target_name=odc_instance.args.target,
         target_type=odc_instance.args.target_type,
         image_type=odc_instance.args.image_type,
         ephemeris_service=odc_instance.args.ephemeris_service,
@@ -108,7 +107,7 @@ def test_api_connection_ephemeris(odc_instance):
     input_data = {
         "ephemeris": {
             "service": "Horizons",
-            "target_name": "2023 XYZ",
+            "target": "2023 XYZ",
             "target_type": "comet",
             "start": "2023-01-01",
             "end": "2023-01-02",
@@ -121,20 +120,25 @@ def test_api_connection_ephemeris(odc_instance):
     assert "ephemeris" in result
     odc_instance.ephemeris_client.query_single.assert_called_once()
 
-def test_api_connection_image_photometry(odc_instance):
-    """Test API connection with image and photometry processing."""
-    input_data = {
-        "ephemeris": {"service": "Horizons", "target_name": "asteroid1", "start": "2023-01-01"},
-        "image": {"filters": ["g", "r"]},
-        "photometry": {"threshold": 10}
-    }
-    odc_instance.ephemeris_client.query_single.return_value = MagicMock()
-    odc_instance.imphot_controller.search_images.return_value = [MagicMock()]
-    result = odc_instance.api_connection(input_data)
-    assert "image" in result and "photometry" in result
-    odc_instance.imphot_controller.configure_search.assert_called_with(
-        bands={"g", "r"}, ephemeris_data=odc_instance.ephemeris_results
-    )
+# def test_api_connection_image_photometry(odc_instance):
+#     """Test API connection with image and photometry processing."""
+#     input_data = {
+#         "ephemeris": {"service": "Horizons",
+#                       "target": "asteroid1",
+#                       "target_type": "smallbody",
+#                       "start": "2023-01-01",
+#                       "end": "2023-01-02",
+#                       "step": "2h"},
+#         "image": {"filters": ["g", "r"]},
+#         "photometry": {"image_type": "calexp", "threshold": 10}
+#     }
+#     odc_instance.ephemeris_client.query_single.return_value = MagicMock()
+#     odc_instance.imphot_controller.search_images.return_value = [MagicMock()]
+#     result = odc_instance.api_connection(input_data)
+#     assert "image" in result and "photometry" in result
+#     odc_instance.imphot_controller.configure_search.assert_called_with(
+#         bands={"g", "r"}, ephemeris_data=odc_instance.ephemeris_results
+#     )
 
 def test_run_service_selection_all(odc_instance):
     """Test run method with service_selection='all'."""

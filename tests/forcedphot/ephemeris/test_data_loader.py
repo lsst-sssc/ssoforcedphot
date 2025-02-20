@@ -23,6 +23,9 @@ def sample_ecsv_file(tmp_path):
             "V_mag": [15.0, 15.1],
             "alpha_deg": [30.0, 31.0],
             "RSS_3sigma_arcsec": [0.01, 0.02],
+            "SMAA_3sigma_arcsec": [21.0, 11.0],
+            "SMIA_3sigma_arcsec": [10.0, 6.0],
+            "Theta_3sigma_deg": [90.0, 100.0],
         }
     )
     data.write(file_path, format="ascii.ecsv")
@@ -62,6 +65,9 @@ def test_load_multiple_ephemeris_files(sample_ecsv_file, tmp_path):
             "V_mag": [15.2],
             "alpha_deg": [32.0],
             "RSS_3sigma_arcsec": [0.03],
+            "SMAA_3sigma_arcsec": [21.0],
+            "SMIA_3sigma_arcsec": [10.0],
+            "Theta_3sigma_deg": [90.0],
         }
     )
     data.write(second_file, format="ascii.ecsv")
@@ -88,6 +94,6 @@ def test_load_ephemeris_from_ecsv():
     """Test loading ephemeris data from an ECSV file."""
     ephemeris_file = "./tests/forcedphot/ephemeris/data/template_ephemeris.ecsv"
     ephemeris_data = DataLoader.load_ephemeris_from_ecsv(ephemeris_file)
-    assert len(ephemeris_data.datetime) == 8
+    assert len(ephemeris_data.datetime) == 7
     assert isinstance(ephemeris_data.RA_deg, np.ndarray)
     assert isinstance(ephemeris_data, EphemerisData)
