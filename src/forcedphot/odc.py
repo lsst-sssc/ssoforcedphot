@@ -16,6 +16,7 @@ from forcedphot.image_photometry.utils import EphemerisDataCompressed, ImageMeta
 
 logger = logging.getLogger("odc")
 
+
 class ObjectDetectionController:
     """
     This class handles argument parsing, ephemeris queries, and overall control
@@ -35,7 +36,7 @@ class ObjectDetectionController:
         self.ephemeris_client = EphemerisClient()
         self.ephemeris_results: list[EphemerisDataCompressed] = []
         self.image_service = ImageService()
-        self.image_results : list[ImageMetadata]
+        self.image_results: list[ImageMetadata]
         self.photometry_service = PhotometryService()
         self.imphot_controller = ImPhotController()
 
@@ -91,18 +92,15 @@ class ObjectDetectionController:
         parser.add_argument("--save-data", action="store_true", help="Save query results (Ephemeris data)")
 
         # Image service
-        parser.add_argument(
-            "--ephemeris_file",
-            help="Path to the ephemeris file"
-            )
+        parser.add_argument("--ephemeris_file", help="Path to the ephemeris file")
 
         parser.add_argument(
-        "--filters",
-        "--f",
-        nargs='+',
-        choices=["u", "g", "r", "i", "z", "y"],
-        default=["r"],
-        help="List of filters for image search (e.g., --filters g r i)",
+            "--filters",
+            "--f",
+            nargs="+",
+            choices=["u", "g", "r", "i", "z", "y"],
+            default=["r"],
+            help="List of filters for image search (e.g., --filters g r i)",
         )
 
         parser.add_argument(
@@ -151,7 +149,7 @@ class ObjectDetectionController:
             "--image-type",
             choices=["calexp", "goodSeeingDiff_differenceExp"],
             default="calexp",
-            help="Select the type of image. calexp or goodSeeingDiff_differenceExp"
+            help="Select the type of image. calexp or goodSeeingDiff_differenceExp",
         )
 
         parser.add_argument(
@@ -161,7 +159,7 @@ class ObjectDetectionController:
         parser.add_argument(
             "--display",
             action="store_true",
-            help="Display the images and the error ellipses in Firefly (default: False)"
+            help="Display the images and the error ellipses in Firefly (default: False)",
         )
 
         parser.add_argument(
@@ -230,17 +228,13 @@ class ObjectDetectionController:
         else:
             self.parser.error("Either provide a CSV/ECSV file or all single query parameters")
 
-
     def run_image_query(self, ephemeris_results: Optional[dict] = None) -> list[Any]:
         """Execute image search using ephemeris data."""
         # Determine ephemeris source
         if self.args.ephem_ecsv:
             ephemeris_data_temp = DataLoader.load_ephemeris_from_ecsv(self.args.ephem_ecsv)
             self.ephemeris_results = QueryResult(
-                self.args.target,
-                self.args.start_time,
-                self.args.end_time,
-                ephemeris_data_temp
+                self.args.target, self.args.start_time, self.args.end_time, ephemeris_data_temp
             )
         else:
             if not self.ephemeris_results:
@@ -252,8 +246,7 @@ class ObjectDetectionController:
         else:
             bands = set(self.args.filters)
             self.imphot_controller.configure_search(
-                bands=bands,
-                ephemeris_data=self.ephemeris_results
+                bands=bands, ephemeris_data=self.ephemeris_results
             )
 
             # Execute search
@@ -316,7 +309,7 @@ class ObjectDetectionController:
                         ephemeris_data.get("target", "UploadedData"),
                         ephemeris_data.get("start"),
                         ephemeris_data.get("end"),
-                        loaded_ephemeris
+                        loaded_ephemeris,
                     )
 
                 elif "service" in ephemeris_data:
@@ -345,7 +338,6 @@ class ObjectDetectionController:
                 else:
                     raise ValueError("Invalid ephemeris query parameters")
 
-
             # Handle image and photometry services
             process_image = "image" in input_data
             process_photometry = "photometry" in input_data
@@ -359,8 +351,7 @@ class ObjectDetectionController:
                 ephemeris_data = image_params.get("ephemeris_data")
 
                 self.imphot_controller.configure_search(
-                    bands=self.args.filters,
-                    ephemeris_data=ephemeris_data
+                    bands=self.args.filters, ephemeris_data=ephemeris_data
                 )
 
                 self.image_results = self.run_image_query(ephemeris_data)
@@ -387,7 +378,6 @@ class ObjectDetectionController:
 
         except Exception as e:
             return {"error": str(e)}
-
 
     def run(self):
         """

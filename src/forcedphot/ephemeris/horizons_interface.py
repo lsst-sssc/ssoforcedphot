@@ -155,9 +155,11 @@ class HorizonsInterface:
         - The data is saved in ECSV format.
         """
 
-        output_filename = f"{query_input.target}_{query_input.start.iso}_{query_input.end.iso}.ecsv".replace(
-            ":", "-"
-        ).replace(" ", "_").replace("/", "_")
+        output_filename = (
+            f"{query_input.target}_{query_input.start.iso}_{query_input.end.iso}.ecsv".replace(":", "-")
+            .replace(" ", "_")
+            .replace("/", "_")
+        )
 
         # Save the data to an ECSV file
 
@@ -319,7 +321,6 @@ class HorizonsInterface:
 
 # Example usage
 if __name__ == "__main__":
-
     target_query = QueryInput(
         target="65803",
         target_type="smallbody",

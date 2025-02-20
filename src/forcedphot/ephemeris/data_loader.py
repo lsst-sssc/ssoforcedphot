@@ -92,9 +92,9 @@ class DataLoader:
                 V_mag=np.array(table["V_mag"]),
                 alpha_deg=np.array(table["alpha_deg"]),
                 RSS_3sigma_arcsec=np.array(table["RSS_3sigma_arcsec"]),
-                SMAA_3sigma_arcsec= np.array(table["SMAA_3sigma_arcsec"]),
-                SMIA_3sigma_arcsec= np.array(table["SMIA_3sigma_arcsec"]),
-                Theta_3sigma_deg= np.array(table["Theta_3sigma_deg"]),
+                SMAA_3sigma_arcsec=np.array(table["SMAA_3sigma_arcsec"]),
+                SMIA_3sigma_arcsec=np.array(table["SMIA_3sigma_arcsec"]),
+                Theta_3sigma_deg=np.array(table["Theta_3sigma_deg"]),
             )
 
             DataLoader.logger.info(

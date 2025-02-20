@@ -132,6 +132,7 @@ def test_ephemeris_data_creation():
     assert isinstance(ephemeris.SMIA_3sigma_arcsec, np.ndarray)
     assert isinstance(ephemeris.Theta_3sigma_deg, np.ndarray)
 
+
 # @patch("pandas.read_csv")
 # @patch("forcedphot.ephemeris.horizons_interface.HorizonsInterface.query_single_range")
 # @patch("astropy.table.Table.write")

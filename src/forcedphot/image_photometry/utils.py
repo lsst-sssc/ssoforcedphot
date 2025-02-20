@@ -60,18 +60,18 @@ def interpolate_coordinates(ra1, dec1, ra2, dec2, time1, time2, target_time):
     # Handle RA wrap-around (if needed)
     # If the difference between RAs is more than 180 degrees,
     # adjust one of them by 360 degrees
-    if abs(ra2 - ra1) > 180*u.deg:
+    if abs(ra2 - ra1) > 180 * u.deg:
         if ra2 > ra1:
-            ra1 += 360*u.deg
+            ra1 += 360 * u.deg
         else:
-            ra2 += 360*u.deg
+            ra2 += 360 * u.deg
 
     # Linear interpolation
     ra_interp = ra1 + (ra2 - ra1) * fraction
     dec_interp = dec1 + (dec2 - dec1) * fraction
 
     # Normalize RA to [0, 360) degrees
-    ra_interp = ra_interp % (360*u.deg)
+    ra_interp = ra_interp % (360 * u.deg)
 
     return ra_interp.value, dec_interp.value, target_time
 
@@ -94,6 +94,7 @@ class EphemerisDataCompressed:
             - smia: Semi-minor axis of the error-ellipse in arcsec
             - theta: Position angle of the smaa in degrees
     """
+
     datetime: Time
     ra_deg: float
     dec_deg: float
@@ -102,7 +103,7 @@ class EphemerisDataCompressed:
     uncertainty: dict[str, float]
 
     @staticmethod
-    def load_ephemeris(file_path: str) -> list['EphemerisDataCompressed']:
+    def load_ephemeris(file_path: str) -> list["EphemerisDataCompressed"]:
         """
         Loads ephemeris data from an ECSV file and converts it to EphemerisDataCompressed objects.
 
@@ -121,17 +122,17 @@ class EphemerisDataCompressed:
 
             for row in data:
                 ephemeris_row = EphemerisDataCompressed(
-                    datetime=Time(row['datetime'], scale="utc", format="jd"),
-                    ra_deg=float(row['RA_deg']),
-                    dec_deg=float(row['DEC_deg']),
-                    ra_rate=float(row['RA_rate_arcsec_per_h']),
-                    dec_rate=float(row['DEC_rate_arcsec_per_h']),
+                    datetime=Time(row["datetime"], scale="utc", format="jd"),
+                    ra_deg=float(row["RA_deg"]),
+                    dec_deg=float(row["DEC_deg"]),
+                    ra_rate=float(row["RA_rate_arcsec_per_h"]),
+                    dec_rate=float(row["DEC_rate_arcsec_per_h"]),
                     uncertainty={
-                        'rss': float(row['RSS_3sigma_arcsec']),
-                        'smaa': float(row['SMAA_3sigma_arcsec']),
-                        'smia': float(row['SMIA_3sigma_arcsec']),
-                        'theta': float(row['Theta_3sigma_deg'])
-                    }
+                        "rss": float(row["RSS_3sigma_arcsec"]),
+                        "smaa": float(row["SMAA_3sigma_arcsec"]),
+                        "smia": float(row["SMIA_3sigma_arcsec"]),
+                        "theta": float(row["Theta_3sigma_deg"]),
+                    },
                 )
                 rows.append(ephemeris_row)
 
@@ -141,7 +142,7 @@ class EphemerisDataCompressed:
             raise ValueError(f"Error loading ephemeris file: {str(e)}") from e
 
     @staticmethod
-    def compress_ephemeris(query_result: QueryResult) -> list['EphemerisDataCompressed']:
+    def compress_ephemeris(query_result: QueryResult) -> list["EphemerisDataCompressed"]:
         """
         Compresses ephemeris data into a list of EphemerisDataCompressed objects.
 
@@ -163,23 +164,20 @@ class EphemerisDataCompressed:
                 ra_rate=ephemeris_data.RA_rate_arcsec_per_h[i],
                 dec_rate=ephemeris_data.DEC_rate_arcsec_per_h[i],
                 uncertainty={
-                    'rss': ephemeris_data.RSS_3sigma_arcsec[i],
-                    'smaa': ephemeris_data.SMAA_3sigma_arcsec[i],
-                    'smia': ephemeris_data.SMIA_3sigma_arcsec[i],
-                    'theta': ephemeris_data.Theta_3sigma_deg[i]
-                }
+                    "rss": ephemeris_data.RSS_3sigma_arcsec[i],
+                    "smaa": ephemeris_data.SMAA_3sigma_arcsec[i],
+                    "smia": ephemeris_data.SMIA_3sigma_arcsec[i],
+                    "theta": ephemeris_data.Theta_3sigma_deg[i],
+                },
             )
             compressed_ephemeris.append(row)
 
         return compressed_ephemeris
 
-
     @staticmethod
     def get_relevant_rows(
-        ephemeris_rows: list['EphemerisDataCompressed'],
-        t_min: Time,
-        t_max: Time
-    ) -> list['EphemerisDataCompressed']:
+        ephemeris_rows: list["EphemerisDataCompressed"], t_min: Time, t_max: Time
+    ) -> list["EphemerisDataCompressed"]:
         """
         Retrieves 2-3 rows of ephemeris data suitable for interpolation within a time range.
 
@@ -199,7 +197,7 @@ class EphemerisDataCompressed:
                 break
 
         if within_range_idx is None:
-            mid_time = Time((t_min.mjd + t_max.mjd) / 2, format='mjd')
+            mid_time = Time((t_min.mjd + t_max.mjd) / 2, format="mjd")
             time_diffs = [abs(row.datetime.mjd - mid_time.mjd) for row in ephemeris_rows]
             within_range_idx = np.argmin(time_diffs)
 
@@ -213,7 +211,7 @@ class EphemerisDataCompressed:
         return relevant_rows
 
     @staticmethod
-    def get_time_range(rows: list['EphemerisDataCompressed']) -> tuple[Time, Time]:
+    def get_time_range(rows: list["EphemerisDataCompressed"]) -> tuple[Time, Time]:
         """
         Determines the complete time span covered by the ephemeris data.
 
@@ -226,7 +224,7 @@ class EphemerisDataCompressed:
         return rows[0].datetime, rows[-1].datetime
 
     @staticmethod
-    def get_time_windows(rows: list['EphemerisDataCompressed']) -> list[tuple[Time, Time, float, float]]:
+    def get_time_windows(rows: list["EphemerisDataCompressed"]) -> list[tuple[Time, Time, float, float]]:
         """
         Creates time windows for coordinate interpolation from ephemeris data.
 
@@ -239,9 +237,9 @@ class EphemerisDataCompressed:
         """
         windows = []
         for i, row in enumerate(rows):
-            start_time = rows[i-1].datetime if i > 0 else row.datetime
+            start_time = rows[i - 1].datetime if i > 0 else row.datetime
 
-            end_time = rows[i+1].datetime if i < len(rows) - 1 else row.datetime
+            end_time = rows[i + 1].datetime if i < len(rows) - 1 else row.datetime
 
             windows.append((start_time, end_time, row.ra_deg, row.dec_deg))
 
@@ -260,6 +258,7 @@ class SearchParameters:
     ephemeris_file : str
         Path to the ECSV file containing ephemeris data
     """
+
     bands: set[str]
     ephemeris_file: str
 
@@ -288,6 +287,7 @@ class ImageMetadata:
     exact_ephemeris : EphemerisDataCompressed
         Ephemeris data with interpolated coordinates
     """
+
     visit_id: int
     detector_id: int
     ccdvisit: int
@@ -313,6 +313,7 @@ class ErrorEllipse:
         theta (float): Position angle in degrees, measured East of North
         center_coord (Tuple[float, float]): Center coordinates (RA, Dec) in degrees
     """
+
     smaa_3sig: float
     smia_3sig: float
     theta: float
@@ -396,9 +397,10 @@ class ErrorEllipse:
 
         for i in range(len(pixel_coords)):
             j = (i + 1) % len(pixel_coords)
-            display.line([(pixel_coords[i][0], pixel_coords[i][1]),
-                          (pixel_coords[j][0], pixel_coords[j][1])],
-                         ctype='red')
+            display.line(
+                [(pixel_coords[i][0], pixel_coords[i][1]), (pixel_coords[j][0], pixel_coords[j][1])],
+                ctype="red",
+            )
 
 
 @dataclass
@@ -444,6 +446,7 @@ class PhotometryResult:
             - base_PsfFlux_flag_badCentroid_edge
             - slot_Centroid_flag_edge
     """
+
     ra: float
     dec: float
     ra_err: float
@@ -502,6 +505,7 @@ class EndResult:
     phot_within_error_ellipse : List[PhotometryResult]
         Photometry of sources within the error ellipse
     """
+
     target_name: str
     target_type: str
     image_type: str

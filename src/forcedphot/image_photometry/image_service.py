@@ -29,6 +29,7 @@ class ImageService:
     Service for searching and processing images based on ephemeris data.
     Interfaces with the ObsCore catalog through TAP service.
     """
+
     def __init__(self):
         """Initializes the ImageService with logging configuration and TAP service connection."""
         self.logger = logging.getLogger("image_service")
@@ -104,7 +105,7 @@ class ImageService:
         try:
             job = self.service.submit_job(query)
             job.run()
-            job.wait(phases=['COMPLETED', 'ERROR'])
+            job.wait(phases=["COMPLETED", "ERROR"])
             self.logger.info(f'Job phase is {job.phase}')
             job.raise_if_error()
 
@@ -189,43 +190,46 @@ class ImageService:
         metadata_list = []
 
         for _, row in results.iterrows():
-            t_min = Time(row['t_min'], format='mjd')
-            t_max = Time(row['t_max'], format='mjd')
+            t_min = Time(row["t_min"], format="mjd")
+            t_max = Time(row["t_max"], format="mjd")
             t_mid = (t_min.mjd + t_max.mjd) / 2
 
             # Get relevant ephemeris rows for this image
             relevant_ephemeris = EphemerisDataCompressed.get_relevant_rows(ephemeris_rows, t_min, t_max)
             interpolated_ra, interpolated_dec, target_time = interpolate_coordinates(
-                relevant_ephemeris[0].ra_deg, relevant_ephemeris[0].dec_deg,
-                relevant_ephemeris[-1].ra_deg, relevant_ephemeris[-1].dec_deg,
-                relevant_ephemeris[0].datetime.mjd, relevant_ephemeris[-1].datetime.mjd,
-                t_mid
+                relevant_ephemeris[0].ra_deg,
+                relevant_ephemeris[0].dec_deg,
+                relevant_ephemeris[-1].ra_deg,
+                relevant_ephemeris[-1].dec_deg,
+                relevant_ephemeris[0].datetime.mjd,
+                relevant_ephemeris[-1].datetime.mjd,
+                t_mid,
             )
 
             interpolated_row = EphemerisDataCompressed(
-                datetime=Time(t_mid, format='mjd'),
+                datetime=Time(t_mid, format="mjd"),
                 ra_deg=interpolated_ra,
                 dec_deg=interpolated_dec,
                 ra_rate=relevant_ephemeris[1].ra_rate,
                 dec_rate=relevant_ephemeris[1].dec_rate,
                 uncertainty={
-                    'rss': relevant_ephemeris[1].uncertainty['rss'],
-                    'smaa': relevant_ephemeris[1].uncertainty['smaa'],
-                    'smia': relevant_ephemeris[1].uncertainty['smia'],
-                    'theta': relevant_ephemeris[1].uncertainty['theta']
-                }
+                    "rss": relevant_ephemeris[1].uncertainty["rss"],
+                    "smaa": relevant_ephemeris[1].uncertainty["smaa"],
+                    "smia": relevant_ephemeris[1].uncertainty["smia"],
+                    "theta": relevant_ephemeris[1].uncertainty["theta"]
+                },
             )
 
             metadata = ImageMetadata(
-                visit_id=int(row['lsst_visit']),
-                detector_id=int(row['lsst_detector']),
-                ccdvisit=int(row['lsst_ccdvisitid']),
-                band=row['lsst_band'],
-                coordinates_central=(float(row['s_ra']), float(row['s_dec'])),
+                visit_id=int(row["lsst_visit"]),
+                detector_id=int(row["lsst_detector"]),
+                ccdvisit=int(row["lsst_ccdvisitid"]),
+                band=row["lsst_band"],
+                coordinates_central=(float(row["s_ra"]), float(row["s_dec"])),
                 t_min=t_min,
                 t_max=t_max,
                 ephemeris_data=relevant_ephemeris,
-                exact_ephemeris=interpolated_row
+                exact_ephemeris=interpolated_row,
             )
             metadata_list.append(metadata)
 

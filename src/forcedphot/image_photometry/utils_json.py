@@ -34,7 +34,7 @@ def save_results_to_json(end_result: EndResult, output_dir: str, filename: Optio
     OSError
         If there's an error creating the output directory or writing the file
     """
-    # Create output directory if it doesn't exist
+    # Create output directory if it doesn"t exist
     os.makedirs(output_dir, exist_ok=True)
 
     # Generate filename if not provided
@@ -43,8 +43,8 @@ def save_results_to_json(end_result: EndResult, output_dir: str, filename: Optio
         filename = f"{sanitized_name}_visit{end_result.visit_id}.json"
 
     # Ensure filename has .json extension
-    if not filename.endswith('.json'):
-        filename += '.json'
+    if not filename.endswith(".json"):
+        filename += ".json"
 
     output_path = os.path.join(output_dir, filename)
 
@@ -53,7 +53,7 @@ def save_results_to_json(end_result: EndResult, output_dir: str, filename: Optio
         result_dict = asdict(end_result)
 
         # Save to JSON file with proper formatting
-        with open(output_path, 'w') as f:
+        with open(output_path, "w") as f:
             json.dump(result_dict, f, indent=2, default=str)
 
         print(f"Results saved to: {output_path}")

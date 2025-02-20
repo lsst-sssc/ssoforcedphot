@@ -345,7 +345,7 @@ class MiriadeInterface:
                 RSS_3sigma_arcsec=np.array(relevant_data["posunc"]),
                 SMAA_3sigma_arcsec=nan_array,  # Not available in Miriade
                 SMIA_3sigma_arcsec=nan_array,  # Not available in Miriade
-                Theta_3sigma_deg=nan_array,    # Not available in Miriade
+                Theta_3sigma_deg=nan_array,  # Not available in Miriade
             )
 
             if save_data:

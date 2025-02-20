@@ -56,7 +56,7 @@ class ImPhotController:
         Set up search parameters for image retrieval.
 
         Args:
-            bands: Set of photometric bands to search (e.g., {'g', 'r'}).
+            bands: Set of photometric bands to search (e.g., {"g", "r"}).
             ephemeris_data: Path to the ephemeris data file or EphemerisData dataclass object.
         """
         self.search_params = SearchParameters(bands=bands, ephemeris_file=ephemeris_data)
@@ -72,8 +72,7 @@ class ImPhotController:
             raise ValueError("Search parameters not configured. Call configure_search() first.")
 
         self.image_metadata = self.image_service.search_images(
-            self.search_params.bands,
-            self.search_params.ephemeris_file
+            self.search_params.bands, self.search_params.ephemeris_file
         )
         return self.image_metadata
 
@@ -86,7 +85,7 @@ class ImPhotController:
         image_metadata: list[ImageMetadata],
         cutout_size: int = 800,
         save_cutout: bool = False,
-        display: bool = True
+        display: bool = True,
     ) -> None:
         """
         Perform photometry on all retrieved images.
@@ -116,12 +115,13 @@ class ImPhotController:
                 save_cutout=save_cutout,
                 display=display,
                 output_dir=self.output_dir,
-                save_json=False  # Handled separately by save_results()
+                save_json=False   # Handled separately by save_results()
             )
             self.results.append(result)
 
-    def save_results(self, filename: str = "photometry_results.json",
-                     target_name: Optional[str] = "target") -> str:
+    def save_results(
+        self, filename: str = "photometry_results.json", target_name: Optional[str] = "target"
+    ) -> str:
         """
         Save all photometry results to a JSON file.
 
@@ -146,7 +146,6 @@ class ImPhotController:
 
         print(f"Results saved to {output_path}")
         return output_path
-
 
     def print_summary(self) -> None:
         """Print a consolidated summary of all photometry results."""
@@ -175,10 +174,7 @@ if __name__ == "__main__":
     controller = ImPhotController(detection_threshold=5, output_dir="./output")
 
     # Configure and execute search
-    controller.configure_search(
-        bands={'g', 'r', 'i'},
-        ephemeris_data='./test_ephem.ecsv'
-    )
+    controller.configure_search(bands={"g", "r", "i"}, ephemeris_data="./test_ephem.ecsv")
 
     image_metadata = controller.search_images()
 
@@ -194,7 +190,7 @@ if __name__ == "__main__":
         ephemeris_service="JPL Horizons",
         image_metadata=image_metadata,
         cutout_size=800,
-        display=False
+        display=False,
     )
 
     controller.save_results()

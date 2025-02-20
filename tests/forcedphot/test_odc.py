@@ -19,21 +19,21 @@ def odc_instance():
     controller.parse_args([])
     return controller
 
+
 def test_parse_args_with_day_range(odc_instance):
     """Test parsing arguments with --start-time and --day-range."""
-    args = [
-        "--start-time", "2023-01-01 00:00:00",
-        "--day-range", "5"
-    ]
+    args = ["--start-time", "2023-01-01 00:00:00", "--day-range", "5"]
     parsed = odc_instance.parse_args(args)
     assert parsed.start_time == Time("2023-01-01 00:00:00", scale="utc")
     assert parsed.end_time == parsed.start_time + 5 * u.day
+
 
 def test_parse_args_invalid_input(odc_instance):
     """Test error raised when required ephemeris args are missing."""
     odc_instance.parse_args(["--service-selection", "ephemeris"])
     with pytest.raises(SystemExit):
         odc_instance.run_ephemeris_query()
+
 
 @patch("forcedphot.odc.EphemerisClient")
 def test_run_ephemeris_query_ecsv(mock_load, odc_instance):
@@ -42,8 +42,9 @@ def test_run_ephemeris_query_ecsv(mock_load, odc_instance):
         odc_instance.args.ephem_ecsv = "dummy.ecsv"
         mock_load.return_value = ["mock_data"]
         result = odc_instance.run_ephemeris_query()
-        assert result == QueryResult(target=None, start=None, end=None, ephemeris=['mock_data'])
+        assert result == QueryResult(target=None, start=None, end=None, ephemeris=["mock_data"])
         mock_load.assert_called_once_with("dummy.ecsv")
+
 
 def test_run_ephemeris_query_csv(odc_instance):
     """Test CSV batch processing."""
@@ -71,6 +72,7 @@ def test_run_ephemeris_query_csv(odc_instance):
 #     )
 #     assert result == "mock_single_result"
 
+
 @patch("forcedphot.odc.DataLoader.load_ephemeris_from_ecsv")
 def test_run_image_query_with_ephem_ecsv(mock_load, odc_instance):
     """Test image query with ecsv"""
@@ -84,6 +86,7 @@ def test_run_image_query_with_ephem_ecsv(mock_load, odc_instance):
     odc_instance.imphot_controller.configure_search.assert_called_once_with(
         bands=set(odc_instance.args.filters), ephemeris_data=odc_instance.ephemeris_results
     )
+
 
 def test_run_photometry(odc_instance):
     """Test photometry processing with image results."""
@@ -102,6 +105,7 @@ def test_run_photometry(odc_instance):
         display=False,
     )
 
+
 def test_api_connection_ephemeris(odc_instance):
     """Test API connection handling ephemeris input."""
     input_data = {
@@ -111,7 +115,7 @@ def test_api_connection_ephemeris(odc_instance):
             "target_type": "comet",
             "start": "2023-01-01",
             "end": "2023-01-02",
-            "step": "2h"
+            "step": "2h",
         }
     }
     mock_result = MagicMock(spec=QueryResult)
@@ -119,6 +123,7 @@ def test_api_connection_ephemeris(odc_instance):
     result = odc_instance.api_connection(input_data)
     assert "ephemeris" in result
     odc_instance.ephemeris_client.query_single.assert_called_once()
+
 
 # def test_api_connection_image_photometry(odc_instance):
 #     """Test API connection with image and photometry processing."""
@@ -139,6 +144,7 @@ def test_api_connection_ephemeris(odc_instance):
 #     odc_instance.imphot_controller.configure_search.assert_called_with(
 #         bands={"g", "r"}, ephemeris_data=odc_instance.ephemeris_results
 #     )
+
 
 def test_run_service_selection_all(odc_instance):
     """Test run method with service_selection='all'."""
