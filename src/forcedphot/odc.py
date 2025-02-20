@@ -148,6 +148,13 @@ class ObjectDetectionController:
         )
 
         parser.add_argument(
+            "--image-type",
+            choices=["calexp", "goodSeeingDiff_differenceExp"],
+            default="calexp",
+            help="Select the type of image. calexp or goodSeeingDiff_differenceExp"
+        )
+
+        parser.add_argument(
             "--threshold", type=int, default=3, help="Threshold SNR for forced photometry (defaullt: 3)"
         )
 
@@ -261,6 +268,7 @@ class ObjectDetectionController:
         self.imphot_controller.process_images(
             target_name=self.args.target,
             target_type=self.args.target_type,
+            image_type=self.args.image_type,
             ephemeris_service=self.args.ephemeris_service,
             image_metadata=image_results,
             save_cutout=self.args.save_cutouts,
@@ -300,13 +308,15 @@ class ObjectDetectionController:
                 self.args.ephemeris_service = ephemeris_data.get("ephemeris_service")
 
                 if "ecsv_file" in ephemeris_data:
-                    results["ephemeris"] = self.ephemeris_client.load_ephemeris_from_ecsv(
+                    loaded_ephemeris = self.ephemeris_client.load_ephemeris_from_ecsv(
                         ephemeris_data["ecsv_file"]
                     )
 
-                elif "ecsv_files" in ephemeris_data:
-                    results["ephemeris"] = self.ephemeris_client.load_ephemeris_from_multi_ecsv(
-                        ephemeris_data["ecsv_files"]
+                    results["ephemeris"] = QueryResult(
+                        ephemeris_data.get("target", "UploadedData"),
+                        ephemeris_data.get("start"),
+                        ephemeris_data.get("end"),
+                        loaded_ephemeris
                     )
 
                 elif "service" in ephemeris_data:
@@ -339,7 +349,6 @@ class ObjectDetectionController:
             # Handle image and photometry services
             process_image = "image" in input_data
             process_photometry = "photometry" in input_data
-            # print(f"process_photometry {process_photometry}")
 
             if process_image:
                 # Configure image parameters from input_data
@@ -361,7 +370,8 @@ class ObjectDetectionController:
             if process_photometry:
                 self.logger.info("Running Photometry")
                 photometry_params = input_data.get("photometry", {})
-                self.args.threshold = photometry_params.get("threshold", 3)
+                self.args.image_type = photometry_params.get("image_type", "calexp")
+                self.args.threshold = photometry_params.get("threshold", 5)
                 self.args.save_cutouts = photometry_params.get("save_cutouts", False)
                 self.args.min_cutout_size = photometry_params.get("min_cutout_size", 800)
                 self.args.display = photometry_params.get("display", False)

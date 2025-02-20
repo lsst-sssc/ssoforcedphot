@@ -70,6 +70,9 @@ class DataLoader:
                 "V_mag",
                 "alpha_deg",
                 "RSS_3sigma_arcsec",
+                "SMAA_3sigma_arcsec",
+                "SMIA_3sigma_arcsec",
+                "Theta_3sigma_deg",
             ]
             missing_columns = [col for col in required_columns if col not in table.colnames]
             if missing_columns:

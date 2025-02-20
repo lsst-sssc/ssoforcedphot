@@ -61,7 +61,8 @@ class PhotometryService:
 
 
     def process_image(self, image_metadata: ImageMetadata, target_name: str,
-                     target_type: str, ephemeris_service: str,
+                     target_type: str, image_type: str,
+                     ephemeris_service: str,
                      cutout_size: int = 800, save_cutout: bool = False,
                      display: bool = True,
                      output_dir: Optional[str] = None,
@@ -78,6 +79,8 @@ class PhotometryService:
             Name of the astronomical target
         target_type : str
             Classification of the target
+        image_type : str
+            Type of image (calexp or goodSeeingDiff_differenceExp)
         ephemeris_service : str
             Service used for ephemeris data
         cutout_size : int, optional
@@ -104,11 +107,17 @@ class PhotometryService:
             raise ValueError("image_metadata is None")
 
 
-        # Get calibrated exposure
-        calexp = self.butler.get('calexp', dataId={
-            'visit': image_metadata.visit_id,
-            'detector': image_metadata.detector_id
-        })
+        # Get the exposure
+        if image_type == "goodSeeingDiff_differenceExp":
+            calexp = self.butler.get("goodSeeingDiff_differenceExp", dataId={
+                'visit': image_metadata.visit_id,
+                'detector': image_metadata.detector_id
+            })
+        else:
+            calexp = self.butler.get("calexp", dataId={
+                'visit': image_metadata.visit_id,
+                'detector': image_metadata.detector_id
+            })
 
         # Create error ellipse from ephemeris data
         if image_metadata.exact_ephemeris.uncertainty['smaa'] > 0:
@@ -152,6 +161,7 @@ class PhotometryService:
         end_result = self._prepare_end_results(
             target_name=target_name,
             target_type=target_type,
+            image_type=image_type,
             ephemeris_service=ephemeris_service,
             image_metadata=image_metadata,
             cutout_size=cutout_size,
@@ -252,7 +262,12 @@ class PhotometryService:
 
                     # Plot error ellipse if provided
                     if error_ellipse:
-                        error_ellipse._plot_error_ellipse(display=afw_display, wcs=wcs, x_offset=x_offset, y_offset=y_offset)
+                        error_ellipse._plot_error_ellipse(
+                            display=afw_display,
+                            wcs=wcs,
+                            x_offset=x_offset,
+                            y_offset=y_offset
+                        )
 
             if save_cutout and output_dir:
                 # Save cutout
@@ -270,7 +285,13 @@ class PhotometryService:
 
         return target_result, sources_within_error
 
-    def _calculate_separations(self, table, ra_coord: float, dec_coord: float, sigma3: float) -> afwTable.SourceTable:
+    def _calculate_separations(
+        self,
+        table,
+        ra_coord: float,
+        dec_coord: float,
+        sigma3: float
+    ) -> afwTable.SourceTable:
         """
         Calculate angular separations between target coordinate and detected sources,
         and add them to the source table.
@@ -580,11 +601,31 @@ class PhotometryService:
             y=0,
             x_err=0,
             y_err=0,
-            snr=(forced_meas_cat[0].get('base_PsfFlux_instFlux')/ forced_meas_cat[0].get('base_PsfFlux_instFluxErr')) if forced_meas_cat[0].get('base_PsfFlux_instFluxErr') > 0 else 0,
-            flux=forced_meas_cat[0].get('base_PsfFlux_instFlux') if forced_meas_cat[0].get('base_PsfFlux_instFlux') > 0 else 0,
-            flux_err=forced_meas_cat[0].get('base_PsfFlux_instFluxErr') if forced_meas_cat[0].get('base_PsfFlux_instFluxErr') > 0 else 0 ,
-            mag=-2.5 * np.log10(forced_meas_cat[0].get('base_PsfFlux_instFlux')) + 31.4 if forced_meas_cat[0].get('base_PsfFlux_instFlux') > 0 else 0,
-            mag_err=2.5 / np.log(10) * forced_meas_cat[0].get('base_PsfFlux_instFluxErr') / forced_meas_cat[0].get('base_PsfFlux_instFlux') if forced_meas_cat[0].get('base_PsfFlux_instFlux') > 0 else 0,
+            snr=(forced_meas_cat[0].get(
+                'base_PsfFlux_instFlux'
+            )/ forced_meas_cat[0].get(
+                'base_PsfFlux_instFluxErr'
+            )) if forced_meas_cat[0].get(
+                'base_PsfFlux_instFluxErr'
+            ) > 0 else 0,
+            flux=forced_meas_cat[0].get('base_PsfFlux_instFlux') if forced_meas_cat[0].get(
+                'base_PsfFlux_instFlux'
+            ) > 0 else 0,
+            flux_err=forced_meas_cat[0].get('base_PsfFlux_instFluxErr') if forced_meas_cat[0].get(
+                'base_PsfFlux_instFluxErr'
+            ) > 0 else 0 ,
+            mag=-2.5 * np.log10(forced_meas_cat[0].get(
+                'base_PsfFlux_instFlux'
+            )) + 31.4 if forced_meas_cat[0].get(
+                'base_PsfFlux_instFlux'
+            ) > 0 else 0,
+            mag_err=2.5 / np.log(10) * forced_meas_cat[0].get(
+                'base_PsfFlux_instFluxErr'
+            ) / forced_meas_cat[0].get(
+                'base_PsfFlux_instFlux'
+            ) if forced_meas_cat[0].get(
+                'base_PsfFlux_instFlux'
+            ) > 0 else 0,
             separation=0,
             sigma=0,
             flags={}
@@ -604,15 +645,31 @@ class PhotometryService:
                     y=found_sources[i].get('slot_Centroid_y'),
                     x_err=float(found_sources[i].get('slot_Centroid_xErr')),
                     y_err=float(found_sources[i].get('slot_Centroid_yErr')),
-                    snr=(found_sources[i].get('base_PsfFlux_instFlux')/ found_sources[i].get('base_PsfFlux_instFluxErr')) if found_sources[i].get('base_PsfFlux_instFluxErr') > 0 else 0,
+                    snr=(found_sources[i].get(
+                        'base_PsfFlux_instFlux'
+                    )/ found_sources[i].get(
+                        'base_PsfFlux_instFluxErr'
+                    )) if found_sources[i].get(
+                        'base_PsfFlux_instFluxErr'
+                    ) > 0 else 0,
                     flux=found_sources[i].get('base_PsfFlux_instFlux'),
                     flux_err=found_sources[i].get('base_PsfFlux_instFluxErr'),
-                    mag=-2.5 * np.log10(found_sources[i].get('base_PsfFlux_instFlux')) + 31.4 if found_sources[i].get('base_PsfFlux_instFlux') > 0 else np.nan,
-                    mag_err=2.5 / np.log(10) * found_sources[i].get('base_PsfFlux_instFluxErr') / found_sources[i].get('base_PsfFlux_instFlux') if found_sources[i].get('base_PsfFlux_instFlux') > 0 else 0,
+                    mag=-2.5 * np.log10(found_sources[i].get(
+                        'base_PsfFlux_instFlux'
+                    )) + 31.4 if found_sources[i].get(
+                        'base_PsfFlux_instFlux'
+                    ) > 0 else np.nan,
+                    mag_err=2.5 / np.log(10) * found_sources[i].get(
+                        'base_PsfFlux_instFluxErr'
+                    ) / found_sources[i].get(
+                        'base_PsfFlux_instFlux'
+                    ) if found_sources[i].get('base_PsfFlux_instFlux') > 0 else 0,
                     separation=found_sources[i].get('separation'),
                     sigma=found_sources[i].get('sigma'),
                     flags={
-                        'base_PsfFlux_flag_badCentroid' : found_sources[0].get('base_PsfFlux_flag_badCentroid'),
+                        'base_PsfFlux_flag_badCentroid' : found_sources[0].get(
+                            'base_PsfFlux_flag_badCentroid'
+                        ),
                         'base_PsfFlux_flag_badCentroid_edge' : found_sources[0].get(
                             'base_PsfFlux_flag_badCentroid_edge'
                         ),
@@ -628,6 +685,7 @@ class PhotometryService:
         self,
         target_name,
         target_type,
+        image_type,
         ephemeris_service,
         image_metadata,
         cutout_size,
@@ -644,6 +702,8 @@ class PhotometryService:
             Name of the target
         target_type : str
             Classification of the target
+        image_type : str
+            Type of image (calexp or goodSeeingDiff_differenceExp)
         ephemeris_service : str
             Service used for ephemeris data
         image_metadata : ImageMetadata
@@ -665,6 +725,7 @@ class PhotometryService:
         end_result = EndResult(
             target_name=target_name,
             target_type=target_type,
+            image_type=image_type,
             ephemeris_service=ephemeris_service,
             visit_id=image_metadata.visit_id,
             detector_id=image_metadata.detector_id,

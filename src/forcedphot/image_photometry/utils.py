@@ -473,6 +473,8 @@ class EndResult:
         Name of the target
     target_type : str
         Type of the target
+    image_type : str
+        Type of the image (calexp, goodSeeingDiff_differenceExp)
     ephemeris_service :str
         Name of the ephemeris service
     visit_id : int
@@ -502,6 +504,7 @@ class EndResult:
     """
     target_name: str
     target_type: str
+    image_type: str
     ephemeris_service: str
     visit_id: int
     detector_id: int

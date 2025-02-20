@@ -81,6 +81,7 @@ class ImPhotController:
         self,
         target_name: str,
         target_type: str,
+        image_type: str,
         ephemeris_service: str,
         image_metadata: list[ImageMetadata],
         cutout_size: int = 800,
@@ -93,6 +94,7 @@ class ImPhotController:
         Args:
             target_name: Name of the target (e.g., "Example Target").
             target_type: Classification of the target (e.g., "smallbody").
+            image_type: Type of the image (calexp, goodSeeingDiff_differenceExp).
             ephemeris_service: Source of ephemeris data (e.g., "JPL Horizons").
             image_metadata: Metadata for the images.
             cutout_size: Size of image cutout in pixels (default: 800).
@@ -108,6 +110,7 @@ class ImPhotController:
                 image_metadata=metadata,
                 target_name=target_name,
                 target_type=target_type,
+                image_type=image_type,
                 ephemeris_service=ephemeris_service,
                 cutout_size=cutout_size,
                 save_cutout=save_cutout,
@@ -118,7 +121,7 @@ class ImPhotController:
             self.results.append(result)
 
     def save_results(self, filename: str = "photometry_results.json",
-                     target_name: Optional[str] = None) -> str:
+                     target_name: Optional[str] = "target") -> str:
         """
         Save all photometry results to a JSON file.
 
@@ -174,7 +177,7 @@ if __name__ == "__main__":
     # Configure and execute search
     controller.configure_search(
         bands={'g', 'r', 'i'},
-        ephemeris_data='./test_eph.ecsv'
+        ephemeris_data='./test_ephem.ecsv'
     )
 
     image_metadata = controller.search_images()
@@ -187,6 +190,7 @@ if __name__ == "__main__":
     controller.process_images(
         target_name="Example Target",
         target_type="smallbody",
+        image_type="goodSeeingDiff_differenceExp",
         ephemeris_service="JPL Horizons",
         image_metadata=image_metadata,
         cutout_size=800,
