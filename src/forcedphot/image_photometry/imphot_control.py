@@ -194,6 +194,6 @@ if __name__ == "__main__":
         display=False,
     )
 
-    controller.save_results()
+    # controller.save_results()
     controller.print_summary()
     print(f"The process took {(time.time()-start_time)/60} minutes.")

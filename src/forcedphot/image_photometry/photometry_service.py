@@ -15,10 +15,10 @@ import logging
 import os
 from typing import Optional
 
-import lsst.afw.display as afwDisplay
-import lsst.afw.image as afwImage
-import lsst.afw.table as afwTable
-import lsst.daf.base as dafBase
+import lsst.afw.display as afwdisplay
+import lsst.afw.image as afwimage
+import lsst.afw.table as afwtable
+import lsst.daf.base as dafbase
 import lsst.geom as geom
 import numpy as np
 from forcedphot.image_photometry.utils import EndResult, ErrorEllipse, ImageMetadata, PhotometryResult
@@ -257,8 +257,8 @@ class PhotometryService:
 
             if display:
                 # Display using Firefly
-                afwDisplay.setDefaultBackend("firefly")
-                afw_display = afwDisplay.Display(frame=1)
+                afwdisplay.setDefaultBackend("firefly")
+                afw_display = afwdisplay.Display(frame=1)
                 afw_display.mtv(target_img)
                 afw_display.setMaskTransparency(100)
 
@@ -291,7 +291,7 @@ class PhotometryService:
 
     def _calculate_separations(
         self, table, ra_coord: float, dec_coord: float, sigma3: float
-    ) -> afwTable.SourceTable:
+    ) -> afwtable.SourceTable:
         """
         Calculate angular separations between target coordinate and detected sources,
         and add them to the source table.
@@ -353,7 +353,7 @@ class PhotometryService:
         print("Starting source detection and measurement")
 
         # Setup detection and measurement
-        schema = afwTable.SourceTable.makeMinimalSchema()
+        schema = afwtable.SourceTable.makeMinimalSchema()
         schema.addField("coord_raErr", type="F")
         schema.addField("coord_decErr", type="F")
 
@@ -363,11 +363,11 @@ class PhotometryService:
 
         sourcedetectiontask = SourceDetectionTask(schema=schema, config=config)
         sourcemeasurementtask = SingleFrameMeasurementTask(
-            schema=schema, config=SingleFrameMeasurementTask.ConfigClass(), algMetadata=dafBase.PropertyList()
+            schema=schema, config=SingleFrameMeasurementTask.ConfigClass(), algMetadata=dafbase.PropertyList()
         )
 
         # Run detection and measurement
-        tab = afwTable.SourceTable.make(schema)
+        tab = afwtable.SourceTable.make(schema)
         result = sourcedetectiontask.run(tab, calexp)
         sources = result.sources
         sourcemeasurementtask.run(measCat=sources, exposure=calexp)
@@ -419,7 +419,7 @@ class PhotometryService:
             Source catalog with forced photometry on target
         """
         # Create schema and configure measurement
-        schema = afwTable.SourceTable.makeMinimalSchema()
+        schema = afwtable.SourceTable.makeMinimalSchema()
         schema.addField("centroid_x", type="D")
         schema.addField("centroid_y", type="D")
         schema.addField("shape_xx", type="D")
@@ -443,7 +443,7 @@ class PhotometryService:
 
         # Create measurement task and source catalog
         forced_measurement_task = ForcedMeasurementTask(schema, config=config)
-        forced_source = afwTable.SourceCatalog(schema)
+        forced_source = afwtable.SourceCatalog(schema)
 
         # Add sources and perform measurements
         wcs = target_img.getWcs()
@@ -520,7 +520,7 @@ class PhotometryService:
         bbox.include(geom.Point2I(int(x_center + half_size), int(y_center + half_size)))
 
         # Create cutout
-        target_img = calexp.Factory(calexp, bbox, origin=afwImage.LOCAL, deep=False)
+        target_img = calexp.Factory(calexp, bbox, origin=afwimage.LOCAL, deep=False)
 
         return target_img, bbox, (bbox.getMinX(), bbox.getMinY())
 

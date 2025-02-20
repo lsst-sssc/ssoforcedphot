@@ -13,7 +13,7 @@ Tests cover:
 from dataclasses import dataclass
 from unittest.mock import Mock
 
-import lsst.afw.image as afwImage
+import lsst.afw.image as afwimage
 import lsst.geom as geom
 import pytest
 from forcedphot.image_photometry.photometry_service import PhotometryService
@@ -26,7 +26,7 @@ from lsst.daf.butler import Butler
 def mock_butler():
     """Create a mock Butler instance."""
     butler = Mock(spec=Butler)
-    mock_calexp = Mock(spec=afwImage.ExposureF)
+    mock_calexp = Mock(spec=afwimage.ExposureF)
     mock_calexp.getWcs.return_value = Mock()
     mock_calexp.getWidth.return_value = 1000
     mock_calexp.getHeight.return_value = 1000
@@ -76,7 +76,7 @@ def test_init(photometry_service):
 
 def test_prepare_image_cutout(photometry_service):
     """Test image cutout preparation."""
-    mock_calexp = Mock(spec=afwImage.ExposureF)
+    mock_calexp = Mock(spec=afwimage.ExposureF)
     mock_calexp.getWidth.return_value = 1000
     mock_calexp.getHeight.return_value = 1000
     mock_wcs = Mock()
