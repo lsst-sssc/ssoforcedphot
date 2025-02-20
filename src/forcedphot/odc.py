@@ -245,9 +245,7 @@ class ObjectDetectionController:
             image_metadata = self.imphot_controller.search_images()
         else:
             bands = set(self.args.filters)
-            self.imphot_controller.configure_search(
-                bands=bands, ephemeris_data=self.ephemeris_results
-            )
+            self.imphot_controller.configure_search(bands=bands, ephemeris_data=self.ephemeris_results)
 
             # Execute search
             image_metadata = self.imphot_controller.search_images()

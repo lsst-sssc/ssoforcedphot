@@ -106,7 +106,7 @@ class ImageService:
             job = self.service.submit_job(query)
             job.run()
             job.wait(phases=["COMPLETED", "ERROR"])
-            self.logger.info(f'Job phase is {job.phase}')
+            self.logger.info(f"Job phase is {job.phase}")
             job.raise_if_error()
 
             return job.fetch_result().to_table().to_pandas()
@@ -115,9 +115,13 @@ class ImageService:
             self.logger.error(f"Error executing query: {str(e)}")
             return None
 
-    def _build_query(self, start_time: Time, end_time: Time,
-                     time_windows: list[tuple[Time, Time, float, float]],
-                     bands: set[str]) -> str:
+    def _build_query(
+        self,
+        start_time: Time,
+        end_time: Time,
+        time_windows: list[tuple[Time, Time, float, float]],
+        bands: set[str]
+    ) -> str:
         """
         Constructs a TAP query for image search based on time windows and bands.
 
@@ -216,7 +220,7 @@ class ImageService:
                     "rss": relevant_ephemeris[1].uncertainty["rss"],
                     "smaa": relevant_ephemeris[1].uncertainty["smaa"],
                     "smia": relevant_ephemeris[1].uncertainty["smia"],
-                    "theta": relevant_ephemeris[1].uncertainty["theta"]
+                    "theta": relevant_ephemeris[1].uncertainty["theta"],
                 },
             )
 

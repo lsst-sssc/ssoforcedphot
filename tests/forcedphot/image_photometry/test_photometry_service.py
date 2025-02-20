@@ -37,6 +37,7 @@ def mock_butler():
 @pytest.fixture
 def mock_image_metadata():
     """Create mock image metadata for testing."""
+
     @dataclass
     class MockEphemeris:
         ra_deg: float = 150.0
@@ -88,6 +89,7 @@ def test_prepare_image_cutout(photometry_service):
 
     assert bbox is not None
     assert len(offsets) == 2
+
 
 # def test_error_handling(photometry_service):
 #     """Test error handling in photometry operations."""

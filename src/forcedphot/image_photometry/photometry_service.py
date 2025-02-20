@@ -61,15 +61,18 @@ class PhotometryService:
 
 
     def process_image(
-        self, image_metadata: ImageMetadata, target_name: str,
-        target_type: str, image_type: str,
+        self, 
+        image_metadata: ImageMetadata,
+        target_name: str,
+        target_type: str,
+        image_type: str,
         ephemeris_service: str,
         cutout_size: int = 800,
         save_cutout: bool = False,
         display: bool = True,
         output_dir: Optional[str] = None,
         save_json: bool = False,
-        json_filename: Optional[str] = None
+        json_filename: Optional[str] = None,
     ) -> EndResult:
         """
         Process an image using provided metadata and parameters.
@@ -117,8 +120,7 @@ class PhotometryService:
             )
         else:
             calexp = self.butler.get(
-                "calexp",
-                dataId={"visit": image_metadata.visit_id, "detector": image_metadata.detector_id}
+                "calexp", dataId={"visit": image_metadata.visit_id, "detector": image_metadata.detector_id},
             )
 
         # Create error ellipse from ephemeris data
@@ -135,8 +137,7 @@ class PhotometryService:
                 smaa_3sig=image_metadata.exact_ephemeris.uncertainty["rss"],
                 smia_3sig=image_metadata.exact_ephemeris.uncertainty["rss"],
                 theta=0,
-                center_coord=(image_metadata.exact_ephemeris.ra_deg,
-                            image_metadata.exact_ephemeris.dec_deg)
+                center_coord=(image_metadata.exact_ephemeris.ra_deg, image_metadata.exact_ephemeris.dec_deg),
             )
 
         # Create image name if saved
@@ -179,7 +180,6 @@ class PhotometryService:
 
         return end_result
 
-
     def perform_photometry(
         self,
         calexp,
@@ -192,7 +192,7 @@ class PhotometryService:
         save_cutout=False,
         output_dir=None,
         image_name=str,
-        error_ellipse: Optional[ErrorEllipse] = None
+        error_ellipse: Optional[ErrorEllipse] = None,
     ):
         """
         Perform source detection and photometry on the image.
@@ -324,7 +324,6 @@ class PhotometryService:
 
         return table
 
-
     def find_measure_sources(self, calexp, ra_coord, dec_coord, error_ellipse: Optional[ErrorEllipse] = None):
         """
         Detect and measure sources in an image.
@@ -394,7 +393,6 @@ class PhotometryService:
             filtered_table.sort("sigma")
 
             return filtered_table
-
 
     def _perform_forced_photometry(self, target_img, ra_list, dec_list, x_offset, y_offset, psf_only):
         """
@@ -507,6 +505,7 @@ class PhotometryService:
         elif (
             (x_center - half_size) < min_x
             or (x_center + half_size) > max_x
+            
             or (y_center - half_size) < min_y 
             or (y_center + half_size) > max_y
         ):
@@ -561,7 +560,6 @@ class PhotometryService:
                 dec_list.append(np.rad2deg(source["coord_dec"]))
 
         return ra_list, dec_list, sources
-
 
     def _prepare_photometry_results(self, forced_meas_cat, ra, dec, found_sources):
         """
@@ -654,14 +652,14 @@ class PhotometryService:
                     separation=found_sources[i].get("separation"),
                     sigma=found_sources[i].get("sigma"),
                     flags={
-                        "base_PsfFlux_flag_badCentroid" : found_sources[0].get(
+                        "base_PsfFlux_flag_badCentroid": found_sources[0].get(
                             "base_PsfFlux_flag_badCentroid"
                         ),
-                        "base_PsfFlux_flag_badCentroid_edge" : found_sources[0].get(
+                        "base_PsfFlux_flag_badCentroid_edge": found_sources[0].get(
                             "base_PsfFlux_flag_badCentroid_edge"
                         ),
-                        "slot_Centroid_flag_edge" : found_sources[0].get("slot_Centroid_flag_edge")
-                          },
+                        "slot_Centroid_flag_edge": found_sources[0].get("slot_Centroid_flag_edge"),
+                    },
                 )
 
                 sources_within_error.append(source_result)
@@ -723,7 +721,7 @@ class PhotometryService:
             saved_image_name=saved_image_name,
             uncertainty=image_metadata.exact_ephemeris.uncertainty,
             forced_phot_on_target=target_result,
-            phot_within_error_ellipse=sources_within_error
+            phot_within_error_ellipse=sources_within_error,
         )
 
         return end_result

@@ -56,6 +56,7 @@ def test_run_ephemeris_query_csv(odc_instance):
     )
     assert result == "mock_result"
 
+
 # @patch('forcedphot.odc.Time')
 # def test_run_ephemeris_query_single(mock_time, odc_instance):
 #     """Test single target query."""

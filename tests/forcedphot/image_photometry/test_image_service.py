@@ -30,7 +30,7 @@ def sample_ephemeris_data():
             dec_deg=20.0,
             ra_rate=0.1,
             dec_rate=0.1,
-            uncertainty={"rss": 0.1, "smaa": 0.1, "smia": 0.1, "theta": 0.1}
+            uncertainty={"rss": 0.1, "smaa": 0.1, "smia": 0.1, "theta": 0.1},
         ),
         EphemerisDataCompressed(
             datetime=Time("2023-01-02 00:00:00"),
@@ -38,7 +38,7 @@ def sample_ephemeris_data():
             dec_deg=20.1,
             ra_rate=0.1,
             dec_rate=0.1,
-            uncertainty={"rss": 0.1, "smaa": 0.1, "smia": 0.1, "theta": 0.1}
+            uncertainty={"rss": 0.1, "smaa": 0.1, "smia": 0.1, "theta": 0.1},
         ),
     ]
 
@@ -56,7 +56,7 @@ def test_search_images_with_results(image_service, sample_ephemeris_data):
     # Mock dependencies
     with patch(
         "forcedphot.image_photometry.utils.EphemerisDataCompressed.load_ephemeris",
-        return_value=sample_ephemeris_data
+        return_value=sample_ephemeris_data,
     ):
         with patch.object(image_service, "_execute_query") as mock_execute:
             # Create sample DataFrame result

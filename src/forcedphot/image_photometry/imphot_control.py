@@ -115,7 +115,7 @@ class ImPhotController:
                 save_cutout=save_cutout,
                 display=display,
                 output_dir=self.output_dir,
-                save_json=False   # Handled separately by save_results()
+                save_json=False,  # Handled separately by save_results()
             )
             self.results.append(result)
 
@@ -167,6 +167,7 @@ class ImPhotController:
                     print(f"  Source {j}: Separation = {source.separation:.2f} arcsec")
                     print(f"    Flux: {source.flux:.2f} ± {source.flux_err:.2f} nJy")
                     print(f"    Sigma: {source.sigma:.2f}σ")
+
 
 # Example usage
 if __name__ == "__main__":

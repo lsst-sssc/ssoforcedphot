@@ -21,8 +21,7 @@ pn.extension("tabulator", "terminal", design="material")
 pn.config.theme = "dark"
 
 template = pn.template.MaterialTemplate(
-    title="Faint Solar System Object Detection Service",
-    logo="rubin_logo.svg"
+    title="Faint Solar System Object Detection Service", logo="rubin_logo.svg"
 )
 
 # Initialize terminal and redirect
@@ -30,8 +29,9 @@ terminal = pn.widgets.Terminal(
     "Application Output:\n",
     options={"cursorBlink": True, "scrollback": 1000, "encoding": "utf-8", "fontSize": 11},
     height=300,
-    sizing_mode="stretch_width"
+    sizing_mode="stretch_width",
 )
+
 
 # Stream handler for the terminal widget
 class TerminalHandler(logging.Handler):
@@ -40,6 +40,7 @@ class TerminalHandler(logging.Handler):
     Args:
         terminal_widget (pn.widgets.Terminal): The terminal widget to display logs in.
     """
+
     def __init__(self, terminal_widget):
         super().__init__()
         self.terminal_widget = terminal_widget
@@ -60,10 +61,12 @@ class TerminalHandler(logging.Handler):
         except Exception:
             self.handleError(record)
 
+
 terminal_handler = TerminalHandler(terminal)
 terminal_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
 
 root_logger.addHandler(terminal_handler)
+
 
 # Custom stdout/stderr redirector
 class StreamToLogger:
@@ -73,6 +76,7 @@ class StreamToLogger:
         terminal_widget (pn.widgets.Terminal): Terminal widget for log display.
         is_error (bool): Whether to treat the stream as stderr (default: False).
     """
+
     def __init__(self, terminal_widget, is_error=False):
         self.terminal = terminal_widget
         self.is_error = is_error
@@ -95,6 +99,7 @@ class StreamToLogger:
 sys.stdout = StreamToLogger(terminal)
 sys.stderr = StreamToLogger(terminal, is_error=True)
 
+
 def serialize_query_result(result):
     """Convert QueryResult and EphemerisData objects to a JSON-serializable dictionary.
 
@@ -104,6 +109,7 @@ def serialize_query_result(result):
     Returns:
         dict: Serialized data structure compatible with JSON.
     """
+
     def serialize_time(time_obj):
         return time_obj.iso if isinstance(time_obj, Time) else str(time_obj)
 
@@ -131,7 +137,7 @@ def serialize_query_result(result):
         "target": result.target,
         "start": serialize_time(result.start),
         "end": serialize_time(result.end),
-        "ephemeris": serialize_ephemeris(result.ephemeris)
+        "ephemeris": serialize_ephemeris(result.ephemeris),
     }
 
 class EphemerisTab:
@@ -146,53 +152,32 @@ class EphemerisTab:
 
         # Widgets
         self.ephemeris_source = pn.widgets.RadioButtonGroup(
-            name="Ephemeris Source",
-            options=["Use Existing Data", "Upload ECSV"],
-            value="Use Existing Data"
+            name="Ephemeris Source", options=["Use Existing Data", "Upload ECSV"], value="Use Existing Data"
         )
         self.file_upload = pn.widgets.input.FileInput(accept=".ecsv", multiple=False)
         self.service = pn.widgets.Select(name="Service", options=["Horizons", "Miriade"], value="Horizons")
         self.target_name = pn.widgets.TextInput(name="Target Name")
         self.target_type = pn.widgets.Select(
-            name="Target Type",
-            options=["smallbody", "comet_name"],
-            value="smallbody"
+            name="Target Type", options=["smallbody", "comet_name"], value="smallbody"
         )
         self.start_time = pn.widgets.DatetimePicker(
-            name="Start Time",
-            value=datetime.datetime.now(),
-            enable_time=True
+            name="Start Time", value=datetime.datetime.now(), enable_time=True
         )
         self.time_spec = pn.widgets.RadioButtonGroup(
-            name="Time Specification",
-            options=["End Time", "Day Range"],
-            value="End Time"
+            name="Time Specification", options=["End Time", "Day Range"], value="End Time"
         )
         self.end_time = pn.widgets.DatetimePicker(
-            name="End Time",
-            value=datetime.datetime.now() + datetime.timedelta(days=1),
-            enable_time=True
+            name="End Time", value=datetime.datetime.now() + datetime.timedelta(days=1), enable_time=True
         )
         self.day_range = pn.widgets.IntInput(name="Day Range", value=1, start=1, width=120)
-        self.step_value = pn.widgets.FloatInput(
-            name="Step Value",
-            value=1,
-            start=1,
-            step=1,
-            width=120
-        )
-        self.step_unit = pn.widgets.Select(
-            name="Step Unit",
-            options=["d", "h", "m"],
-            value="h",
-            width=50
-        )
+        self.step_value = pn.widgets.FloatInput(name="Step Value", value=1, start=1, step=1, width=120)
+        self.step_unit = pn.widgets.Select(name="Step Unit", options=["d", "h", "m"], value="h", width=50)
         self.save_data = pn.widgets.Checkbox(name="Save Ephemeris")
         self.run_button = pn.widgets.Button(
-            name=pn.bind(lambda s: "Update" if s == "Upload ECSV" else "Run Query",
-                         self.ephemeris_source.param.value
-                        ),
-            button_type="primary"
+            name=pn.bind(
+                lambda s: "Update" if s == "Upload ECSV" else "Run Query", self.ephemeris_source.param.value
+            ),
+            button_type="primary",
         )
         self.result_pane = pn.pane.JSON(object={}, name="Results", depth=3, height=300)
 
@@ -232,7 +217,7 @@ class EphemerisTab:
                     {"title": "SMIA 3σ", "field": "SMIA_3sigma_arcsec"},
                     {"title": "Theta 3σ (deg)", "field": "Theta_3sigma_deg"},
                 ]
-            }
+            },
         )
 
         def conditional_upload(source):
@@ -258,7 +243,8 @@ class EphemerisTab:
                 self.save_data,
                 self.run_button,
                 sizing_mode="stretch_width"
-            ), self.table_view
+            ),
+            self.table_view,
         )
 
     def get_step_string(self):
@@ -287,7 +273,7 @@ class EphemerisTab:
                         "service": self.service.value,
                         "target": self.target_name.value,
                         "target_type": self.target_type.value,
-                        "ecsv_file": self.file_upload.filename
+                        "ecsv_file": self.file_upload.filename,
                     }
                 }
                 self.controller.ephemeris_results = self.controller.api_connection(input_data)
@@ -307,7 +293,7 @@ class EphemerisTab:
                     "start": self.start_time.value.strftime("%Y-%m-%d %H:%M:%S"),
                     "save_data": self.save_data.value,
                     "observer_location": "X05",
-                    "step": self.get_step_string()
+                    "step": self.get_step_string(),
                 }
             }
 
@@ -363,7 +349,7 @@ class ImageTab:
             height=60,
             margin=5,
             align=("center", "center"),
-            orientation="horizontal"
+            orientation="horizontal",
         )
         self.run_button = pn.widgets.Button(name="Run Image Query", button_type="primary")
         self.results_pane = pn.pane.JSON(object={}, height=300)
@@ -391,8 +377,9 @@ class ImageTab:
                     pn.Row(self.filters, margin=(0, 10)),
                 ),
                 self.run_button,
-                sizing_mode="stretch_width"
-            ), self.table_view,
+                sizing_mode="stretch_width",
+            ),
+            self.table_view,
         )
 
         self.run_button.on_click(self.run_query)
@@ -519,7 +506,7 @@ class PhotometryTab:
                             "mag": presult["forced_phot_on_target"]["mag"],
                             "mag_err": presult["forced_phot_on_target"]["mag_err"],
                             "snr": presult["forced_phot_on_target"]["snr"],
-                            "num_sources": len(presult.get("phot_within_error_ellipse", []))
+                            "num_sources": len(presult.get("phot_within_error_ellipse", [])),
                         }
                         rows.append(row)
                 df = pd.DataFrame(rows)
@@ -563,12 +550,8 @@ class CompleteRunTab:
             name="End Time", value=datetime.datetime.now() + datetime.timedelta(days=1), enable_time=True
         )
         self.day_range = pn.widgets.IntInput(name="Day Range", value=1, start=1, width=120)
-        self.step_value = pn.widgets.FloatInput(
-            name="Step Value", value=1, start=1, step=1, width=120
-        )
-        self.step_unit = pn.widgets.Select(
-            name="Step Unit", options=["d", "h", "m"], value="h", width=50
-        )
+        self.step_value = pn.widgets.FloatInput(name="Step Value", value=1, start=1, step=1, width=120)
+        self.step_unit = pn.widgets.Select(name="Step Unit", options=["d", "h", "m"], value="h", width=50)
         self.save_data = pn.widgets.Checkbox(name="Save Ephemeris")
 
         # Image Section Widgets
@@ -582,19 +565,12 @@ class CompleteRunTab:
 
         # Photometry Section Widgets
         self.image_type = pn.widgets.Select(
-            name="Image type",
-            options=["calexp", "goodSeeingDiff_differenceExp"],
-            value="calexp"
+            name="Image type", options=["calexp", "goodSeeingDiff_differenceExp"], value="calexp"
         )
         self.detection_threshold = pn.widgets.FloatInput(
-            name="Detection Threshold",
-            value=5.0,
-            start=0,
-            width=100
+            name="Detection Threshold", value=5.0, start=0, width=100
         )
-        self.cutout_size = pn.widgets.IntInput(
-            name="Cutout Size (pixels)", value=800, start=100, width=100
-        )
+        self.cutout_size = pn.widgets.IntInput(name="Cutout Size (pixels)", value=800, start=100, width=100)
         self.save_cutouts = pn.widgets.Checkbox(name="Save Cutouts", value=False)
         self.display = pn.widgets.Checkbox(name="Display Results", value=False)
         self.save_json = pn.widgets.Checkbox(name="Save Result to JSON", value=False)
@@ -660,7 +636,7 @@ class CompleteRunTab:
                     ),
                     title="Image Search Settings",
                     collapsed=False,
-                )
+                ),
             ),
             pn.Column(
                 pn.Card(
@@ -679,7 +655,7 @@ class CompleteRunTab:
                 self.run_all_button,
                 self.table_view,
                 sizing_mode="stretch_width"
-            )
+            ),
         )
 
     def conditional_upload(self, source):
@@ -713,7 +689,7 @@ class CompleteRunTab:
                         "service": self.service.value,
                         "target": self.target_name.value,
                         "target_type": self.target_type.value,
-                        "ecsv_file": self.file_upload.filename
+                        "ecsv_file": self.file_upload.filename,
                     }
                 }
 
@@ -830,7 +806,7 @@ documentation_tab = pn.pane.Markdown(
         "overflow-x": "hidden",
         "overflow-y": "auto",
         "margin": "0",
-        "padding": "20px"
+        "padding": "20px",
     },
 )
 
@@ -842,6 +818,7 @@ image_tab = ImageTab(controller).layout
 photometry_tab = PhotometryTab(controller).layout
 complete_run_tab = CompleteRunTab(controller).layout
 
+
 # Terminal test and clear
 def test_logging():
     """Test the terminal widget"""
@@ -851,6 +828,7 @@ def test_logging():
     logging.error("Error message")
     print("Standard output message")
     print("Error message", file=sys.stderr)
+
 
 test_log_button = pn.widgets.Button(name="Test Logging", button_type="success")
 test_log_button.on_click(lambda e: test_logging())
