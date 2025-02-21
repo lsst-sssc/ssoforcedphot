@@ -37,7 +37,7 @@ class EphemerisClient:
     DEFAUT_SAVE_DATA = False
 
     def __init__(self):
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger("ephemeris_client")
         logging.basicConfig(level=logging.INFO)
 
     def query_single(

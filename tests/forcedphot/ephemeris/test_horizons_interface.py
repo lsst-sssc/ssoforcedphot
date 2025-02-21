@@ -62,6 +62,9 @@ def test_query_single_range_success(mock_horizons):
         "V": [15.0],
         "alpha": [30.0],
         "RSS_3sigma": [0.1],
+        "SMAA_3sigma": [21.0],
+        "SMIA_3sigma": [10.0],
+        "Theta_3sigma": [90.0],
     }
     mock_horizons.return_value.ephemerides = mock_ephemerides
 
@@ -125,6 +128,9 @@ def test_ephemeris_data_creation():
     assert isinstance(ephemeris.V_mag, np.ndarray)
     assert isinstance(ephemeris.alpha_deg, np.ndarray)
     assert isinstance(ephemeris.RSS_3sigma_arcsec, np.ndarray)
+    assert isinstance(ephemeris.SMAA_3sigma_arcsec, np.ndarray)
+    assert isinstance(ephemeris.SMIA_3sigma_arcsec, np.ndarray)
+    assert isinstance(ephemeris.Theta_3sigma_deg, np.ndarray)
 
 
 # @patch("pandas.read_csv")

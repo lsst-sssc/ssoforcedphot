@@ -62,6 +62,14 @@ class EphemerisData:
         V_mag (np.ndarray): Visual magnitude.
         alpha_deg (np.ndarray): Phase angle in degrees.
         RSS_3sigma_arcsec (np.ndarray): Root Sum Square 3-sigma positional uncertainty in arcseconds.
+        SMAA_3sigma_arcsec (np.ndarray):
+            Angular width of the 3-sigma error ellipse semi-major axis in POS in arcseconds.
+        SMIA_3sigma_arcsec (np.ndarray):
+            Angular width of the 3-sigma error ellipse semi-minor axis in POS in arcseconds.
+        Theta_3sigma_deg (np.ndarray):
+            Orientation angle of the error ellipse in POS; the clockwise angle from the direction of
+            increasing RA to the semi-major axis of the error ellipse, in the direction of increasing DEC.
+            Units: degrees.
     """
 
     datetime: Time = field(default_factory=lambda: Time([], scale="utc", format="jd"))
@@ -76,6 +84,9 @@ class EphemerisData:
     V_mag: np.ndarray = field(default_factory=lambda: np.array([]))
     alpha_deg: np.ndarray = field(default_factory=lambda: np.array([]))
     RSS_3sigma_arcsec: np.ndarray = field(default_factory=lambda: np.array([]))
+    SMAA_3sigma_arcsec: np.ndarray = field(default_factory=lambda: np.array([]))
+    SMIA_3sigma_arcsec: np.ndarray = field(default_factory=lambda: np.array([]))
+    Theta_3sigma_deg: np.ndarray = field(default_factory=lambda: np.array([]))
 
 
 @dataclass

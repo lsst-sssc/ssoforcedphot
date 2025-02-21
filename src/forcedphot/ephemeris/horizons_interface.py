@@ -36,10 +36,6 @@ class HorizonsInterface:
     The class handles large queries by splitting them into smaller time ranges
     when necessary to avoid exceeding JPL Horizons limit of 10,000 instances per query."""
 
-    # Set up logging
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger(__name__)
-
     # Rubin location
     DEFAULT_OBSERVER_LOCATION = "X05"
 
@@ -53,6 +49,7 @@ class HorizonsInterface:
             The observer location code. Default is "X05" (Rubin location).
         """
         self.observer_location = observer_location
+        self.logger = logging.getLogger("horizons_interface")
 
     def splitting_query(self, query: QueryInput, max_instances=10000):
         """
@@ -158,9 +155,11 @@ class HorizonsInterface:
         - The data is saved in ECSV format.
         """
 
-        output_filename = f"{query_input.target}_{query_input.start.iso}_{query_input.end.iso}.ecsv".replace(
-            ":", "-"
-        ).replace(" ", "_")
+        output_filename = (
+            f"{query_input.target}_{query_input.start.iso}_{query_input.end.iso}.ecsv".replace(":", "-")
+            .replace(" ", "_")
+            .replace("/", "_")
+        )
 
         # Save the data to an ECSV file
 
@@ -178,6 +177,9 @@ class HorizonsInterface:
                 "V_mag": ephemeris_data.V_mag,
                 "alpha_deg": ephemeris_data.alpha_deg,
                 "RSS_3sigma_arcsec": ephemeris_data.RSS_3sigma_arcsec,
+                "SMAA_3sigma_arcsec": ephemeris_data.SMAA_3sigma_arcsec,
+                "SMIA_3sigma_arcsec": ephemeris_data.SMIA_3sigma_arcsec,
+                "Theta_3sigma_deg": ephemeris_data.Theta_3sigma_deg,
             }
         )
 
@@ -206,6 +208,12 @@ class HorizonsInterface:
         result_table["alpha_deg"].description = "Phase angle in degrees"
         result_table["RSS_3sigma_arcsec"].unit = u.arcsec
         result_table["RSS_3sigma_arcsec"].description = "3-sigma uncertainty in arcseconds"
+        result_table["SMAA_3sigma_arcsec"].unit = u.arcsec
+        result_table["SMAA_3sigma_arcsec"].description = "Semi-major axis of error ellipse in arcseconds"
+        result_table["SMIA_3sigma_arcsec"].unit = u.arcsec
+        result_table["SMIA_3sigma_arcsec"].description = "Semi-minor axis of error ellipse in arcseconds"
+        result_table["Theta_3sigma_deg"].unit = u.deg
+        result_table["Theta_3sigma_deg"].description = "Position angle of error ellipse in degrees"
 
         result_table.write("./" + output_filename, format="ascii.ecsv", overwrite=True)
         self.logger.info(f"Ephemeris data successfully saved to {output_filename}")
@@ -262,6 +270,7 @@ class HorizonsInterface:
                     )
 
                 else:
+                    # TODO Some object only run with smallbody type, but the mag_type remains Tmag
                     mag_type = "V"
                     ephemeris = obj.ephemerides(skip_daylight=False)
 
@@ -290,6 +299,9 @@ class HorizonsInterface:
                 V_mag=np.array(combined_ephemeris[mag_type]),
                 alpha_deg=np.array(combined_ephemeris["alpha"]),
                 RSS_3sigma_arcsec=np.array(combined_ephemeris["RSS_3sigma"]),
+                SMAA_3sigma_arcsec=np.array(combined_ephemeris["SMAA_3sigma"]),
+                SMIA_3sigma_arcsec=np.array(combined_ephemeris["SMIA_3sigma"]),
+                Theta_3sigma_deg=np.array(combined_ephemeris["Theta_3sigma"]),
             )
 
             # Save the data to an ECSV file
@@ -309,24 +321,11 @@ class HorizonsInterface:
 
 # Example usage
 if __name__ == "__main__":
-    # HorizonsInterface.query_ephemeris_from_csv("./targets.csv", save_data=True)
-
-    # Define the target query parameters
-    # target_query = QueryInput(
-    #     target="Ceres",
-    #     target_type="smallbody",
-    #     start=Time("2024-01-01 00:00"),
-    #     end=Time("2025-11-30 23:59"),
-    #     step="1h",
-    # )
-    # horizons = HorizonsInterface()
-    # result = horizons.query_single_range(query=target_query)
-
     target_query = QueryInput(
-        target="Encke",
-        target_type="comet_name",
-        start=Time("2024-01-01 00:00"),
-        end=Time("2025-12-31 23:59"),
+        target="65803",
+        target_type="smallbody",
+        start=Time("2022-09-26 00:00"),
+        end=Time("2022-09-29 23:59"),
         step="1h",
     )
     horizons = HorizonsInterface()
