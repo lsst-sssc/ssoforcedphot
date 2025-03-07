@@ -2,8 +2,8 @@ from unittest.mock import ANY, Mock, patch
 
 import pytest
 from astropy.time import Time
-from forcedphot.ephemeris.data_model import EphemerisData, QueryResult
-from forcedphot.ephemeris.ephemeris_client import EphemerisClient
+from ephemeris.data_model import EphemerisData, QueryResult
+from ephemeris.ephemeris_client import EphemerisClient
 
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def mock_horizons_interface():
     """
     Fixture to mock the HorizonsInterface class for use in tests.
     """
-    with patch("forcedphot.ephemeris.ephemeris_client.HorizonsInterface") as mock:
+    with patch("ephemeris.ephemeris_client.HorizonsInterface") as mock:
         yield mock
 
 
@@ -28,7 +28,7 @@ def mock_miriade_interface():
     """
     Fixture to mock the MiriadeInterface class for use in tests.
     """
-    with patch("forcedphot.ephemeris.ephemeris_client.MiriadeInterface") as mock:
+    with patch("ephemeris.ephemeris_client.MiriadeInterface") as mock:
         yield mock
 
 
@@ -83,7 +83,7 @@ def test_query_single_invalid_service(ephemeris_client):
     assert result is None
 
 
-# @patch("forcedphot.ephemeris.horizons_interface.HorizonsInterface.query_ephemeris_from_csv")
+# @patch("ephemeris.horizons_interface.HorizonsInterface.query_ephemeris_from_csv")
 # def test_query_from_csv_horizons(mock_query_csv, ephemeris_client):
 #     """
 #     Test the query_from_csv method of EphemerisClient when using the JPL Horizons service.
@@ -104,7 +104,7 @@ def test_query_single_invalid_service(ephemeris_client):
 #     mock_query_csv.assert_called_once_with("test.csv", "X05", save_data=False)
 
 
-# @patch("forcedphot.ephemeris.miriade_interface.MiriadeInterface.query_ephemeris_from_csv")
+# @patch("ephemeris.miriade_interface.MiriadeInterface.query_ephemeris_from_csv")
 # def test_query_from_csv_miriade(mock_query_csv, ephemeris_client):
 #     """
 #     Test the query_from_csv method of EphemerisClient when using the Miriade service.

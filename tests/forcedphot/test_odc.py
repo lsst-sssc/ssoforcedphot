@@ -3,9 +3,9 @@ from unittest.mock import MagicMock, patch
 import astropy.units as u
 import pytest
 from astropy.time import Time
-from forcedphot.ephemeris.data_model import QueryResult
-from forcedphot.image_photometry.utils import ImageMetadata
-from forcedphot.odc import ObjectDetectionController
+from ephemeris.data_model import QueryResult
+from image_photometry.utils import ImageMetadata
+from odc import ObjectDetectionController
 
 
 @pytest.fixture
@@ -35,10 +35,10 @@ def test_parse_args_invalid_input(odc_instance):
         odc_instance.run_ephemeris_query()
 
 
-@patch("forcedphot.odc.EphemerisClient")
+@patch("odc.EphemerisClient")
 def test_run_ephemeris_query_ecsv(mock_load, odc_instance):
     """Test ephemeris query with --ephem-ecsv."""
-    with patch("forcedphot.odc.DataLoader.load_ephemeris_from_ecsv") as mock_load:
+    with patch("odc.DataLoader.load_ephemeris_from_ecsv") as mock_load:
         odc_instance.args.ephem_ecsv = "dummy.ecsv"
         mock_load.return_value = ["mock_data"]
         result = odc_instance.run_ephemeris_query()
@@ -57,7 +57,7 @@ def test_run_ephemeris_query_csv(odc_instance):
     assert result == "mock_result"
 
 
-# @patch('forcedphot.odc.Time')
+# @patch('odc.Time')
 # def test_run_ephemeris_query_single(mock_time, odc_instance):
 #     """Test single target query."""
 #     odc_instance.args.target_name = "2023 ABC"
@@ -74,7 +74,7 @@ def test_run_ephemeris_query_csv(odc_instance):
 #     assert result == "mock_single_result"
 
 
-@patch("forcedphot.odc.DataLoader.load_ephemeris_from_ecsv")
+@patch("odc.DataLoader.load_ephemeris_from_ecsv")
 def test_run_image_query_with_ephem_ecsv(mock_load, odc_instance):
     """Test image query with ecsv"""
     odc_instance.args.ephem_ecsv = "dummy.ecsv"

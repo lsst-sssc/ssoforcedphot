@@ -3,8 +3,8 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 from astropy.time import Time
-from forcedphot.image_photometry.image_service import ImageService
-from forcedphot.image_photometry.utils import EphemerisDataCompressed, ImageMetadata
+from image_photometry.image_service import ImageService
+from image_photometry.utils import EphemerisDataCompressed, ImageMetadata
 
 
 @pytest.fixture
@@ -16,7 +16,7 @@ def image_service():
 @pytest.fixture
 def mock_tap_service():
     """Mock TAP service"""
-    with patch("forcedphot.image_photometry.image_service.get_tap_service") as mock:
+    with patch("image_photometry.image_service.get_tap_service") as mock:
         yield mock
 
 
@@ -45,7 +45,7 @@ def sample_ephemeris_data():
 
 def test_search_images_no_ephemeris(image_service):
     """Test search_images with empty ephemeris data"""
-    with patch("forcedphot.image_photometry.utils.EphemerisDataCompressed.load_ephemeris", return_value=[]):
+    with patch("image_photometry.utils.EphemerisDataCompressed.load_ephemeris", return_value=[]):
         result = image_service.search_images(bands={"g"}, ephemeris_data="nonexistent.ecsv")
         assert result is None
 
@@ -55,7 +55,7 @@ def test_search_images_with_results(image_service, sample_ephemeris_data):
 
     # Mock dependencies
     with patch(
-        "forcedphot.image_photometry.utils.EphemerisDataCompressed.load_ephemeris",
+        "image_photometry.utils.EphemerisDataCompressed.load_ephemeris",
         return_value=sample_ephemeris_data,
     ):
         with patch.object(image_service, "_execute_query") as mock_execute:

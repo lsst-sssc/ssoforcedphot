@@ -17,8 +17,8 @@ import pytest
 pytest.skip("LSST modules not available", allow_module_level=True)
 import lsst.afw.image as afwimage
 import lsst.geom as geom
-from forcedphot.image_photometry.photometry_service import PhotometryService
-from forcedphot.image_photometry.utils import ImageMetadata, PhotometryResult
+from image_photometry.photometry_service import PhotometryService
+from image_photometry.utils import ImageMetadata, PhotometryResult
 from lsst.daf.butler import Butler
 
 

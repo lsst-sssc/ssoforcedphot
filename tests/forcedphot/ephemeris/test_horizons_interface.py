@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from astropy.time import Time
-from forcedphot.ephemeris import data_model, horizons_interface
+from ephemeris import data_model, horizons_interface
 
 
 @pytest.fixture
@@ -12,7 +12,7 @@ def mock_horizons():
     """
     Fixture to mock the Horizons class for testing.
     """
-    with patch("forcedphot.ephemeris.horizons_interface.Horizons") as mock:
+    with patch("ephemeris.horizons_interface.Horizons") as mock:
         yield mock
 
 
@@ -134,7 +134,7 @@ def test_ephemeris_data_creation():
 
 
 # @patch("pandas.read_csv")
-# @patch("forcedphot.ephemeris.horizons_interface.HorizonsInterface.query_single_range")
+# @patch("ephemeris.horizons_interface.HorizonsInterface.query_single_range")
 # @patch("astropy.table.Table.write")
 # def test_query_ephemeris_from_csv(mock_table_write, mock_query_single_range, mock_read_csv, mock_csv_data):
 #     """
