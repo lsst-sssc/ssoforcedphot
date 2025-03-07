@@ -5,4 +5,4 @@ numpy
 pandas
 panel
 pytest
-ts_xml
+
