@@ -10,9 +10,9 @@ import time
 from dataclasses import asdict
 from typing import Optional
 
-from forcedphot.image_photometry.image_service import ImageService
-from forcedphot.image_photometry.photometry_service import PhotometryService
-from forcedphot.image_photometry.utils import (
+from image_photometry.image_service import ImageService
+from image_photometry.photometry_service import PhotometryService
+from image_photometry.utils import (
     EndResult,
     ImageMetadata,
     SearchParameters,

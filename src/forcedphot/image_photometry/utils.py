@@ -21,7 +21,7 @@ import numpy as np
 from astropy.coordinates import Angle, SkyCoord
 from astropy.table import Table
 from astropy.time import Time
-from forcedphot.ephemeris.data_model import QueryResult
+from ephemeris.data_model import QueryResult
 
 
 def interpolate_coordinates(ra1, dec1, ra2, dec2, time1, time2, target_time):

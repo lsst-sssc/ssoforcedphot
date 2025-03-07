@@ -4,7 +4,7 @@ import numpy as np
 from astropy.table import Table
 from astropy.time import Time
 
-from forcedphot.ephemeris.data_model import EphemerisData
+from ephemeris.data_model import EphemerisData
 
 
 class DataLoader:

@@ -4,10 +4,10 @@ from typing import Union
 import pandas as pd
 from astropy.time import Time
 
-from forcedphot.ephemeris.data_loader import DataLoader
-from forcedphot.ephemeris.data_model import EphemerisData, QueryInput
-from forcedphot.ephemeris.horizons_interface import HorizonsInterface
-from forcedphot.ephemeris.miriade_interface import MiriadeInterface
+from ephemeris.data_loader import DataLoader
+from ephemeris.data_model import EphemerisData, QueryInput
+from ephemeris.horizons_interface import HorizonsInterface
+from ephemeris.miriade_interface import MiriadeInterface
 
 
 class EphemerisClient:

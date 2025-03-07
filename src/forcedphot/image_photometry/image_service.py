@@ -15,8 +15,8 @@ import time
 from typing import Optional
 
 from astropy.time import Time
-from forcedphot.ephemeris.data_model import QueryResult
-from forcedphot.image_photometry.utils import (
+from ephemeris.data_model import QueryResult
+from image_photometry.utils import (
     EphemerisDataCompressed,
     ImageMetadata,
     interpolate_coordinates,

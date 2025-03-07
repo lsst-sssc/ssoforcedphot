@@ -7,7 +7,7 @@ from astropy.table import Table, vstack
 from astropy.time import Time
 from astroquery.jplhorizons import Horizons
 
-from forcedphot.ephemeris.data_model import EphemerisData, QueryInput, QueryResult
+from ephemeris.data_model import EphemerisData, QueryInput, QueryResult
 
 
 class HorizonsInterface:

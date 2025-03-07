@@ -21,8 +21,8 @@ import lsst.afw.table as afwtable
 import lsst.daf.base as dafbase
 import lsst.geom as geom
 import numpy as np
-from forcedphot.image_photometry.utils import EndResult, ErrorEllipse, ImageMetadata, PhotometryResult
-from forcedphot.image_photometry.utils_json import save_results_to_json
+from image_photometry.utils import EndResult, ErrorEllipse, ImageMetadata, PhotometryResult
+from image_photometry.utils_json import save_results_to_json
 from lsst.daf.butler import Butler
 from lsst.meas.algorithms.detection import SourceDetectionTask
 from lsst.meas.base import ForcedMeasurementTask, SingleFrameMeasurementTask

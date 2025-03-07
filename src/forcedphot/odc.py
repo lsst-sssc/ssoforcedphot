@@ -6,13 +6,13 @@ from typing import Any, Optional
 import astropy.units as u
 from astropy.time import Time
 
-from forcedphot.ephemeris.data_loader import DataLoader
-from forcedphot.ephemeris.data_model import QueryResult
-from forcedphot.ephemeris.ephemeris_client import EphemerisClient
-from forcedphot.image_photometry.image_service import ImageService
-from forcedphot.image_photometry.imphot_control import ImPhotController
-from forcedphot.image_photometry.photometry_service import PhotometryService
-from forcedphot.image_photometry.utils import EphemerisDataCompressed, ImageMetadata
+from ephemeris.data_loader import DataLoader
+from ephemeris.data_model import QueryResult
+from ephemeris.ephemeris_client import EphemerisClient
+from image_photometry.image_service import ImageService
+from image_photometry.imphot_control import ImPhotController
+from image_photometry.photometry_service import PhotometryService
+from image_photometry.utils import EphemerisDataCompressed, ImageMetadata
 
 logger = logging.getLogger("odc")
 

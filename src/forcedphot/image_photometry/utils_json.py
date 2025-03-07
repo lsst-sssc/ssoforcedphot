@@ -7,7 +7,7 @@ import os
 from dataclasses import asdict
 from typing import Optional
 
-from forcedphot.image_photometry.utils import EndResult
+from image_photometry.utils import EndResult
 
 
 def save_results_to_json(end_result: EndResult, output_dir: str, filename: Optional[str] = None) -> str:

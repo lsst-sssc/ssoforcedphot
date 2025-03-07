@@ -10,7 +10,7 @@ from astropy.table import Table
 from astropy.time import Time
 from odc import ObjectDetectionController
 
-from forcedphot.ephemeris.data_model import QueryResult
+from ephemeris.data_model import QueryResult
 
 # Set up logger
 root_logger = logging.getLogger()
