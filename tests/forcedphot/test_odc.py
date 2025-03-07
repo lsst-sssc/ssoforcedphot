@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import astropy.units as u
 import pytest
+pytest.skip("LSST modules not available", allow_module_level=True)
 from astropy.time import Time
 from ephemeris.data_model import QueryResult
 from image_photometry.utils import ImageMetadata
