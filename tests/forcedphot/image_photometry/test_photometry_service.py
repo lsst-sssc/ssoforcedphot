@@ -13,9 +13,10 @@ Tests cover:
 from dataclasses import dataclass
 from unittest.mock import Mock
 
+import pytest
+pytest.skip("LSST modules not available", allow_module_level=True)
 import lsst.afw.image as afwimage
 import lsst.geom as geom
-import pytest
 from forcedphot.image_photometry.photometry_service import PhotometryService
 from forcedphot.image_photometry.utils import ImageMetadata, PhotometryResult
 from lsst.daf.butler import Butler
