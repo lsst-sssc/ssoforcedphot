@@ -1,8 +1,8 @@
-astropy==7.0.1
-astroquery==0.4.9
-lsst_rsp==0.7.1
-numpy==2.2.3
-pandas==2.2.3
-panel==1.6.1
-pytest==8.3.4
-ts_xml==22.1.1
+astropy
+astroquery
+lsst_rsp
+numpy
+pandas
+panel
+pytest
+ts_xml
