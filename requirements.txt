@@ -5,5 +5,4 @@ numpy
 pandas
 panel
 pytest
-lsst-afw
-lsst-geom
+lsst_stack
