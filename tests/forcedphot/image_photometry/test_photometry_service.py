@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from unittest.mock import Mock
 
 import pytest
+
 pytest.skip("LSST modules not available", allow_module_level=True)
 import lsst.afw.image as afwimage
 import lsst.geom as geom

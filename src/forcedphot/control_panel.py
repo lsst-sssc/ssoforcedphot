@@ -8,9 +8,8 @@ import pandas as pd
 import panel as pn
 from astropy.table import Table
 from astropy.time import Time
-from odc import ObjectDetectionController
-
 from ephemeris.data_model import QueryResult
+from odc import ObjectDetectionController
 
 # Set up logger
 root_logger = logging.getLogger()

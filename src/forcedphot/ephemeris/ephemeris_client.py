@@ -3,7 +3,6 @@ from typing import Union
 
 import pandas as pd
 from astropy.time import Time
-
 from ephemeris.data_loader import DataLoader
 from ephemeris.data_model import EphemerisData, QueryInput
 from ephemeris.horizons_interface import HorizonsInterface

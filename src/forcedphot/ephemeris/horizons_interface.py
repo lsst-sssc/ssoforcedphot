@@ -6,7 +6,6 @@ import numpy as np
 from astropy.table import Table, vstack
 from astropy.time import Time
 from astroquery.jplhorizons import Horizons
-
 from ephemeris.data_model import EphemerisData, QueryInput, QueryResult
 
 

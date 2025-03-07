@@ -7,7 +7,6 @@ from astropy.table import Table
 from astropy.time import Time
 from astroquery.esasky import ESASky
 from astroquery.imcce import Miriade
-
 from ephemeris.data_model import EphemerisData, QueryInput, QueryInputMiriade, QueryResult
 
 

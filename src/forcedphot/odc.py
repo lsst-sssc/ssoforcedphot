@@ -5,7 +5,6 @@ from typing import Any, Optional
 
 import astropy.units as u
 from astropy.time import Time
-
 from ephemeris.data_loader import DataLoader
 from ephemeris.data_model import QueryResult
 from ephemeris.ephemeris_client import EphemerisClient
