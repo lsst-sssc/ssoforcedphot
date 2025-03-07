@@ -3,11 +3,11 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-pytest.skip("LSST modules not available", allow_module_level=True)
 from astropy.time import Time
 from image_photometry.image_service import ImageService
 from image_photometry.utils import EphemerisDataCompressed, ImageMetadata
 
+pytest.skip("LSST modules not available", allow_module_level=True)
 
 @pytest.fixture
 def image_service():
