@@ -1,13 +1,5 @@
 """
 Unit tests for the PhotometryService class.
-
-Tests cover:
-- Initialization
-- Image processing
-- Source detection
-- Forced photometry
-- Error handling
-- Edge cases
 """
 
 from dataclasses import dataclass
