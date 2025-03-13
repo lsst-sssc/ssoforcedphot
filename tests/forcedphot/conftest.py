@@ -1,4 +1,5 @@
 import pytest
+import forcedphot
 
 try:
     import lsst.geom
