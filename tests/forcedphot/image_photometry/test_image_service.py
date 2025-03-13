@@ -2,18 +2,9 @@ from unittest.mock import patch
 
 import pandas as pd
 import pytest
-
 from astropy.time import Time
 from image_photometry.image_service import ImageService
 from image_photometry.utils import EphemerisDataCompressed, ImageMetadata
-
-try:
-    import lsst.afw.image as afwimage
-    import lsst.geom as geom
-
-    HAVE_LSST = True
-except ImportError:
-    HAVE_LSST = False
 
 
 @pytest.fixture

@@ -6,25 +6,15 @@ from dataclasses import dataclass
 from unittest.mock import Mock
 
 import pytest
-# import lsst.afw.image as afwimage
-# import lsst.geom as geom
+import lsst.afw.image as afwimage
+import lsst.geom as geom
 from image_photometry.photometry_service import PhotometryService
 from image_photometry.utils import ImageMetadata, PhotometryResult
 from lsst.daf.butler import Butler
 
-try:
-    import lsst.afw.image as afwimage
-    import lsst.geom as geom
-
-    HAVE_LSST = True
-except ImportError:
-    HAVE_LSST = False
-
-# @pytest.mark.skipif(not HAVE_LSST, reason="LSST dependencies not available")
 
 # Mock classes and fixtures
 @pytest.fixture
-@pytest.mark.skipif(not HAVE_LSST, reason="LSST dependencies not available")
 def mock_butler():
     """Create a mock Butler instance."""
     butler = Mock(spec=Butler)
@@ -76,7 +66,6 @@ def test_init(photometry_service):
     assert isinstance(photometry_service.butler, Butler)
 
 
-@pytest.mark.skipif(not HAVE_LSST, reason="LSST dependencies not available")
 def test_prepare_image_cutout(photometry_service):
     """Test image cutout preparation."""
     mock_calexp = Mock(spec=afwimage.ExposureF)

@@ -7,14 +7,6 @@ from ephemeris.data_model import QueryResult
 from image_photometry.utils import ImageMetadata
 from odc import ObjectDetectionController
 
-try:
-    import lsst.afw.image as afwimage
-    import lsst.geom as geom
-
-    HAVE_LSST = True
-except ImportError:
-    HAVE_LSST = False
-
 
 @pytest.fixture
 def odc_instance():
