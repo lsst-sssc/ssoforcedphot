@@ -7,7 +7,13 @@ from astropy.time import Time
 from image_photometry.image_service import ImageService
 from image_photometry.utils import EphemerisDataCompressed, ImageMetadata
 
-pytest.skip("LSST modules not available", allow_module_level=True)
+try:
+    import lsst.afw.image as afwimage
+    import lsst.geom as geom
+
+    HAVE_LSST = True
+except ImportError:
+    HAVE_LSST = False
 
 
 @pytest.fixture

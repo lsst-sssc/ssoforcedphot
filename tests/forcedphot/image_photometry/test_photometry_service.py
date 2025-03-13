@@ -13,8 +13,9 @@ from image_photometry.utils import ImageMetadata, PhotometryResult
 from lsst.daf.butler import Butler
 
 try:
-    import lsst.geom as geom
     import lsst.afw.image as afwimage
+    import lsst.geom as geom
+
     HAVE_LSST = True
 except ImportError:
     HAVE_LSST = False
