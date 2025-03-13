@@ -9,6 +9,7 @@ from image_photometry.utils import EphemerisDataCompressed, ImageMetadata
 
 pytest.skip("LSST modules not available", allow_module_level=True)
 
+
 @pytest.fixture
 def image_service():
     """Image service"""

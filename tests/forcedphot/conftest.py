@@ -1,5 +1,9 @@
 import pytest
-import forcedphot
+
+try:
+    import forcedphot
+except ImportError:
+    pass
 
 try:
     import lsst.geom

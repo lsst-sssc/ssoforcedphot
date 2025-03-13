@@ -2,13 +2,13 @@ from unittest.mock import MagicMock, patch
 
 import astropy.units as u
 import pytest
-
 from astropy.time import Time
 from ephemeris.data_model import QueryResult
 from image_photometry.utils import ImageMetadata
 from odc import ObjectDetectionController
 
 pytest.skip("LSST modules not available", allow_module_level=True)
+
 
 @pytest.fixture
 def odc_instance():

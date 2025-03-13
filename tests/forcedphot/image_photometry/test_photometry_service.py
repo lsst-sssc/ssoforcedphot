@@ -14,6 +14,7 @@ from lsst.daf.butler import Butler
 
 pytest.skip("LSST modules not available", allow_module_level=True)
 
+
 # Mock classes and fixtures
 @pytest.fixture
 def mock_butler():
