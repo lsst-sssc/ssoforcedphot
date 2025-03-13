@@ -5,9 +5,9 @@ Unit tests for the PhotometryService class.
 from dataclasses import dataclass
 from unittest.mock import Mock
 
-import pytest
 import lsst.afw.image as afwimage
 import lsst.geom as geom
+import pytest
 from image_photometry.photometry_service import PhotometryService
 from image_photometry.utils import ImageMetadata, PhotometryResult
 from lsst.daf.butler import Butler
