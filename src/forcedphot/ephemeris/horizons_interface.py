@@ -296,14 +296,14 @@ class HorizonsInterface:
             combined_ephemeris = vstack(all_ephemeris)
 
             # Determine the correct magnitude column
-            mag_columns = ['Tmag', 'V']
+            mag_columns = ["Tmag", "V"]
             mag_column = None
             for col in mag_columns:
                 if col in combined_ephemeris.colnames:
                     mag_column = col
                     break
             else:
-                mag_column = 'V'
+                mag_column = "V"
                 self.logger.warning(f"Magnitude column not found for target {query.target}. Using 'V'.")
 
             ephemeris_data = EphemerisData(
