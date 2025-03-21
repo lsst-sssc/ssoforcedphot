@@ -26,9 +26,17 @@ template = pn.template.MaterialTemplate(
 # Initialize terminal and redirect
 terminal = pn.widgets.Terminal(
     "Application Output:\n",
-    options={"cursorBlink": True, "scrollback": 1000, "encoding": "utf-8", "fontSize": 11},
-    height=300,
+    options={
+        "cursorBlink": True,
+        "scrollback": 1000,
+        "encoding": "utf-8",
+        "fontSize": 11,
+        "scrollOnOutput": True,
+        "theme": {"background": "#000000"}
+    },
+    height=1800,
     sizing_mode="stretch_width",
+    styles={"overflow-y": "auto"},
 )
 
 
@@ -59,7 +67,9 @@ class TerminalHandler(logging.Handler):
             self.terminal_widget.write(msg + "\n")
         except Exception:
             self.handleError(record)
-
+    def flush():
+        """Flush function for terminal widget"""
+        pass
 
 terminal_handler = TerminalHandler(terminal)
 terminal_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
@@ -85,14 +95,17 @@ class StreamToLogger:
     def write(self, buf):
         """Write function for terminal widget"""
         if buf.rstrip():
+            sys.__stdout__.write(buf)
             if self.is_error:
                 self.logger.error(buf.rstrip())
             else:
                 self.logger.info(buf.rstrip())
+        self.flush()
 
     def flush(self):
         """Flush function for terminal widget"""
-        pass
+        for handler in self.logger.handlers:
+                handler.flush()
 
 
 sys.stdout = StreamToLogger(terminal)
@@ -149,6 +162,9 @@ class EphemerisTab:
 
     def __init__(self, controller):
         self.controller = controller
+        root_logger.warning("""The image and photometry service may take a while,
+        but this terminal widget will not refresh until the process is complete.
+        Please be patient...""")
 
         # Widgets
         self.ephemeris_source = pn.widgets.RadioButtonGroup(
@@ -158,7 +174,9 @@ class EphemerisTab:
         self.service = pn.widgets.Select(name="Service", options=["Horizons", "Miriade"], value="Horizons")
         self.target_name = pn.widgets.TextInput(name="Target Name")
         self.target_type = pn.widgets.Select(
-            name="Target Type", options=["smallbody", "comet_name"], value="smallbody"
+            name="Target Type",
+            options=["smallbody", "asteroid_name", "comet_name", "designation"],
+            value="smallbody"
         )
         self.start_time = pn.widgets.DatetimePicker(
             name="Start Time", value=datetime.datetime.now(), enable_time=True
@@ -803,7 +821,7 @@ documentation_tab = pn.pane.Markdown(
     sizing_mode="stretch_width",
     styles={
         "background": "black",
-        "height": "600px",
+        "height": "800px",
         "overflow-x": "hidden",
         "overflow-y": "auto",
         "margin": "0",

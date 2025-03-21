@@ -221,6 +221,13 @@ class MiriadeInterface:
             }
         )
 
+        # Add metadata to the table
+        result_table.meta["target"] = query_input.target
+        result_table.meta["target_type"] = query_input.target_type
+        result_table.meta["start_time"] = query_input.start.iso
+        result_table.meta["end_time"] = query_input.end.iso
+        result_table.meta["step"] = query_input.step
+
         result_table["datetime"].unit = u.day
         result_table["datetime"].description = "Time for the ephemeris data points."
         result_table["RA_deg"].unit = u.deg

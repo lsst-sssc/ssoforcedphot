@@ -5,6 +5,7 @@ import astropy.units as u
 import numpy as np
 from astropy.table import Table, vstack
 from astropy.time import Time
+from astroquery.esasky import ESASky
 from astroquery.jplhorizons import Horizons
 from ephemeris.data_model import EphemerisData, QueryInput, QueryResult
 
@@ -182,6 +183,13 @@ class HorizonsInterface:
             }
         )
 
+        # Add metadata to the table
+        result_table.meta["target"] = query_input.target
+        result_table.meta["target_type"] = query_input.target_type
+        result_table.meta["start_time"] = query_input.start.iso
+        result_table.meta["end_time"] = query_input.end.iso
+        result_table.meta["step"] = query_input.step
+
         result_table["datetime"].unit = u.day
         result_table["datetime"].description = "Time for the ephemeris data points."
         result_table["RA_deg"].unit = u.deg
@@ -248,6 +256,11 @@ class HorizonsInterface:
             # Split the query into smaller time ranges if necessary
             time_ranges = self.splitting_query(query, max_instances=10000)
 
+            if query.target_type == "comet_name":
+                resolved_target = ESASky.find_sso(sso_name=query.target, sso_type="COMET")
+                query.target = resolved_target[0].get("sso_name")
+                print(query.target)
+
             all_ephemeris = []
 
             for start, end in time_ranges:
@@ -261,7 +274,6 @@ class HorizonsInterface:
 
                 if query.target_type == "comet_name":
                     jd_mid = (start + (end - start) / 2).jd
-                    mag_type = "Tmag"
                     ephemeris = obj.ephemerides(
                         closest_apparition=f"<{jd_mid:.0f}",
                         no_fragments=True,
@@ -269,8 +281,6 @@ class HorizonsInterface:
                     )
 
                 else:
-                    # TODO Some object only run with smallbody type, but the mag_type remains Tmag
-                    mag_type = "V"
                     ephemeris = obj.ephemerides(skip_daylight=False)
 
                 if ephemeris is not None:
@@ -285,6 +295,17 @@ class HorizonsInterface:
             # Combine the results if multiple queries were made
             combined_ephemeris = vstack(all_ephemeris)
 
+            # Determine the correct magnitude column
+            mag_columns = ['Tmag', 'V']
+            mag_column = None
+            for col in mag_columns:
+                if col in combined_ephemeris.colnames:
+                    mag_column = col
+                    break
+            else:
+                mag_column = 'V'
+                self.logger.warning(f"Magnitude column not found for target {query.target}. Using 'V'.")
+
             ephemeris_data = EphemerisData(
                 datetime=Time(combined_ephemeris["datetime_jd"], scale="utc", format="jd"),
                 RA_deg=np.array(combined_ephemeris["RA"]),
@@ -295,7 +316,7 @@ class HorizonsInterface:
                 EL_deg=np.array(combined_ephemeris["EL"]),
                 r_au=np.array(combined_ephemeris["r"]),
                 delta_au=np.array(combined_ephemeris["delta"]),
-                V_mag=np.array(combined_ephemeris[mag_type]),
+                V_mag=np.array(combined_ephemeris[mag_column]),
                 alpha_deg=np.array(combined_ephemeris["alpha"]),
                 RSS_3sigma_arcsec=np.array(combined_ephemeris["RSS_3sigma"]),
                 SMAA_3sigma_arcsec=np.array(combined_ephemeris["SMAA_3sigma"]),
@@ -321,11 +342,11 @@ class HorizonsInterface:
 # Example usage
 if __name__ == "__main__":
     target_query = QueryInput(
-        target="65803",
-        target_type="smallbody",
+        target="C/2022 R6",
+        target_type="comet_name",
         start=Time("2022-09-26 00:00"),
         end=Time("2022-09-29 23:59"),
-        step="1h",
+        step="10h",
     )
     horizons = HorizonsInterface()
     result = horizons.query_single_range(query=target_query, save_data=False)
