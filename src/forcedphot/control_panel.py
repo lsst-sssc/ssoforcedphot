@@ -32,7 +32,7 @@ terminal = pn.widgets.Terminal(
         "encoding": "utf-8",
         "fontSize": 11,
         "scrollOnOutput": True,
-        "theme": {"background": "#000000"}
+        "theme": {"background": "#000000"},
     },
     height=1800,
     sizing_mode="stretch_width",
@@ -67,9 +67,11 @@ class TerminalHandler(logging.Handler):
             self.terminal_widget.write(msg + "\n")
         except Exception:
             self.handleError(record)
+
     def flush():
         """Flush function for terminal widget"""
         pass
+
 
 terminal_handler = TerminalHandler(terminal)
 terminal_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
@@ -105,7 +107,7 @@ class StreamToLogger:
     def flush(self):
         """Flush function for terminal widget"""
         for handler in self.logger.handlers:
-                handler.flush()
+            handler.flush()
 
 
 sys.stdout = StreamToLogger(terminal)
@@ -162,9 +164,11 @@ class EphemerisTab:
 
     def __init__(self, controller):
         self.controller = controller
-        root_logger.warning("""The image and photometry service may take a while,
-        but this terminal widget will not refresh until the process is complete.
-        Please be patient...""")
+        root_logger.warning(
+            """The image and photometry service may take a while,
+            but this terminal widget will not refresh until the process is complete.
+            Please be patient..."""
+        )
 
         # Widgets
         self.ephemeris_source = pn.widgets.RadioButtonGroup(
@@ -176,7 +180,7 @@ class EphemerisTab:
         self.target_type = pn.widgets.Select(
             name="Target Type",
             options=["smallbody", "asteroid_name", "comet_name", "designation"],
-            value="smallbody"
+            value="smallbody",
         )
         self.start_time = pn.widgets.DatetimePicker(
             name="Start Time", value=datetime.datetime.now(), enable_time=True
