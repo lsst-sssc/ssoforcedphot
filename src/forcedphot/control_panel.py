@@ -88,7 +88,7 @@ class TerminalHandler(logging.Handler):
         except Exception:
             self.handleError(record)
 
-    def flush():
+    def flush(self):
         """Flush function for terminal widget"""
         if hasattr(self.terminal_widget, "_comm") and self.terminal_widget._comm:
             self.terminal_widget._comm.send(self.terminal_widget._model_json())
