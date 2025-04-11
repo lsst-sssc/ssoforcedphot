@@ -126,7 +126,6 @@ class ImPhotController:
                     "due to target proximity to edge."
                 )
 
-
     def save_results(
         self, filename: str = "photometry_results.json", target_name: Optional[str] = "target"
     ) -> str:

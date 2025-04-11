@@ -67,7 +67,7 @@ class TerminalHandler(logging.Handler):
 
     def _flush_terminal(self):
         """Flush the terminal widget to ensure updates are displayed."""
-        if hasattr(self.terminal_widget, '_comm') and self.terminal_widget._comm:
+        if hasattr(self.terminal_widget, "_comm") and self.terminal_widget._comm:
             self.terminal_widget._comm.send(self.terminal_widget._model_json())
 
     def emit(self, record):
@@ -90,7 +90,7 @@ class TerminalHandler(logging.Handler):
 
     def flush():
         """Flush function for terminal widget"""
-        if hasattr(self.terminal_widget, '_comm') and self.terminal_widget._comm:
+        if hasattr(self.terminal_widget, "_comm") and self.terminal_widget._comm:
             self.terminal_widget._comm.send(self.terminal_widget._model_json())
 
 
