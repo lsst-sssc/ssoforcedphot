@@ -222,7 +222,7 @@ class HorizonsInterface:
         result_table["Theta_3sigma_deg"].unit = u.deg
         result_table["Theta_3sigma_deg"].description = "Position angle of error ellipse in degrees"
 
-        result_table.write("./" + output_filename, format="ascii.ecsv", overwrite=True)
+        result_table.write("./output/" + output_filename, format="ascii.ecsv", overwrite=True)
         self.logger.info(f"Ephemeris data successfully saved to {output_filename}")
 
     def query_single_range(self, query: QueryInput, save_data: bool = False) -> QueryResult:

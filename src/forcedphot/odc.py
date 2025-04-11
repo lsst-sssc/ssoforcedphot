@@ -357,6 +357,7 @@ class ObjectDetectionController:
                 self.logger.info("Running Photometry")
                 photometry_params = input_data.get("photometry", {})
                 self.args.image_type = photometry_params.get("image_type", "calexp")
+                self.args.ephemeris_service = photometry_params.get("ephemeris_service", "Horizons")
                 self.args.threshold = photometry_params.get("threshold", 5)
                 self.args.save_cutouts = photometry_params.get("save_cutouts", False)
                 self.args.min_cutout_size = photometry_params.get("min_cutout_size", 800)
@@ -390,9 +391,11 @@ class ObjectDetectionController:
             print(f"Ephemeris data loaded: {len(self.ephemeris_results.ephemeris.datetime)} entries")
 
         if self.args.service_selection in ["image"]:
+            self.ephemeris_results = self.run_ephemeris_query()
             self.image_results = self.run_image_query()
 
         if self.args.service_selection in ["all", "photometry"]:
+            self.ephemeris_results = self.run_ephemeris_query()
             self.image_results = self.run_image_query()
 
             if self.image_results:

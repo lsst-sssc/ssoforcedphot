@@ -217,9 +217,9 @@ class MiriadeInterface:
                 "V_mag": ephemeris_data.V_mag,
                 "alpha_deg": ephemeris_data.alpha_deg,
                 "RSS_3sigma_arcsec": ephemeris_data.RSS_3sigma_arcsec,
-                "SMAA_3sigma_arcsec": np.full_like(ephemeris_data.RSS_3sigma_arcsec, np.nan),
-                "SMIA_3sigma_arcsec": np.full_like(ephemeris_data.RSS_3sigma_arcsec, np.nan),
-                "Theta_3sigma_deg": np.full_like(ephemeris_data.RSS_3sigma_arcsec, np.nan),
+                "SMAA_3sigma_arcsec": np.full_like(ephemeris_data.RSS_3sigma_arcsec, 0),
+                "SMIA_3sigma_arcsec": np.full_like(ephemeris_data.RSS_3sigma_arcsec, 0),
+                "Theta_3sigma_deg": np.full_like(ephemeris_data.RSS_3sigma_arcsec, 0),
             }
         )
 
@@ -262,7 +262,7 @@ class MiriadeInterface:
         result_table["Theta_3sigma_deg"].unit = u.deg
         result_table["Theta_3sigma_deg"].description = "Position angle of error ellipse"
 
-        result_table.write("./" + output_filename, format="ascii.ecsv", overwrite=True)
+        result_table.write("./output/" + output_filename, format="ascii.ecsv", overwrite=True)
         self.logger.info(f"Ephemeris data successfully saved to {output_filename}")
 
     def query_single_range(self, query: QueryInput, save_data: bool = False):
@@ -336,7 +336,7 @@ class MiriadeInterface:
             relevant_data = ephemeris[relevant_columns]
 
             # Create arrays of NaN values for error ellipse data
-            nan_array = np.full(len(relevant_data), np.nan)
+            nan_array = np.full(len(relevant_data), 0)
 
             ephemeris_data = EphemerisData(
                 datetime=Time(relevant_data["epoch"], scale="utc", format="jd"),
@@ -350,7 +350,7 @@ class MiriadeInterface:
                 delta_au=np.array(relevant_data["delta"]),
                 V_mag=np.array(relevant_data["V"]),
                 alpha_deg=np.array(relevant_data["alpha"]),
-                RSS_3sigma_arcsec=np.array(relevant_data["posunc"]),
+                RSS_3sigma_arcsec=np.nan_to_num(np.array(relevant_data["posunc"]), nan=0.001),
                 SMAA_3sigma_arcsec=nan_array,  # Not available in Miriade
                 SMIA_3sigma_arcsec=nan_array,  # Not available in Miriade
                 Theta_3sigma_deg=nan_array,  # Not available in Miriade

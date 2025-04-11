@@ -2,6 +2,8 @@ import datetime
 import io
 import logging
 import sys
+import asyncio
+from tornado import gen
 
 import astropy.units as u
 import pandas as pd
@@ -33,10 +35,17 @@ terminal = pn.widgets.Terminal(
         "fontSize": 11,
         "scrollOnOutput": True,
         "theme": {"background": "#000000"},
+        "convertEol": True,
+        "fitAddon": True,
     },
-    height=1800,
+    height=3500,
+    max_height=4000,
     sizing_mode="stretch_width",
-    styles={"overflow-y": "auto"},
+    styles={
+        "overflow-y": "auto",
+        "height": "auto",  
+        "min-height": "800px", 
+    },
 )
 
 
@@ -51,6 +60,16 @@ class TerminalHandler(logging.Handler):
     def __init__(self, terminal_widget):
         super().__init__()
         self.terminal_widget = terminal_widget
+        self._setup_periodic_flush()
+
+    def _setup_periodic_flush(self):
+        """Set up a periodic callback to flush the terminal widget."""
+        pn.state.add_periodic_callback(self._flush_terminal, period=100)
+
+    def _flush_terminal(self):
+        """Flush the terminal widget to ensure updates are displayed."""
+        if hasattr(self.terminal_widget, '_comm') and self.terminal_widget._comm:
+            self.terminal_widget._comm.send(self.terminal_widget._model_json())
 
     def emit(self, record):
         """Terminal widget output format"""
@@ -65,12 +84,15 @@ class TerminalHandler(logging.Handler):
                 msg = f"\033[92m{msg}\033[0m"  # Green for info
 
             self.terminal_widget.write(msg + "\n")
+            # Force update to browser
+            pn.io.push_notebook(self.terminal_widget)
         except Exception:
             self.handleError(record)
 
     def flush():
         """Flush function for terminal widget"""
-        pass
+        if hasattr(self.terminal_widget, '_comm') and self.terminal_widget._comm:
+            self.terminal_widget._comm.send(self.terminal_widget._model_json())
 
 
 terminal_handler = TerminalHandler(terminal)
@@ -102,6 +124,8 @@ class StreamToLogger:
                 self.logger.error(buf.rstrip())
             else:
                 self.logger.info(buf.rstrip())
+            # Force update to browser
+            pn.io.push_notebook(self.terminal)
         self.flush()
 
     def flush(self):
@@ -273,8 +297,9 @@ class EphemerisTab:
         """Combine step value and unit into the required format"""
         return f"{self.step_value.value}{self.step_unit.value}"
 
-    def run_query(self, event):
+    async def run_query(self, event):
         """Handle query execution and display results"""
+        await gen.sleep(0.01)
         if self.ephemeris_source.value == "Upload ECSV":
             root_logger.info("Processing uploaded ECSV file.")
             if not self.file_upload.value:
@@ -306,6 +331,7 @@ class EphemerisTab:
                 root_logger.error(f"Error processing ECSV: {str(e)}")
 
         else:
+            await gen.sleep(0.01)
             root_logger.info("Running Ephemeris service.")
             input_data = {
                 "ephemeris": {
@@ -406,9 +432,10 @@ class ImageTab:
 
         self.run_button.on_click(self.run_query)
 
-    def run_query(self, event):
+    async def run_query(self, event):
         """Image query main logic"""
         # logger.info("Running Image search.")
+        await gen.sleep(0.01)
         root_logger.info("Starting the image query...")
         input_data = {
             "image": {
@@ -420,6 +447,7 @@ class ImageTab:
         try:
             result = self.controller.api_connection(input_data)
             if "image" in result:
+                await gen.sleep(0.01)
                 self.results_pane.object = result["image"]
                 df = pd.DataFrame(result["image"])
                 df["t_min"] = df["t_min"].apply(lambda x: Time(x, format="mjd").iso)
@@ -427,6 +455,7 @@ class ImageTab:
                 df2 = df.filter(items=["visit_id", "detector_id", "band", "t_min", "t_max"])
                 self.table_view.value = df2
             else:
+                await gen.sleep(0.01)
                 self.results_pane.object = result
                 self.table_view.value = pd.DataFrame()
         except Exception as e:
@@ -449,9 +478,9 @@ class PhotometryTab:
             name="Image type", options=["calexp", "goodSeeingDiff_differenceExp"], value="calexp"
         )
         self.detection_threshold = pn.widgets.FloatInput(
-            name="Detection Threshold", value=5.0, start=0, width=100
+            name="Detection Threshold", value=5.0, start=0, width=150
         )
-        self.cutout_size = pn.widgets.IntInput(name="Cutout Size (pixels)", value=800, start=100, width=100)
+        self.cutout_size = pn.widgets.IntInput(name="Cutout Size (pixels)", value=800, start=0, width=150)
         self.save_cutouts = pn.widgets.Checkbox(name="Save Cutouts", value=False)
         self.display = pn.widgets.Checkbox(name="Display Results", value=False)
         self.save_json = pn.widgets.Checkbox(name="Save Result to JSON", value=False)
@@ -496,10 +525,11 @@ class PhotometryTab:
 
         self.run_button.on_click(self.run_photometry)
 
-    def run_photometry(self, event):
+    async def run_photometry(self, event):
         """
         Main logic for photometry
         """
+        await gen.sleep(0.01)
         root_logger.info("Starting photometry process...")
         input_data = {
             "photometry": {
@@ -512,6 +542,7 @@ class PhotometryTab:
             }
         }
         try:
+            await gen.sleep(0.01)
             result = self.controller.api_connection(input_data)
             if "photometry" in result and result["photometry"]:
                 # Flatten the photometry results for the table
@@ -592,7 +623,7 @@ class CompleteRunTab:
         self.detection_threshold = pn.widgets.FloatInput(
             name="Detection Threshold", value=5.0, start=0, width=100
         )
-        self.cutout_size = pn.widgets.IntInput(name="Cutout Size (pixels)", value=800, start=100, width=100)
+        self.cutout_size = pn.widgets.IntInput(name="Cutout Size (pixels)", value=800, start=0, width=100)
         self.save_cutouts = pn.widgets.Checkbox(name="Save Cutouts", value=False)
         self.display = pn.widgets.Checkbox(name="Display Results", value=False)
         self.save_json = pn.widgets.Checkbox(name="Save Result to JSON", value=False)
@@ -688,8 +719,9 @@ class CompleteRunTab:
         """Get the step value from GUI input field"""
         return f"{self.step_value.value}{self.step_unit.value}"
 
-    def run_all(self, event):
+    async def run_all(self, event):
         """End-to-end process"""
+        await gen.sleep(0.01)
         root_logger.info("Starting complete run...")
 
         # Ephemeris Step
@@ -700,6 +732,7 @@ class CompleteRunTab:
                 self.table_view.value = pd.DataFrame()
                 return
             try:
+                await gen.sleep(0.01)
                 # Read the uploaded ECSV
                 content = io.BytesIO(self.file_upload.value)
                 table = Table.read(content, format="ascii.ecsv")
@@ -717,6 +750,7 @@ class CompleteRunTab:
 
                 self.controller.ephemeris_results = self.controller.api_connection(input_data_ephemeris)
                 root_logger.info("ECSV file processed successfully.")
+                await gen.sleep(0.01)
             except Exception as e:
                 root_logger.error(f"Error processing ECSV: {str(e)}")
                 self.table_view.value = pd.DataFrame()
@@ -743,6 +777,7 @@ class CompleteRunTab:
                     start_time = Time(self.start_time.value)
                     end_time = start_time + self.day_range.value * u.day
                     input_data_ephemeris["ephemeris"]["end"] = end_time.iso
+                    await gen.sleep(0.01)
                 except Exception as e:
                     root_logger.error(f"Ephemeris time error: {str(e)}")
                     self.table_view.value = pd.DataFrame()
@@ -751,12 +786,14 @@ class CompleteRunTab:
             try:
                 root_logger.info("Running ephemeris query...")
                 self.controller.ephemeris_results = self.controller.api_connection(input_data_ephemeris)
+                await gen.sleep(0.01)
             except Exception as e:
                 root_logger.error(f"Ephemeris query failed: {str(e)}")
                 self.table_view.value = pd.DataFrame()
                 return
 
         # Image Step
+        await gen.sleep(0.01)
         input_data_image = {
             "image": {
                 "filters": self.filters.value,
@@ -767,12 +804,14 @@ class CompleteRunTab:
         try:
             root_logger.info("Running image search...")
             self.controller.image_result = self.controller.api_connection(input_data_image)
+            await gen.sleep(0.01)
         except Exception as e:
             root_logger.error(f"Image search failed: {str(e)}")
             self.table_view.value = pd.DataFrame()
             return
 
         # Photometry Step
+        await gen.sleep(0.01)
         input_data_photometry = {
             "photometry": {
                 "image_type": self.image_type.value,
@@ -786,6 +825,7 @@ class CompleteRunTab:
 
         try:
             root_logger.info("Running photometry...")
+            await gen.sleep(0.01)
             photometry_result = self.controller.api_connection(input_data_photometry)
             if "photometry" in photometry_result and photometry_result["photometry"]:
                 # Process results
@@ -807,6 +847,7 @@ class CompleteRunTab:
                 df = pd.DataFrame(rows)
                 self.table_view.value = df
             else:
+                await gen.sleep(0.01)
                 self.table_view.value = pd.DataFrame()
                 root_logger.warning("No photometry results found.")
         except Exception as e:

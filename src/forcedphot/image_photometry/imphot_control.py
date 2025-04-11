@@ -117,7 +117,15 @@ class ImPhotController:
                 output_dir=self.output_dir,
                 save_json=False,  # Handled separately by save_results()
             )
-            self.results.append(result)
+            # Skip results where target photometry is None (edge proximity)
+            if result.forced_phot_on_target is not None:
+                self.results.append(result)
+            else:
+                self.logger.warning(
+                    f"Skipping image (Visit ID: {metadata.visit_id}, Detector: {metadata.detector_id}) "
+                    "due to target proximity to edge."
+                )
+
 
     def save_results(
         self, filename: str = "photometry_results.json", target_name: Optional[str] = "target"
@@ -136,8 +144,8 @@ class ImPhotController:
             raise ValueError("No results to save. Run process_images() first.")
 
         json_data = [asdict(result) for result in self.results]
-
-        filename = target_name + "_photometry_results.json"
+        t_name = target_name.replace(":", "-").replace(" ", "_").replace("/", "_")
+        filename = t_name + "_photometry_results.json"
 
         output_path = os.path.join(self.output_dir, filename)
 

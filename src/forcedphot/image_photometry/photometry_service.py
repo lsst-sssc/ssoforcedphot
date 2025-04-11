@@ -232,6 +232,9 @@ class PhotometryService:
         target_img, bbox, offsets = self._prepare_image(calexp, ra_deg, dec_deg, cutout_size)
         x_offset, y_offset = offsets
 
+        if target_img is None:
+            return None, None
+
         # Initialize coordinate lists
         ra_list, dec_list, found_sources = self._initialize_coordinates(
             target_img, ra_deg, dec_deg, find_sources_flag, error_ellipse
@@ -497,6 +500,12 @@ class PhotometryService:
 
         min_x, max_x = 0, calexp.getWidth()
         min_y, max_y = 0, calexp.getHeight()
+        
+        # Check if target is within 50 pixels of any edge
+        if (x_center < 50 or x_center > (max_x - 50) or 
+            y_center < 50 or y_center > (max_y - 50)):
+            print("Target is within 50 pixels of image edge. Skipping image.")
+            return None, None, (0, 0)
 
         if cutout_size <= 0:
             print("Using the complete image.")
@@ -598,7 +607,7 @@ class PhotometryService:
             if forced_meas_cat[0].get("base_PsfFlux_instFluxErr") > 0
             else 0,
             flux=forced_meas_cat[0].get("base_PsfFlux_instFlux")
-            if forced_meas_cat[0].get("base_PsfFlux_instFlux") > 0
+            if not np.isnan(forced_meas_cat[0].get("base_PsfFlux_instFlux"))
             else 0,
             flux_err=forced_meas_cat[0].get("base_PsfFlux_instFluxErr")
             if forced_meas_cat[0].get("base_PsfFlux_instFluxErr") > 0
@@ -639,15 +648,11 @@ class PhotometryService:
                     else 0,
                     flux=found_sources[i].get("base_PsfFlux_instFlux"),
                     flux_err=found_sources[i].get("base_PsfFlux_instFluxErr"),
-                    mag=-2.5 * np.log10(found_sources[i].get("base_PsfFlux_instFlux")) + 31.4
-                    if found_sources[i].get("base_PsfFlux_instFlux") > 0
-                    else np.nan,
+                    mag=-2.5 * np.log10(found_sources[i].get("base_PsfFlux_instFlux")) + 31.4,
                     mag_err=2.5
                     / np.log(10)
                     * found_sources[i].get("base_PsfFlux_instFluxErr")
-                    / found_sources[i].get("base_PsfFlux_instFlux")
-                    if found_sources[i].get("base_PsfFlux_instFlux") > 0
-                    else 0,
+                    / found_sources[i].get("base_PsfFlux_instFlux"),
                     separation=found_sources[i].get("separation"),
                     sigma=found_sources[i].get("sigma"),
                     flags={
