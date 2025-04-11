@@ -2,8 +2,6 @@ import datetime
 import io
 import logging
 import sys
-import asyncio
-from tornado import gen
 
 import astropy.units as u
 import pandas as pd
@@ -12,6 +10,7 @@ from astropy.table import Table
 from astropy.time import Time
 from ephemeris.data_model import QueryResult
 from odc import ObjectDetectionController
+from tornado import gen
 
 # Set up logger
 root_logger = logging.getLogger()
@@ -43,8 +42,8 @@ terminal = pn.widgets.Terminal(
     sizing_mode="stretch_width",
     styles={
         "overflow-y": "auto",
-        "height": "auto",  
-        "min-height": "800px", 
+        "height": "auto",
+        "min-height": "800px",
     },
 )
 
