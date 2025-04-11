@@ -502,7 +502,7 @@ class PhotometryService:
         min_y, max_y = 0, calexp.getHeight()
 
         # Check if target is within 50 pixels of any edge
-        if (x_center < 50 or x_center > (max_x - 50) or y_center < 50 or y_center > (max_y - 50)):
+        if x_center < 50 or x_center > (max_x - 50) or y_center < 50 or y_center > (max_y - 50):
             print("Target is within 50 pixels of image edge. Skipping image.")
             return None, None, (0, 0)
 
