@@ -3,7 +3,7 @@
 [![Template](https://img.shields.io/badge/Template-LINCC%20Frameworks%20Python%20Project%20Template-brightgreen)](https://lincc-ppt.readthedocs.io/en/latest/)
 
 ## Overview
-The Object Detection Controller (ODC) is a Python tool designed for solar system object detection and photometry. 
+The Faint Solar System Object Detection Service is a Python tool designed for moving solar system object detection and photometry within Rubin Science Platform. 
 It integrates multiple services including ephemeris queries, image searching, and photometry processing.
 
 ## Features
