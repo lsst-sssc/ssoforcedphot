@@ -5,8 +5,8 @@ import pandas as pd
 import pytest
 from astropy.table import Table
 from astropy.time import Time
-from forcedphot.ephemeris.data_model import EphemerisData, QueryInput, QueryInputMiriade, QueryResult
-from forcedphot.ephemeris.miriade_interface import MiriadeInterface
+from ephemeris.data_model import EphemerisData, QueryInput, QueryInputMiriade, QueryResult
+from ephemeris.miriade_interface import MiriadeInterface
 
 
 @pytest.fixture
@@ -69,7 +69,7 @@ def test_convert_to_miriade_query_invalid_step():
         mi.convert_to_miriade_query(query)
 
 
-@patch("forcedphot.ephemeris.miriade_interface.Miriade.get_ephemerides")
+@patch("ephemeris.miriade_interface.Miriade.get_ephemerides")
 def test_query_single_range(mock_get_ephemerides, miriade_interface):
     """
     Test successful query of a single range using mocked Miriade data.
@@ -137,7 +137,7 @@ def test_ephemeris_data_creation():
 
 
 # @patch("pandas.read_csv")
-# @patch("forcedphot.ephemeris.miriade_interface.MiriadeInterface.query_single_range")
+# @patch("ephemeris.miriade_interface.MiriadeInterface.query_single_range")
 # @patch("astropy.table.Table.write")
 # def test_query_ephemeris_from_csv(mock_table_write, mock_query_single_range, mock_read_csv, mock_csv_data):
 #     """

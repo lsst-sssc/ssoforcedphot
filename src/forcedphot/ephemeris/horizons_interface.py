@@ -5,9 +5,9 @@ import astropy.units as u
 import numpy as np
 from astropy.table import Table, vstack
 from astropy.time import Time
+from astroquery.esasky import ESASky
 from astroquery.jplhorizons import Horizons
-
-from forcedphot.ephemeris.data_model import EphemerisData, QueryInput, QueryResult
+from ephemeris.data_model import EphemerisData, QueryInput, QueryResult
 
 
 class HorizonsInterface:
@@ -36,10 +36,6 @@ class HorizonsInterface:
     The class handles large queries by splitting them into smaller time ranges
     when necessary to avoid exceeding JPL Horizons limit of 10,000 instances per query."""
 
-    # Set up logging
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger(__name__)
-
     # Rubin location
     DEFAULT_OBSERVER_LOCATION = "X05"
 
@@ -53,6 +49,7 @@ class HorizonsInterface:
             The observer location code. Default is "X05" (Rubin location).
         """
         self.observer_location = observer_location
+        self.logger = logging.getLogger("horizons_interface")
 
     def splitting_query(self, query: QueryInput, max_instances=10000):
         """
@@ -158,9 +155,11 @@ class HorizonsInterface:
         - The data is saved in ECSV format.
         """
 
-        output_filename = f"{query_input.target}_{query_input.start.iso}_{query_input.end.iso}.ecsv".replace(
-            ":", "-"
-        ).replace(" ", "_")
+        output_filename = (
+            f"{query_input.target}_{query_input.start.iso}_{query_input.end.iso}.ecsv".replace(":", "-")
+            .replace(" ", "_")
+            .replace("/", "_")
+        )
 
         # Save the data to an ECSV file
 
@@ -178,8 +177,18 @@ class HorizonsInterface:
                 "V_mag": ephemeris_data.V_mag,
                 "alpha_deg": ephemeris_data.alpha_deg,
                 "RSS_3sigma_arcsec": ephemeris_data.RSS_3sigma_arcsec,
+                "SMAA_3sigma_arcsec": ephemeris_data.SMAA_3sigma_arcsec,
+                "SMIA_3sigma_arcsec": ephemeris_data.SMIA_3sigma_arcsec,
+                "Theta_3sigma_deg": ephemeris_data.Theta_3sigma_deg,
             }
         )
+
+        # Add metadata to the table
+        result_table.meta["target"] = query_input.target
+        result_table.meta["target_type"] = query_input.target_type
+        result_table.meta["start_time"] = query_input.start.iso
+        result_table.meta["end_time"] = query_input.end.iso
+        result_table.meta["step"] = query_input.step
 
         result_table["datetime"].unit = u.day
         result_table["datetime"].description = "Time for the ephemeris data points."
@@ -206,8 +215,14 @@ class HorizonsInterface:
         result_table["alpha_deg"].description = "Phase angle in degrees"
         result_table["RSS_3sigma_arcsec"].unit = u.arcsec
         result_table["RSS_3sigma_arcsec"].description = "3-sigma uncertainty in arcseconds"
+        result_table["SMAA_3sigma_arcsec"].unit = u.arcsec
+        result_table["SMAA_3sigma_arcsec"].description = "Semi-major axis of error ellipse in arcseconds"
+        result_table["SMIA_3sigma_arcsec"].unit = u.arcsec
+        result_table["SMIA_3sigma_arcsec"].description = "Semi-minor axis of error ellipse in arcseconds"
+        result_table["Theta_3sigma_deg"].unit = u.deg
+        result_table["Theta_3sigma_deg"].description = "Position angle of error ellipse in degrees"
 
-        result_table.write("./" + output_filename, format="ascii.ecsv", overwrite=True)
+        result_table.write("./output/" + output_filename, format="ascii.ecsv", overwrite=True)
         self.logger.info(f"Ephemeris data successfully saved to {output_filename}")
 
     def query_single_range(self, query: QueryInput, save_data: bool = False) -> QueryResult:
@@ -241,6 +256,11 @@ class HorizonsInterface:
             # Split the query into smaller time ranges if necessary
             time_ranges = self.splitting_query(query, max_instances=10000)
 
+            if query.target_type == "comet_name":
+                resolved_target = ESASky.find_sso(sso_name=query.target, sso_type="COMET")
+                query.target = resolved_target[0].get("sso_name")
+                print(query.target)
+
             all_ephemeris = []
 
             for start, end in time_ranges:
@@ -254,7 +274,6 @@ class HorizonsInterface:
 
                 if query.target_type == "comet_name":
                     jd_mid = (start + (end - start) / 2).jd
-                    mag_type = "Tmag"
                     ephemeris = obj.ephemerides(
                         closest_apparition=f"<{jd_mid:.0f}",
                         no_fragments=True,
@@ -262,7 +281,6 @@ class HorizonsInterface:
                     )
 
                 else:
-                    mag_type = "V"
                     ephemeris = obj.ephemerides(skip_daylight=False)
 
                 if ephemeris is not None:
@@ -277,6 +295,17 @@ class HorizonsInterface:
             # Combine the results if multiple queries were made
             combined_ephemeris = vstack(all_ephemeris)
 
+            # Determine the correct magnitude column
+            mag_columns = ["Tmag", "V"]
+            mag_column = None
+            for col in mag_columns:
+                if col in combined_ephemeris.colnames:
+                    mag_column = col
+                    break
+            else:
+                mag_column = "V"
+                self.logger.warning(f"Magnitude column not found for target {query.target}. Using 'V'.")
+
             ephemeris_data = EphemerisData(
                 datetime=Time(combined_ephemeris["datetime_jd"], scale="utc", format="jd"),
                 RA_deg=np.array(combined_ephemeris["RA"]),
@@ -287,9 +316,12 @@ class HorizonsInterface:
                 EL_deg=np.array(combined_ephemeris["EL"]),
                 r_au=np.array(combined_ephemeris["r"]),
                 delta_au=np.array(combined_ephemeris["delta"]),
-                V_mag=np.array(combined_ephemeris[mag_type]),
+                V_mag=np.array(combined_ephemeris[mag_column]),
                 alpha_deg=np.array(combined_ephemeris["alpha"]),
                 RSS_3sigma_arcsec=np.array(combined_ephemeris["RSS_3sigma"]),
+                SMAA_3sigma_arcsec=np.array(combined_ephemeris["SMAA_3sigma"]),
+                SMIA_3sigma_arcsec=np.array(combined_ephemeris["SMIA_3sigma"]),
+                Theta_3sigma_deg=np.array(combined_ephemeris["Theta_3sigma"]),
             )
 
             # Save the data to an ECSV file
@@ -309,25 +341,12 @@ class HorizonsInterface:
 
 # Example usage
 if __name__ == "__main__":
-    # HorizonsInterface.query_ephemeris_from_csv("./targets.csv", save_data=True)
-
-    # Define the target query parameters
-    # target_query = QueryInput(
-    #     target="Ceres",
-    #     target_type="smallbody",
-    #     start=Time("2024-01-01 00:00"),
-    #     end=Time("2025-11-30 23:59"),
-    #     step="1h",
-    # )
-    # horizons = HorizonsInterface()
-    # result = horizons.query_single_range(query=target_query)
-
     target_query = QueryInput(
-        target="Encke",
+        target="C/2022 R6",
         target_type="comet_name",
-        start=Time("2024-01-01 00:00"),
-        end=Time("2025-12-31 23:59"),
-        step="1h",
+        start=Time("2022-09-26 00:00"),
+        end=Time("2022-09-29 23:59"),
+        step="10h",
     )
     horizons = HorizonsInterface()
     result = horizons.query_single_range(query=target_query, save_data=False)

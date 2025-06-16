@@ -1,0 +1,7 @@
+astropy
+astroquery
+lsst_rsp
+numpy
+pandas
+panel
+pytest

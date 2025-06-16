@@ -7,8 +7,7 @@ from astropy.table import Table
 from astropy.time import Time
 from astroquery.esasky import ESASky
 from astroquery.imcce import Miriade
-
-from forcedphot.ephemeris.data_model import EphemerisData, QueryInput, QueryInputMiriade, QueryResult
+from ephemeris.data_model import EphemerisData, QueryInput, QueryInputMiriade, QueryResult
 
 
 class MiriadeInterface:
@@ -43,7 +42,7 @@ class MiriadeInterface:
 
     # Set up logging
     logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger("miriade_interface")
 
     # Rubin locaion
     DEFAULT_OBSERVER_LOCATION = "X05"
@@ -196,9 +195,11 @@ class MiriadeInterface:
         - The data is saved in ECSV format.
         """
 
-        output_filename = f"{query_input.target}_{query_input.start.iso}_{query_input.end.iso}.ecsv".replace(
-            ":", "-"
-        ).replace(" ", "_")
+        output_filename = (
+            f"{query_input.target}_{query_input.start.iso}_{query_input.end.iso}.ecsv".replace(":", "-")
+            .replace(" ", "_")
+            .replace("/", "_")
+        )
 
         # Save the data to an ECSV file
 
@@ -216,8 +217,18 @@ class MiriadeInterface:
                 "V_mag": ephemeris_data.V_mag,
                 "alpha_deg": ephemeris_data.alpha_deg,
                 "RSS_3sigma_arcsec": ephemeris_data.RSS_3sigma_arcsec,
+                "SMAA_3sigma_arcsec": np.full_like(ephemeris_data.RSS_3sigma_arcsec, 0),
+                "SMIA_3sigma_arcsec": np.full_like(ephemeris_data.RSS_3sigma_arcsec, 0),
+                "Theta_3sigma_deg": np.full_like(ephemeris_data.RSS_3sigma_arcsec, 0),
             }
         )
+
+        # Add metadata to the table
+        result_table.meta["target"] = query_input.target
+        result_table.meta["target_type"] = query_input.target_type
+        result_table.meta["start_time"] = query_input.start.iso
+        result_table.meta["end_time"] = query_input.end.iso
+        result_table.meta["step"] = query_input.step
 
         result_table["datetime"].unit = u.day
         result_table["datetime"].description = "Time for the ephemeris data points."
@@ -244,8 +255,14 @@ class MiriadeInterface:
         result_table["alpha_deg"].description = "Phase angle in degrees"
         result_table["RSS_3sigma_arcsec"].unit = u.arcsec
         result_table["RSS_3sigma_arcsec"].description = "3-sigma uncertainty in arcseconds"
+        result_table["SMAA_3sigma_arcsec"].unit = u.arcsec
+        result_table["SMAA_3sigma_arcsec"].description = "Semi-major axis of error ellipse"
+        result_table["SMIA_3sigma_arcsec"].unit = u.arcsec
+        result_table["SMIA_3sigma_arcsec"].description = "Semi-minor axis of error ellipse"
+        result_table["Theta_3sigma_deg"].unit = u.deg
+        result_table["Theta_3sigma_deg"].description = "Position angle of error ellipse"
 
-        result_table.write("./" + output_filename, format="ascii.ecsv", overwrite=True)
+        result_table.write("./output/" + output_filename, format="ascii.ecsv", overwrite=True)
         self.logger.info(f"Ephemeris data successfully saved to {output_filename}")
 
     def query_single_range(self, query: QueryInput, save_data: bool = False):
@@ -318,6 +335,9 @@ class MiriadeInterface:
             ]
             relevant_data = ephemeris[relevant_columns]
 
+            # Create arrays of NaN values for error ellipse data
+            nan_array = np.full(len(relevant_data), 0)
+
             ephemeris_data = EphemerisData(
                 datetime=Time(relevant_data["epoch"], scale="utc", format="jd"),
                 RA_deg=np.array(relevant_data["RAJ2000"]),
@@ -330,7 +350,10 @@ class MiriadeInterface:
                 delta_au=np.array(relevant_data["delta"]),
                 V_mag=np.array(relevant_data["V"]),
                 alpha_deg=np.array(relevant_data["alpha"]),
-                RSS_3sigma_arcsec=np.array(relevant_data["posunc"]),
+                RSS_3sigma_arcsec=np.nan_to_num(np.array(relevant_data["posunc"]), nan=0.001),
+                SMAA_3sigma_arcsec=nan_array,  # Not available in Miriade
+                SMIA_3sigma_arcsec=nan_array,  # Not available in Miriade
+                Theta_3sigma_deg=nan_array,  # Not available in Miriade
             )
 
             if save_data:
@@ -347,21 +370,3 @@ class MiriadeInterface:
             self.logger.error(f"Error details: {str(e)}")
 
             return None
-
-
-if __name__ == "__main__":
-    # MiriadeInterface.query_ephemeris_from_csv("./data/targets.csv")
-
-    # Different observer location
-    # MiriadeInterface.query_ephemeris_from_csv("./targets.csv", observer_location="500")
-
-    # Define the target query parameters
-    target_query = QueryInput(
-        target="Encke",
-        target_type="comet_name",
-        start=Time("2024-01-01 00:00"),
-        end=Time("2025-12-31 23:59"),
-        step="1h",
-    )
-    miriade = MiriadeInterface()
-    result = miriade.query_single_range(query=target_query, save_data=False)

@@ -51,7 +51,7 @@ testpaths = [
     "tests",
 ]
 pythonpath = [
-    "src",
+    "src/forcedphot",
 ]
 
 [tool.black]
