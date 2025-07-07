@@ -119,14 +119,6 @@ class ObjectDetectionController:
             help="Minimum size of cutouts (default: 800)",
         )
 
-        # Catalog service
-        # parser.add_argument(
-        #     "--catalog-service",
-        #     choices=["LSST-TAP", "ZTF"],
-        #     default="LSST-TAP",
-        #     help="Catalog service to use",
-        # )
-
         # parser.add_argument(
         #     "-x",
         #     "--max-search-ellipse",

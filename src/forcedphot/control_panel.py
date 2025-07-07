@@ -9,6 +9,7 @@ import panel as pn
 from astropy.table import Table
 from astropy.time import Time
 from ephemeris.data_model import QueryResult
+from ephemeris.data_loader import DataLoader
 from odc import ObjectDetectionController
 from tornado import gen
 
@@ -322,6 +323,7 @@ class EphemerisTab:
                         "ecsv_file": self.file_upload.filename,
                     }
                 }
+                # TODO Fix this!! Right now, only works (control_panel) if the file is already uploaded next to the control_panel.py
                 self.controller.ephemeris_results = self.controller.api_connection(input_data)
                 root_logger.info("ECSV file processed successfully.")
             except Exception as e:
@@ -474,7 +476,7 @@ class PhotometryTab:
 
         # Widgets for photometry parameters
         self.image_type = pn.widgets.Select(
-            name="Image type", options=["calexp", "goodSeeingDiff_differenceExp"], value="calexp"
+            name="Image type", options=["visit_image", "goodSeeingDiff_differenceExp"], value="visit_image"
         )
         self.detection_threshold = pn.widgets.FloatInput(
             name="Detection Threshold", value=5.0, start=0, width=150
@@ -617,7 +619,7 @@ class CompleteRunTab:
 
         # Photometry Section Widgets
         self.image_type = pn.widgets.Select(
-            name="Image type", options=["calexp", "goodSeeingDiff_differenceExp"], value="calexp"
+            name="Image type", options=["visit_image", "goodSeeingDiff_differenceExp"], value="visit_image"
         )
         self.detection_threshold = pn.widgets.FloatInput(
             name="Detection Threshold", value=5.0, start=0, width=100
@@ -876,6 +878,7 @@ documentation_tab = pn.pane.Markdown(
 
 # Create the application
 controller = ObjectDetectionController()
+data_loader = DataLoader()
 ephemeris_tab = EphemerisTab(controller).layout
 image_tab = ImageTab(controller).layout
 photometry_tab = PhotometryTab(controller).layout

@@ -158,7 +158,6 @@ class ImageService:
         SELECT
             lsst_visit,
             lsst_detector,
-            lsst_ccdvisitid,
             lsst_band,
             s_ra,
             s_dec,
@@ -227,7 +226,6 @@ class ImageService:
             metadata = ImageMetadata(
                 visit_id=int(row["lsst_visit"]),
                 detector_id=int(row["lsst_detector"]),
-                ccdvisit=int(row["lsst_ccdvisitid"]),
                 band=row["lsst_band"],
                 coordinates_central=(float(row["s_ra"]), float(row["s_dec"])),
                 t_min=t_min,
@@ -237,7 +235,7 @@ class ImageService:
             )
             metadata_list.append(metadata)
 
-        metadata_unique = list({item.ccdvisit: item for item in metadata_list}.values())
+        metadata_unique = list({item.visit_id: item for item in metadata_list}.values())
         self.logger.info(f"Found {len(metadata_unique)} image(s) ")
 
         print("-" * 40)

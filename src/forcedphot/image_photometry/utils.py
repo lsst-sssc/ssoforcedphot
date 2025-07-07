@@ -290,7 +290,6 @@ class ImageMetadata:
 
     visit_id: int
     detector_id: int
-    ccdvisit: int
     band: str
     coordinates_central: tuple[float, float]
     t_min: Time

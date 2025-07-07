@@ -1,0 +1,35 @@
+# %ECSV 1.0
+# ---
+# datatype:
+# - {name: datetime, unit: d, datatype: float64, description: Time for the ephemeris data points.}
+# - {name: RA_deg, unit: deg, datatype: float64, description: Right Ascension in degrees}
+# - {name: DEC_deg, unit: deg, datatype: float64, description: Declination in degrees}
+# - {name: RA_rate_arcsec_per_h, unit: arcsec / h, datatype: float64, description: Rate of change in Right Ascension}
+# - {name: DEC_rate_arcsec_per_h, unit: arcsec / h, datatype: float64, description: Rate of change in Declination}
+# - {name: AZ_deg, unit: deg, datatype: float64, description: Azimuth in degrees}
+# - {name: EL_deg, unit: deg, datatype: float64, description: Elevation in degrees}
+# - {name: r_au, unit: AU, datatype: float64, description: Heliocentric distance in astronomical units}
+# - {name: delta_au, unit: AU, datatype: float64, description: Geocentric distance in astronomical units}
+# - {name: V_mag, datatype: float64, description: Visual magnitude}
+# - {name: alpha_deg, unit: deg, datatype: float64, description: Phase angle in degrees}
+# - {name: RSS_3sigma_arcsec, unit: arcsec, datatype: float64, description: 3-sigma uncertainty in arcseconds}
+# - {name: SMAA_3sigma_arcsec, unit: arcsec, datatype: float64, description: Semi-major axis of error ellipse in arcseconds}
+# - {name: SMIA_3sigma_arcsec, unit: arcsec, datatype: float64, description: Semi-minor axis of error ellipse in arcseconds}
+# - {name: Theta_3sigma_deg, unit: deg, datatype: float64, description: Position angle of error ellipse in degrees}
+# meta: !!omap
+# - {target: '65803'}
+# - {target_type: smallbody}
+# - {start_time: '2024-11-09 12:18:36.000'}
+# - {end_time: '2024-11-10 12:18:36.000'}
+# - {step: 1h}
+# schema: astropy-2.0
+datetime RA_deg DEC_deg RA_rate_arcsec_per_h DEC_rate_arcsec_per_h AZ_deg EL_deg r_au delta_au V_mag alpha_deg RSS_3sigma_arcsec SMAA_3sigma_arcsec SMIA_3sigma_arcsec Theta_3sigma_deg
+2460633.01 53.0423675 -28.3500009 133.0106 37.56684 143.153614 -25.207583 1.0333910818 0.6341994911957 19.587 68.0792 0.001 0.00087 0.00032 -5.688
+2460634.03 53.0433675 -28.3500049 132.4894 37.37831 131.90851 -16.447633 1.033305300782 0.63409540224869 19.587 68.0864 0.001 0.00087 0.00032 -5.645
+2460634.04 53.0452675 -28.3500079 131.8347 37.2588 122.737655 -6.139572 1.033219691118 0.63398984818809 19.587 68.0938 0.001 0.00087 0.00032 -5.602
+2460634.0674 53.0453675 -28.3501079 131.0943 37.22006 115.089304 5.201402 1.033134252896 0.63388334194842 19.586 68.1013 0.001 0.00087 0.00032 -5.559
+2460634.7 53.0454675 -28.3501379 130.3221 37.26832 108.448015 17.230302 1.033048986205 0.63377645890017 19.586 68.1091 0.001 0.00087 0.00032 -5.516
+2460634.8 53.0455675 -28.3502079 129.5738 37.4039 102.348826 29.716042 1.032963891134 0.63366979766036 19.586 68.1172 0.001 0.00088 0.00032 -5.474
+2460634.9 53.0456675 -28.3503079 128.9038 37.62115 96.283749 42.494298 1.032878967773 0.63356393930633 19.586 68.1254 0.001 0.00088 0.00032 -5.432
+2460635.0 53.0457675 -28.3504079 128.3612 37.90888 89.423714 55.425611 1.03279421621 0.63345940777214 19.585 68.1337 0.001 0.00088 0.00032 -5.39
+2460635.3 53.0458675 -28.3505079 127.9862 38.25107 79.456588 68.314881 1.03270963653 0.63335663412908 19.585 68.1422 0.001 0.00088 0.00032 -5.347

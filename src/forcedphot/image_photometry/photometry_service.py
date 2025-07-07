@@ -21,8 +21,10 @@ import lsst.afw.table as afwtable
 import lsst.daf.base as dafbase
 import lsst.geom as geom
 import numpy as np
+from astropy.coordinates import SkyCoord
 from image_photometry.utils import EndResult, ErrorEllipse, ImageMetadata, PhotometryResult
 from image_photometry.utils_json import save_results_to_json
+from image_photometry.visualization import create_diagnostic_plot
 from lsst.daf.butler import Butler
 from lsst.meas.algorithms.detection import SourceDetectionTask
 from lsst.meas.base import ForcedMeasurementTask, SingleFrameMeasurementTask
@@ -57,7 +59,7 @@ class PhotometryService:
         self.logger = logging.getLogger("photometry_service")
         self.display = None
         self.detection_threshold = detection_threshold
-        self.butler = Butler("dp02", collections="2.2i/runs/DP0.2")
+        self.butler = Butler("dp1", collections="LSSTComCam/DP1")
 
     def process_image(
         self,
@@ -85,7 +87,7 @@ class PhotometryService:
         target_type : str
             Classification of the target
         image_type : str
-            Type of image (calexp or goodSeeingDiff_differenceExp)
+            Type of image (visit_image or goodSeeingDiff_differenceExp)
         ephemeris_service : str
             Service used for ephemeris data
         cutout_size : int, optional
@@ -113,13 +115,13 @@ class PhotometryService:
 
         # Get the exposure
         if image_type == "goodSeeingDiff_differenceExp":
-            calexp = self.butler.get(
+            visit_image = self.butler.get(
                 "goodSeeingDiff_differenceExp",
                 dataId={"visit": image_metadata.visit_id, "detector": image_metadata.detector_id},
             )
         else:
-            calexp = self.butler.get(
-                "calexp",
+            visit_image = self.butler.get(
+                "visit_image",
                 dataId={"visit": image_metadata.visit_id, "detector": image_metadata.detector_id},
             )
 
@@ -140,17 +142,17 @@ class PhotometryService:
                 center_coord=(image_metadata.exact_ephemeris.ra_deg, image_metadata.exact_ephemeris.dec_deg),
             )
 
-        # Create image name if saved
-        image_name = ""
-        if save_cutout and output_dir:
-            image_name = (
-                f"cutout_visit{image_metadata.visit_id}_"
-                f"detector{image_metadata.detector_id}_band{image_metadata.band}.fits"
+        # Create base image name if saving output
+        base_image_name = ""
+        if save_cutout and output_dir: # Ensure output_dir is also checked before forming base name
+            base_image_name = (
+                f"diag_plot_visit{image_metadata.visit_id}_"
+                f"detector{image_metadata.detector_id}_band{image_metadata.band}"
             )
 
         # Perform photometry
         target_result, sources_within_error = self.perform_photometry(
-            calexp=calexp,
+            visit_image=visit_image,
             ra_deg=image_metadata.exact_ephemeris.ra_deg,
             dec_deg=image_metadata.exact_ephemeris.dec_deg,
             cutout_size=cutout_size,
@@ -158,10 +160,16 @@ class PhotometryService:
             error_ellipse=error_ellipse,
             save_cutout=save_cutout,
             output_dir=output_dir,
-            image_name=image_name,
+            image_name=base_image_name, # Pass base name (without .fits)
+            image_metadata_for_plot=image_metadata, # Pass full metadata for plot
+            target_name_for_plot=target_name # Pass target name for plot title
         )
 
         # Prepare end result
+        saved_image_name_for_result = ""
+        if save_cutout and output_dir and base_image_name: # if base_image_name is empty, this will be false
+            saved_image_name_for_result = base_image_name + ".png"
+
         end_result = self._prepare_end_results(
             target_name=target_name,
             target_type=target_type,
@@ -169,7 +177,7 @@ class PhotometryService:
             ephemeris_service=ephemeris_service,
             image_metadata=image_metadata,
             cutout_size=cutout_size,
-            saved_image_name=image_name,
+            saved_image_name=saved_image_name_for_result,
             target_result=target_result,
             sources_within_error=sources_within_error,
         )
@@ -182,7 +190,7 @@ class PhotometryService:
 
     def perform_photometry(
         self,
-        calexp,
+        visit_image,
         ra_deg,
         dec_deg,
         cutout_size=400,
@@ -191,8 +199,10 @@ class PhotometryService:
         find_sources_flag=True,
         save_cutout=False,
         output_dir=None,
-        image_name=str,
+        image_name: Optional[str] = None,
         error_ellipse: Optional[ErrorEllipse] = None,
+        image_metadata_for_plot: Optional[ImageMetadata] = None,
+        target_name_for_plot: Optional[str] = None,
     ):
         """
         Perform source detection and photometry on the image.
@@ -200,7 +210,7 @@ class PhotometryService:
 
         Parameters
         ----------
-        calexp : lsst.afw.image.ExposureF
+        visit_image : lsst.afw.image.ExposureF
             The calibrated exposure for photometry
         ra_deg : float
             Right ascension in degrees
@@ -229,7 +239,7 @@ class PhotometryService:
             Contains photometry results (target_result, sources_within_error)
         """
         # Get WCS and prepare coordinates
-        target_img, bbox, offsets = self._prepare_image(calexp, ra_deg, dec_deg, cutout_size)
+        target_img, bbox, offsets = self._prepare_image(visit_image, ra_deg, dec_deg, cutout_size)
         x_offset, y_offset = offsets
 
         if target_img is None:
@@ -240,57 +250,91 @@ class PhotometryService:
             target_img, ra_deg, dec_deg, find_sources_flag, error_ellipse
         )
 
-        print(f"Found {len(ra_list)} sources")
+        print(f"Found {len(ra_list)} total coordinates for forced photometry (target + nearby)")
 
         # Setup and perform measurements
         forced_meas_cat = self._perform_forced_photometry(
             target_img, ra_list, dec_list, x_offset, y_offset, psf_only
         )
 
-        # Handle display and visualization
+        # Prepare PhotometryResult dataclasses for the target and any other found sources
+        target_phot_result, sources_phot_results_list = self._prepare_photometry_results(
+            forced_meas_cat=forced_meas_cat, ra=ra_deg, dec=dec_deg, found_sources=found_sources
+        )
+
+        # Handle display and visualization (including saving diagnostic plot)
         if display or save_cutout:
-            # Calculate display coordinates
-            display_coords = []
-            wcs = target_img.getWcs()
+            wcs = target_img.getWcs() # WCS needed for both display and plot
 
-            for ra, dec in zip(ra_list, dec_list):
-                coord = geom.SpherePoint(np.radians(ra), np.radians(dec), geom.radians)
-                pixel_coord = wcs.skyToPixel(coord)
-                display_coords.append((pixel_coord.getX() - x_offset, pixel_coord.getY() - y_offset))
-
+            # Firefly display logic (existing)
             if display:
-                # Display using Firefly
+                display_coords = []
+                # Use ra_list and dec_list which contain all coordinates sent for forced photometry
+                for ra_val_disp, dec_val_disp in zip(ra_list, dec_list):
+                    coord = geom.SpherePoint(np.radians(ra_val_disp), np.radians(dec_val_disp), geom.radians)
+                    pixel_coord = wcs.skyToPixel(coord)
+                    display_coords.append((pixel_coord.getX() - x_offset, pixel_coord.getY() - y_offset))
+                
                 afwdisplay.setDefaultBackend("firefly")
                 afw_display = afwdisplay.Display(frame=1)
                 afw_display.mtv(target_img)
                 afw_display.setMaskTransparency(100)
-
                 with afw_display.Buffering():
-                    # Plot original coordinates
+                    # Plot target coordinates (always the first in display_coords)
                     afw_display.dot("o", display_coords[0][0], display_coords[0][1], size=10, ctype="red")
-
-                    # Plot detected sources
-                    for coord in display_coords[1:]:
-                        afw_display.dot("o", coord[0], coord[1], size=20, ctype="blue")
-
-                    # Plot error ellipse if provided
-                    if error_ellipse:
-                        error_ellipse._plot_error_ellipse(
+                    # Plot other detected/measured sources
+                    for coord_disp in display_coords[1:]:
+                        afw_display.dot("o", coord_disp[0], coord_disp[1], size=20, ctype="blue")
+                    if error_ellipse: # error_ellipse is passed to perform_photometry
+                        error_ellipse._plot_error_ellipse( # Assuming this method exists and works
                             display=afw_display, wcs=wcs, x_offset=x_offset, y_offset=y_offset
                         )
 
-            if save_cutout and output_dir:
-                # Save cutout
-                output_path = os.path.join(output_dir, image_name)
-                target_img.writeFits(output_path)
-                print(f"Saved cutout to: {output_path}")
+            # Save diagnostic plot if requested
+            # image_name here is the base name like "diag_plot_visitX_detY_bandZ"
+            if save_cutout and output_dir and image_name and image_metadata_for_plot:
+                png_filename = image_name + ".png"
+                output_filepath_png = os.path.join(output_dir, png_filename)
+                
+                # Prepare data for create_diagnostic_plot
+                plot_target_skycoord = SkyCoord(ra=ra_deg, dec=dec_deg, unit="deg") # Target RA/Dec from params
+                
+                nearby_skycoords_for_plot = []
+                if sources_phot_results_list: # This list is from _prepare_photometry_results
+                    for src_result in sources_phot_results_list:
+                        # Ensure src_result.ra and src_result.dec are in degrees
+                        nearby_skycoords_for_plot.append(SkyCoord(ra=src_result.ra, dec=src_result.dec, unit="deg"))
+                
+                plot_title = (
+                    f"Target: {target_name_for_plot or 'N/A'} | Visit: {image_metadata_for_plot.visit_id} "
+                    f"| Det: {image_metadata_for_plot.detector_id} | Band: {image_metadata_for_plot.band}"
+                )
 
-        #  create PhotometryResult dataclass
-        target_result, sources_within_error = self._prepare_photometry_results(
-            forced_meas_cat=forced_meas_cat, ra=ra_deg, dec=dec_deg, found_sources=found_sources
-        )
-
-        return target_result, sources_within_error
+                try:
+                    self.logger.info(f"Attempting to create diagnostic plot: {output_filepath_png}")
+                    # error_ellipse object is passed directly to perform_photometry
+                    create_diagnostic_plot(
+                        image_exposure=target_img, # This is the cutout ExposureF
+                        target_skycoord=plot_target_skycoord,
+                        x_offset=x_offset,
+                        y_offset=y_offset,
+                        error_ellipse_obj=error_ellipse, # Passed as parameter
+                        nearby_skycoords=nearby_skycoords_for_plot,
+                        output_filepath=output_filepath_png,
+                        title=plot_title
+                    )
+                    self.logger.info(f"Diagnostic plot saved successfully to: {output_filepath_png}")
+                except Exception as e:
+                    self.logger.error(f"Failed to create diagnostic plot: {e}", exc_info=True)
+            elif save_cutout: # If save_cutout is true but some condition above failed
+                missing_info = []
+                if not output_dir: missing_info.append("output_dir")
+                if not image_name: missing_info.append("image_name (base)")
+                if not image_metadata_for_plot: missing_info.append("image_metadata_for_plot")
+                self.logger.warning(f"Skipping diagnostic plot generation because some required information is missing: {', '.join(missing_info)}.")
+        
+        # Return the results from _prepare_photometry_results
+        return target_phot_result, sources_phot_results_list
 
     def _calculate_separations(
         self, table, ra_coord: float, dec_coord: float, sigma3: float
@@ -327,7 +371,7 @@ class PhotometryService:
 
         return table
 
-    def find_measure_sources(self, calexp, ra_coord, dec_coord, error_ellipse: Optional[ErrorEllipse] = None):
+    def find_measure_sources(self, visit_image, ra_coord, dec_coord, error_ellipse: Optional[ErrorEllipse] = None):
         """
         Detect and measure sources in an image.
 
@@ -339,7 +383,7 @@ class PhotometryService:
 
         Parameters
         ----------
-        calexp : lsst.afw.image.ExposureF
+        visit_image : lsst.afw.image.ExposureF
             The calibrated exposure
         ra_coord : float
             Right ascension in degrees
@@ -371,9 +415,9 @@ class PhotometryService:
 
         # Run detection and measurement
         tab = afwtable.SourceTable.make(schema)
-        result = sourcedetectiontask.run(tab, calexp)
+        result = sourcedetectiontask.run(tab, visit_image)
         sources = result.sources
-        sourcemeasurementtask.run(measCat=sources, exposure=calexp)
+        sourcemeasurementtask.run(measCat=sources, exposure=visit_image)
 
         # Get all sources and add separations
         sources_copy = sources.copy(True)
@@ -468,13 +512,13 @@ class PhotometryService:
 
         return forced_meas_cat
 
-    def _prepare_image(self, calexp, ra_deg, dec_deg, cutout_size):
+    def _prepare_image(self, visit_image, ra_deg, dec_deg, cutout_size):
         """
         Prepare the image by creating a cutout around the specified coordinates.
 
         Parameters
         ----------
-        calexp : lsst.afw.image.ExposureF
+        visit_image : lsst.afw.image.ExposureF
             The calibrated exposure
         ra_deg : float
             Right ascension in degrees
@@ -491,15 +535,15 @@ class PhotometryService:
             - bbox is the bounding box
             - offsets is a tuple of (x_offset, y_offset)
         """
-        wcs = calexp.getWcs()
+        wcs = visit_image.getWcs()
         coord = geom.SpherePoint(np.radians(ra_deg), np.radians(dec_deg), geom.radians)
 
         pixel_coord = wcs.skyToPixel(coord)
         x_center, y_center = pixel_coord.getX(), pixel_coord.getY()
         half_size = cutout_size // 2
 
-        min_x, max_x = 0, calexp.getWidth()
-        min_y, max_y = 0, calexp.getHeight()
+        min_x, max_x = 0, visit_image.getWidth()
+        min_y, max_y = 0, visit_image.getHeight()
 
         # Check if target is within 50 pixels of any edge
         if x_center < 50 or x_center > (max_x - 50) or y_center < 50 or y_center > (max_y - 50):
@@ -508,7 +552,7 @@ class PhotometryService:
 
         if cutout_size <= 0:
             print("Using the complete image.")
-            return calexp, None, (0, 0)
+            return visit_image, None, (0, 0)
 
         elif (
             (x_center - half_size) < min_x
@@ -518,7 +562,7 @@ class PhotometryService:
         ):
             print("The cutout boundaries are outside of the image.")
             print("Using the complete image.")
-            return calexp, None, (0, 0)
+            return visit_image, None, (0, 0)
 
         print(f"Creating cutout with size {cutout_size} pixels")
 
@@ -528,7 +572,7 @@ class PhotometryService:
         bbox.include(geom.Point2I(int(x_center + half_size), int(y_center + half_size)))
 
         # Create cutout
-        target_img = calexp.Factory(calexp, bbox, origin=afwimage.LOCAL, deep=False)
+        target_img = visit_image.Factory(visit_image, bbox, origin=afwimage.LOCAL, deep=False)
 
         return target_img, bbox, (bbox.getMinX(), bbox.getMinY())
 
@@ -591,83 +635,105 @@ class PhotometryService:
 
         # Prepare forced photometry results for the coordinates
         target_result = PhotometryResult(
-            ra=ra,
-            dec=dec,
+            ra=ra, # Target RA from parameters
+            dec=dec, # Target Dec from parameters
             ra_err=0,
             dec_err=0,
-            x=0,
-            y=0,
+            x=forced_meas_cat[0].get("slot_Centroid_x"),
+            y=forced_meas_cat[0].get("slot_Centroid_y"),
             x_err=0,
             y_err=0,
             snr=(
+                forced_meas_cat[0].get("base_PsfFlux_instFlux") / forced_meas_cat[0].get("base_PsfFlux_instFluxErr")
+                if len(forced_meas_cat) > 0 and forced_meas_cat[0].get("base_PsfFlux_instFluxErr") > 0
+                else 0
+            ),
+            flux=(
                 forced_meas_cat[0].get("base_PsfFlux_instFlux")
-                / forced_meas_cat[0].get("base_PsfFlux_instFluxErr")
-            )
-            if forced_meas_cat[0].get("base_PsfFlux_instFluxErr") > 0
-            else 0,
-            flux=forced_meas_cat[0].get("base_PsfFlux_instFlux")
-            if not np.isnan(forced_meas_cat[0].get("base_PsfFlux_instFlux"))
-            else 0,
-            flux_err=forced_meas_cat[0].get("base_PsfFlux_instFluxErr")
-            if forced_meas_cat[0].get("base_PsfFlux_instFluxErr") > 0
-            else 0,
-            mag=-2.5 * np.log10(forced_meas_cat[0].get("base_PsfFlux_instFlux")) + 31.4
-            if forced_meas_cat[0].get("base_PsfFlux_instFlux") > 0
-            else 0,
-            mag_err=2.5
-            / np.log(10)
-            * forced_meas_cat[0].get("base_PsfFlux_instFluxErr")
-            / forced_meas_cat[0].get("base_PsfFlux_instFlux")
-            if forced_meas_cat[0].get("base_PsfFlux_instFlux") > 0
-            else 0,
-            separation=0,
-            sigma=0,
+                if forced_meas_cat and len(forced_meas_cat) > 0 and not np.isnan(forced_meas_cat[0].get("base_PsfFlux_instFlux"))
+                else 0
+            ),
+            flux_err=(
+                forced_meas_cat[0].get("base_PsfFlux_instFluxErr")
+                if forced_meas_cat and len(forced_meas_cat) > 0 and forced_meas_cat[0].get("base_PsfFlux_instFluxErr") > 0
+                else 0
+            ),
+            mag=(
+                -2.5 * np.log10(forced_meas_cat[0].get("base_PsfFlux_instFlux")) + 31.4
+                if forced_meas_cat and len(forced_meas_cat) > 0 and forced_meas_cat[0].get("base_PsfFlux_instFlux") > 0
+                else 0
+            ),
+            mag_err=(
+                2.5 / np.log(10) * forced_meas_cat[0].get("base_PsfFlux_instFluxErr") / forced_meas_cat[0].get("base_PsfFlux_instFlux")
+                if forced_meas_cat and len(forced_meas_cat) > 0 and forced_meas_cat[0].get("base_PsfFlux_instFlux") > 0 and forced_meas_cat[0].get("base_PsfFlux_instFluxErr") > 0
+                else 0
+            ),
+            separation=0, # By definition for the target itself
+            sigma=0,      # By definition for the target itself
             flags={},
         )
 
-        # Prepare results for additional sources (if any)
-        #  TODO make a method for precise sigma calculation
-        sources_within_error = []
-        if len(found_sources["coord_ra"]) > 1:
-            for i in range(1, len(found_sources)):
-                source_result = PhotometryResult(
-                    ra=found_sources[i].get("coord_ra"),
-                    dec=found_sources[i].get("coord_ra"),
-                    ra_err=float(found_sources[i].get("coord_raErr")),
-                    dec_err=float(found_sources[i].get("coord_decErr")),
-                    x=found_sources[i].get("slot_Centroid_x"),
-                    y=found_sources[i].get("slot_Centroid_y"),
-                    x_err=float(found_sources[i].get("slot_Centroid_xErr")),
-                    y_err=float(found_sources[i].get("slot_Centroid_yErr")),
-                    snr=(
-                        found_sources[i].get("base_PsfFlux_instFlux")
-                        / found_sources[i].get("base_PsfFlux_instFluxErr")
+        # Prepare results for additional sources (originally from found_sources table)
+        sources_phot_results_list = []
+        if found_sources is not None and len(found_sources) > 0:
+            for i, source_row in enumerate(found_sources):
+                fm_idx = i + 1
+                if fm_idx < len(forced_meas_cat):
+                    meas_record = forced_meas_cat[fm_idx]
+
+                    src_ra_deg = np.degrees(source_row["coord_ra"])
+                    src_dec_deg = np.degrees(source_row["coord_dec"])
+
+                    source_result = PhotometryResult(
+                        ra=src_ra_deg,
+                        dec=src_dec_deg,
+                        ra_err=float(source_row.get("coord_raErr", 0)),
+                        dec_err=float(source_row.get("coord_decErr", 0)),
+                        x=meas_record.get("slot_Centroid_x"),
+                        y=meas_record.get("slot_Centroid_y"),
+                        x_err=0,
+                        y_err=0,
+                        snr=(
+                            meas_record.get("base_PsfFlux_instFlux") / meas_record.get("base_PsfFlux_instFluxErr")
+                            if meas_record.get("base_PsfFlux_instFluxErr") > 0
+                            else 0
+                        ),
+                        flux=(
+                            meas_record.get("base_PsfFlux_instFlux") 
+                            if not np.isnan(meas_record.get("base_PsfFlux_instFlux")) 
+                            else 0
+                        ),
+                        flux_err=(
+                            meas_record.get("base_PsfFlux_instFluxErr") 
+                            if meas_record.get("base_PsfFlux_instFluxErr") > 0 
+                            else 0
+                        ),
+                        mag=(
+                            -2.5 * np.log10(meas_record.get("base_PsfFlux_instFlux")) + 31.4
+                            if meas_record.get("base_PsfFlux_instFlux") > 0
+                            else 0
+                        ),
+                        mag_err=(
+                            2.5 / np.log(10) * meas_record.get("base_PsfFlux_instFluxErr") / meas_record.get("base_PsfFlux_instFlux")
+                            if meas_record.get("base_PsfFlux_instFlux") > 0 and meas_record.get("base_PsfFlux_instFluxErr") > 0
+                            else 0
+                        ),
+                        separation=source_row.get("separation", 0),
+                        sigma=source_row.get("sigma", 0),
+                        flags={ 
+                            # "base_PsfFlux_flag_edge": meas_record.get("base_PsfFlux_flag_edge", False)
+                        },
                     )
-                    if found_sources[i].get("base_PsfFlux_instFluxErr") > 0
-                    else 0,
-                    flux=found_sources[i].get("base_PsfFlux_instFlux"),
-                    flux_err=found_sources[i].get("base_PsfFlux_instFluxErr"),
-                    mag=-2.5 * np.log10(found_sources[i].get("base_PsfFlux_instFlux")) + 31.4,
-                    mag_err=2.5
-                    / np.log(10)
-                    * found_sources[i].get("base_PsfFlux_instFluxErr")
-                    / found_sources[i].get("base_PsfFlux_instFlux"),
-                    separation=found_sources[i].get("separation"),
-                    sigma=found_sources[i].get("sigma"),
-                    flags={
-                        "base_PsfFlux_flag_badCentroid": found_sources[0].get(
-                            "base_PsfFlux_flag_badCentroid"
-                        ),
-                        "base_PsfFlux_flag_badCentroid_edge": found_sources[0].get(
-                            "base_PsfFlux_flag_badCentroid_edge"
-                        ),
-                        "slot_Centroid_flag_edge": found_sources[0].get("slot_Centroid_flag_edge"),
-                    },
-                )
+                    sources_phot_results_list.append(source_result)
+                else:
+                    self.logger.warning(
+                        f"Index {fm_idx} for a source from 'found_sources' is out of bounds "
+                        f"for 'forced_meas_cat' (length {len(forced_meas_cat)}). "
+                        "This suggests a mismatch in the number of sources processed."
+                    )
 
-                sources_within_error.append(source_result)
+        return target_result, sources_phot_results_list
 
-        return target_result, sources_within_error
 
     def _prepare_end_results(
         self,
@@ -691,7 +757,7 @@ class PhotometryService:
         target_type : str
             Classification of the target
         image_type : str
-            Type of image (calexp or goodSeeingDiff_differenceExp)
+            Type of image (visit_image or goodSeeingDiff_differenceExp)
         ephemeris_service : str
             Service used for ephemeris data
         image_metadata : ImageMetadata

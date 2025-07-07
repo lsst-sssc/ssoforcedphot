@@ -194,7 +194,7 @@ if __name__ == "__main__":
     controller.process_images(
         target_name="Example Target",
         target_type="smallbody",
-        image_type="goodSeeingDiff_differenceExp",
+        image_type="visit_image",
         ephemeris_service="JPL Horizons",
         image_metadata=image_metadata,
         cutout_size=800,
