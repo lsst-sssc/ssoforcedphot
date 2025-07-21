@@ -44,16 +44,19 @@ python odc.py [service options] [target options] [time options] [filter options]
 ```bash
 python odc.py --service-selection all \
               --ephemeris-service Horizons \
-              --image-type goodSeeingDiff_differenceExp \
-              --target 65803 \
+              --image-type visit_image \
+              --target "2024 TN57" \
               --target-type smallbody \
-              --start-time "2022-09-25 00:00" \
-              --day-range 6 \
-              --step 1h \
-              --save-data \
-              --filters g r i \
+              --start-time "2024-12-01 00:00" \
+              --day-range 10 \
+              --step 12h \
+              --image-search-method polygon \
+              --save-ephem-data \
+              --filters u g r i z y\
               --output-dir ./output \
-              --min-cutout-size 800
+              --min-cutout-size 800 \
+              --save-json \
+              --save-cutouts
 ```
 
 ## Command Line Options

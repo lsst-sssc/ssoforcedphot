@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import Optional
 
 import astropy.units as u
 import numpy as np
@@ -127,7 +128,7 @@ class HorizonsInterface:
 
         return time_ranges
 
-    def save_horizons_data_to_ecsv(self, query_input, ephemeris_data):
+    def save_horizons_data_to_ecsv(self, query_input, ephemeris_data, output_folder: Optional[str] = "./output" ):
         """
         Save queried ephemeris data to an ECSV file.
 
@@ -141,6 +142,8 @@ class HorizonsInterface:
             The input query parameters containing target, start time, end time, and step.
         ephemeris_data : EphemerisData
             The result of the ephemeris query containing the ephemeris data.
+        output_folder : str
+            The location where the ephemeris data will be stored. (default ./output)
 
         Returns
         -------
@@ -222,10 +225,10 @@ class HorizonsInterface:
         result_table["Theta_3sigma_deg"].unit = u.deg
         result_table["Theta_3sigma_deg"].description = "Position angle of error ellipse in degrees"
 
-        result_table.write("./output/" + output_filename, format="ascii.ecsv", overwrite=True)
+        result_table.write(output_folder + "/" + output_filename, format="ascii.ecsv", overwrite=True)
         self.logger.info(f"Ephemeris data successfully saved to {output_filename}")
 
-    def query_single_range(self, query: QueryInput, save_data: bool = False) -> QueryResult:
+    def query_single_range(self, query: QueryInput, save_ephem_data: bool = False, output_folder: Optional[str] = "./output") -> QueryResult:
         """
         Query ephemeris for a single time range.
 
@@ -233,7 +236,7 @@ class HorizonsInterface:
         ----------
         query : QueryInput
             The query parameters containing target, start time, end time, and step.
-        save_data : bool, optional
+        save_ephem_data : bool, optional
             Whether to save the queried ephemeris data to an ECSV file. Default is False.
 
         Returns
@@ -325,8 +328,8 @@ class HorizonsInterface:
             )
 
             # Save the data to an ECSV file
-            if save_data:
-                self.save_horizons_data_to_ecsv(query, ephemeris_data)
+            if save_ephem_data:
+                self.save_horizons_data_to_ecsv(query, ephemeris_data, output_folder)
 
             return QueryResult(query.target, query.start, query.end, ephemeris_data)
         except Exception as e:
@@ -349,4 +352,4 @@ if __name__ == "__main__":
         step="10h",
     )
     horizons = HorizonsInterface()
-    result = horizons.query_single_range(query=target_query, save_data=False)
+    result = horizons.query_single_range(query=target_query, save_ephem_data=False)

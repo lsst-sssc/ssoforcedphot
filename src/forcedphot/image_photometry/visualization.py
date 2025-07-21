@@ -54,11 +54,11 @@ def create_diagnostic_plot(image_exposure, target_skycoord, x_offset, y_offset, 
         ax.imshow(image_array, origin='lower', cmap='gray', norm=norm)
 
         # Plot target
-        ax.plot(target_skycoord.ra.deg, target_skycoord.dec.deg, 'o', markersize=3, markerfacecolor='none', markeredgecolor='red',label='Target', transform=ax.get_transform('world'))
+        ax.plot(target_skycoord.ra.deg, target_skycoord.dec.deg, 'o', markersize=3, markerfacecolor='none', markeredgewidth=0.5, markeredgecolor='red',label='Target', transform=ax.get_transform('world'))
 
         # Plot error ellipse        
         ellipse_ra, ellipse_dec = error_ellipse_obj.get_ellipse_points()
-        ax.plot(ellipse_ra, ellipse_dec, 'r--', label='Error Ellipse', transform=ax.get_transform('world'))
+        ax.plot(ellipse_ra, ellipse_dec, 'r--', linewidth = 0.5, label='Error Ellipse', transform=ax.get_transform('world'))
 
         # Plot nearby sources
         nearby_ra_degrees = []
@@ -68,7 +68,7 @@ def create_diagnostic_plot(image_exposure, target_skycoord, x_offset, y_offset, 
             nearby_dec_degrees.append(nearby_coord.dec.deg)
         
         if nearby_ra_degrees: # Only plot if there are nearby sources
-            ax.plot(nearby_ra_degrees, nearby_dec_degrees, 'bo', markersize=3, mfc='none', label='Nearby Sources', transform=ax.get_transform('world'))
+            ax.plot(nearby_ra_degrees, nearby_dec_degrees, 'bo', markersize=3, mfc='none', markeredgewidth=0.5, label='Nearby Sources', transform=ax.get_transform('world'))
 
         # Set labels and title
         ax.set_xlabel("RA")
@@ -79,7 +79,7 @@ def create_diagnostic_plot(image_exposure, target_skycoord, x_offset, y_offset, 
 
         # Save the plot
         plt.savefig(output_filepath, dpi=150)
-        print(f"Plot saved successfully to {output_filepath}")
+        # print(f"Plot saved successfully to {output_filepath}")
 
     except Exception as e:
         print(f"Error creating or saving diagnostic plot: {e}")

@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import Optional
 
 import astropy.units as u
 import numpy as np
@@ -167,7 +168,7 @@ class MiriadeInterface:
 
         return query_miriade
 
-    def save_miriade_data_to_ecsv(self, query_input, ephemeris_data):
+    def save_miriade_data_to_ecsv(self, query_input, ephemeris_data, output_folder: Optional[str] = "./output"):
         """
         Save queried ephemeris data to an ECSV file.
 
@@ -181,6 +182,8 @@ class MiriadeInterface:
             The input query parameters containing target, start time, end time, and step.
         ephemeris_data : EphemerisData
             The result of the ephemeris query containing the ephemeris data.
+        output_folder : str
+            The location where the ephemeris data will be stored. (default ./output)
 
         Returns
         -------
@@ -262,10 +265,10 @@ class MiriadeInterface:
         result_table["Theta_3sigma_deg"].unit = u.deg
         result_table["Theta_3sigma_deg"].description = "Position angle of error ellipse"
 
-        result_table.write("./output/" + output_filename, format="ascii.ecsv", overwrite=True)
+        result_table.write(output_folder + "/" + output_filename, format="ascii.ecsv", overwrite=True)
         self.logger.info(f"Ephemeris data successfully saved to {output_filename}")
 
-    def query_single_range(self, query: QueryInput, save_data: bool = False):
+    def query_single_range(self, query: QueryInput, save_ephem_data: bool = False, output_folder: Optional[str] = "./output"):
         """
         Query Miriade for ephemeris data within a single time range.
 
@@ -280,7 +283,7 @@ class MiriadeInterface:
             - start: The start time of the query
             - end: The end time of the query
             - step: The time step for the query (e.g., '1h' for 1 hour)
-        save_data : bool, optional
+        save_ephem_data : bool, optional
             - A flag indicating whether to save the queried data to a file.
 
         Returns:
@@ -356,9 +359,9 @@ class MiriadeInterface:
                 Theta_3sigma_deg=nan_array,  # Not available in Miriade
             )
 
-            if save_data:
+            if save_ephem_data:
                 # Save the queried ephemeris data to ECSV file
-                self.save_miriade_data_to_ecsv(query, ephemeris_data)
+                self.save_miriade_data_to_ecsv(query, ephemeris_data, output_folder)
 
             return QueryResult(query.target, query.start, query.end, ephemeris_data)
 

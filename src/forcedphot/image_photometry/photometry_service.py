@@ -23,7 +23,7 @@ import lsst.geom as geom
 import numpy as np
 from astropy.coordinates import SkyCoord
 from image_photometry.utils import EndResult, ErrorEllipse, ImageMetadata, PhotometryResult
-from image_photometry.utils_json import save_results_to_json
+# from image_photometry.utils_json import save_results_to_json
 from image_photometry.visualization import create_diagnostic_plot
 from lsst.daf.butler import Butler
 from lsst.meas.algorithms.detection import SourceDetectionTask
@@ -70,10 +70,12 @@ class PhotometryService:
         ephemeris_service: str,
         cutout_size: int = 800,
         save_cutout: bool = False,
+        override_error: float = 0,
         display: bool = True,
-        output_dir: Optional[str] = None,
+        output_folder: Optional[str] = None,
         save_json: bool = False,
         json_filename: Optional[str] = None,
+        save_csv: bool =False,
     ) -> EndResult:
         """
         Process an image using provided metadata and parameters.
@@ -92,16 +94,20 @@ class PhotometryService:
             Service used for ephemeris data
         cutout_size : int, optional
             Size of image cutout in pixels, by default 800
+        override_error: float
+            Override the error ellipse with the value
         save_cutout : bool, optional
             Whether to save the cutout image, by default False
         display : bool, optional
             Whether to display results, by default True
-        output_dir : str, optional
+        output_folder : str, optional
             Directory for output files, by default None
         save_json : bool, optional
             Whether to save results as JSON, by default False
         json_filename : str, optional
             Name for JSON output file, by default None
+        save_csv: bool, optional
+            Whether to save results as csv, by default False
 
         Returns
         -------
@@ -125,32 +131,42 @@ class PhotometryService:
                 dataId={"visit": image_metadata.visit_id, "detector": image_metadata.detector_id},
             )
 
-        # Create error ellipse from ephemeris data
-        if image_metadata.exact_ephemeris.uncertainty["smaa"] > 0:
+        if override_error > 0:
+            print(f"Override the error ellipse with the value of {override_error} arcsec")
             error_ellipse = ErrorEllipse(
-                smaa_3sig=image_metadata.exact_ephemeris.uncertainty["smaa"],
-                smia_3sig=image_metadata.exact_ephemeris.uncertainty["smia"],
-                theta=image_metadata.exact_ephemeris.uncertainty["theta"],
-                center_coord=(image_metadata.exact_ephemeris.ra_deg, image_metadata.exact_ephemeris.dec_deg),
-            )
-        else:
-            print("No error ellipse data found, using RSS instead")
-            error_ellipse = ErrorEllipse(
-                smaa_3sig=image_metadata.exact_ephemeris.uncertainty["rss"],
-                smia_3sig=image_metadata.exact_ephemeris.uncertainty["rss"],
+                smaa_3sig=override_error,
+                smia_3sig=override_error,
                 theta=0,
                 center_coord=(image_metadata.exact_ephemeris.ra_deg, image_metadata.exact_ephemeris.dec_deg),
             )
+        else:
+            # Create error ellipse from ephemeris data
+            if image_metadata.exact_ephemeris.uncertainty["smaa"] > 0:
+                error_ellipse = ErrorEllipse(
+                    smaa_3sig=image_metadata.exact_ephemeris.uncertainty["smaa"],
+                    smia_3sig=image_metadata.exact_ephemeris.uncertainty["smia"],
+                    theta=image_metadata.exact_ephemeris.uncertainty["theta"],
+                    center_coord=(image_metadata.exact_ephemeris.ra_deg, image_metadata.exact_ephemeris.dec_deg),
+                )
+            else:
+                print("No error ellipse data found, using RSS instead")
+                error_ellipse = ErrorEllipse(
+                    smaa_3sig=image_metadata.exact_ephemeris.uncertainty["rss"],
+                    smia_3sig=image_metadata.exact_ephemeris.uncertainty["rss"],
+                    theta=0,
+                    center_coord=(image_metadata.exact_ephemeris.ra_deg, image_metadata.exact_ephemeris.dec_deg),
+                )
 
         # Create base image name if saving output
         base_image_name = ""
-        if save_cutout and output_dir: # Ensure output_dir is also checked before forming base name
+        if save_cutout and output_folder: # Ensure output_folder is also checked before forming base name
             base_image_name = (
                 f"diag_plot_visit{image_metadata.visit_id}_"
                 f"detector{image_metadata.detector_id}_band{image_metadata.band}"
             )
 
         # Perform photometry
+        # self.logger.info(f"perform photometry, error_ellipse: {error_ellipse}")
         target_result, sources_within_error = self.perform_photometry(
             visit_image=visit_image,
             ra_deg=image_metadata.exact_ephemeris.ra_deg,
@@ -159,15 +175,15 @@ class PhotometryService:
             display=display,
             error_ellipse=error_ellipse,
             save_cutout=save_cutout,
-            output_dir=output_dir,
-            image_name=base_image_name, # Pass base name (without .fits)
+            output_folder=output_folder,
+            image_name=base_image_name,
             image_metadata_for_plot=image_metadata, # Pass full metadata for plot
             target_name_for_plot=target_name # Pass target name for plot title
         )
 
         # Prepare end result
         saved_image_name_for_result = ""
-        if save_cutout and output_dir and base_image_name: # if base_image_name is empty, this will be false
+        if save_cutout and output_folder and base_image_name: # if base_image_name is empty, this will be false
             saved_image_name_for_result = base_image_name + ".png"
 
         end_result = self._prepare_end_results(
@@ -182,9 +198,14 @@ class PhotometryService:
             sources_within_error=sources_within_error,
         )
 
-        # Save results to JSON if requested
-        if save_json and output_dir:
-            save_results_to_json(end_result, output_dir, json_filename)
+        # # Save results to JSON if requested
+        # if save_json and output_folder:
+        #     save_results_to_json(end_result, output_folder, json_filename)
+
+        # # Save results to csv if requested
+        # if save_csv and output_folder:
+        #     csv_filename = json_filename.replace(".json", ".csv")
+        #     EndResult.save_results_to_csv(end_result, output_folder, csv_filename, include_all_ellipse_sources=True)
 
         return end_result
 
@@ -198,7 +219,7 @@ class PhotometryService:
         psf_only=True,
         find_sources_flag=True,
         save_cutout=False,
-        output_dir=None,
+        output_folder=None,
         image_name: Optional[str] = None,
         error_ellipse: Optional[ErrorEllipse] = None,
         image_metadata_for_plot: Optional[ImageMetadata] = None,
@@ -226,7 +247,7 @@ class PhotometryService:
             Whether to find nearby sources (default: True)
         save_cutout : bool, optional
             Whether to save the cutout (default: False)
-        output_dir : str, optional
+        output_folder : str, optional
             Directory to save cutouts (default: None)
         image_name : str, optional
             Name for saved image (default: None)
@@ -285,24 +306,23 @@ class PhotometryService:
                     # Plot other detected/measured sources
                     for coord_disp in display_coords[1:]:
                         afw_display.dot("o", coord_disp[0], coord_disp[1], size=20, ctype="blue")
-                    if error_ellipse: # error_ellipse is passed to perform_photometry
-                        error_ellipse._plot_error_ellipse( # Assuming this method exists and works
+                    if error_ellipse:
+                        error_ellipse._plot_error_ellipse(
                             display=afw_display, wcs=wcs, x_offset=x_offset, y_offset=y_offset
                         )
 
             # Save diagnostic plot if requested
             # image_name here is the base name like "diag_plot_visitX_detY_bandZ"
-            if save_cutout and output_dir and image_name and image_metadata_for_plot:
+            if save_cutout and output_folder and image_name and image_metadata_for_plot:
                 png_filename = image_name + ".png"
-                output_filepath_png = os.path.join(output_dir, png_filename)
+                output_filepath_png = os.path.join(output_folder, png_filename)
                 
                 # Prepare data for create_diagnostic_plot
-                plot_target_skycoord = SkyCoord(ra=ra_deg, dec=dec_deg, unit="deg") # Target RA/Dec from params
+                plot_target_skycoord = SkyCoord(ra=ra_deg, dec=dec_deg, unit="deg")
                 
                 nearby_skycoords_for_plot = []
-                if sources_phot_results_list: # This list is from _prepare_photometry_results
+                if sources_phot_results_list:
                     for src_result in sources_phot_results_list:
-                        # Ensure src_result.ra and src_result.dec are in degrees
                         nearby_skycoords_for_plot.append(SkyCoord(ra=src_result.ra, dec=src_result.dec, unit="deg"))
                 
                 plot_title = (
@@ -311,14 +331,14 @@ class PhotometryService:
                 )
 
                 try:
-                    self.logger.info(f"Attempting to create diagnostic plot: {output_filepath_png}")
+                    # self.logger.info(f"Attempting to create diagnostic plot: {output_filepath_png}")
                     # error_ellipse object is passed directly to perform_photometry
                     create_diagnostic_plot(
-                        image_exposure=target_img, # This is the cutout ExposureF
+                        image_exposure=target_img,
                         target_skycoord=plot_target_skycoord,
                         x_offset=x_offset,
                         y_offset=y_offset,
-                        error_ellipse_obj=error_ellipse, # Passed as parameter
+                        error_ellipse_obj=error_ellipse,
                         nearby_skycoords=nearby_skycoords_for_plot,
                         output_filepath=output_filepath_png,
                         title=plot_title
@@ -328,7 +348,7 @@ class PhotometryService:
                     self.logger.error(f"Failed to create diagnostic plot: {e}", exc_info=True)
             elif save_cutout: # If save_cutout is true but some condition above failed
                 missing_info = []
-                if not output_dir: missing_info.append("output_dir")
+                if not output_folder: missing_info.append("output_folder")
                 if not image_name: missing_info.append("image_name (base)")
                 if not image_metadata_for_plot: missing_info.append("image_metadata_for_plot")
                 self.logger.warning(f"Skipping diagnostic plot generation because some required information is missing: {', '.join(missing_info)}.")
@@ -545,9 +565,9 @@ class PhotometryService:
         min_x, max_x = 0, visit_image.getWidth()
         min_y, max_y = 0, visit_image.getHeight()
 
-        # Check if target is within 50 pixels of any edge
-        if x_center < 50 or x_center > (max_x - 50) or y_center < 50 or y_center > (max_y - 50):
-            print("Target is within 50 pixels of image edge. Skipping image.")
+        # Check if target is within 10 pixels of any edge
+        if x_center < 10 or x_center > (max_x - 10) or y_center < 10 or y_center > (max_y - 10):
+            print("Target is within 10 pixels of image edge or outside of the boundaries. Skipping image.")
             return None, None, (0, 0)
 
         if cutout_size <= 0:
@@ -687,8 +707,16 @@ class PhotometryService:
                     source_result = PhotometryResult(
                         ra=src_ra_deg,
                         dec=src_dec_deg,
-                        ra_err=float(source_row.get("coord_raErr", 0)),
-                        dec_err=float(source_row.get("coord_decErr", 0)),
+                        ra_err=(
+                            float(source_row.get("coord_raErr", 0))
+                            if float(source_row.get("coord_raErr", 0)) > 0
+                            else 0
+                        ),
+                        dec_err=(
+                            float(source_row.get("coord_decErr", 0))
+                            if float(source_row.get("coord_decErr", 0)) > 0
+                            else 0
+                        ),
                         x=meas_record.get("slot_Centroid_x"),
                         y=meas_record.get("slot_Centroid_y"),
                         x_err=0,

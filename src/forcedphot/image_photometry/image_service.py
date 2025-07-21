@@ -43,7 +43,7 @@ class ImageService:
         ----------
         bands : list[str]
             list of photometric bands to search for in the image
-        ephemeris_data : EphemerisDataCompressed or ephemeris file path
+        ephemeris_data : QueryResult or ephemeris file path
             Ephemeris data to search for in the image
 
         Returns
@@ -52,7 +52,7 @@ class ImageService:
             list of matching image metadata or None if no results found
         """
         print("Begin the image search based on ephemeris data.")
-        # Check if ephemeris data is a string or a list of EphemerisDataCompressed objects
+        # Check if ephemeris data is a string or QueryResult objects
         try:
             time_start = time.time()
             # Load ephemeris data if it's a string path
@@ -63,7 +63,7 @@ class ImageService:
                 ephemeris_rows = EphemerisDataCompressed.compress_ephemeris(ephemeris_data)
             else:
                 raise ValueError(
-                    "Ephemeris_data must be a string or a list of EphemerisDataCompressed objects"
+                    "Ephemeris_data must be a string or a QueryResult objects"
                 )
 
             if not ephemeris_rows:
@@ -237,9 +237,5 @@ class ImageService:
 
         metadata_unique = list({item.visit_id: item for item in metadata_list}.values())
         self.logger.info(f"Found {len(metadata_unique)} image(s) ")
-
-        print("-" * 40)
-        print("Image Service is done.")
-        print("-" * 40)
 
         return metadata_unique

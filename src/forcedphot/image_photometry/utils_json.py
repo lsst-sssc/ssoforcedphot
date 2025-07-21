@@ -10,7 +10,7 @@ from typing import Optional
 from image_photometry.utils import EndResult
 
 
-def save_results_to_json(end_result: EndResult, output_dir: str, filename: Optional[str] = None) -> str:
+def save_results_to_json(end_result: EndResult, output_folder: str, filename: Optional[str] = None) -> str:
     """
     Save photometry end results to a JSON file.
 
@@ -18,7 +18,7 @@ def save_results_to_json(end_result: EndResult, output_dir: str, filename: Optio
     ----------
     end_result : EndResult
         The end results to save
-    output_dir : str
+    output_folder : str
         Directory where to save the JSON file
     filename : str, optional
         Custom filename for the JSON file. If not provided, will generate one
@@ -35,7 +35,7 @@ def save_results_to_json(end_result: EndResult, output_dir: str, filename: Optio
         If there's an error creating the output directory or writing the file
     """
     # Create output directory if it doesn"t exist
-    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(output_folder, exist_ok=True)
 
     # Generate filename if not provided
     if filename is None:
@@ -46,7 +46,7 @@ def save_results_to_json(end_result: EndResult, output_dir: str, filename: Optio
     if not filename.endswith(".json"):
         filename += ".json"
 
-    output_path = os.path.join(output_dir, filename)
+    output_path = os.path.join(output_folder, filename)
 
     try:
         # Convert EndResult to dictionary

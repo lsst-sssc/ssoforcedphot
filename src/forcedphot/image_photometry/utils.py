@@ -14,6 +14,11 @@ Main Components:
 """
 
 from dataclasses import dataclass
+import csv
+import os
+from pathlib import Path
+from typing import List, Union
+from astropy.time import Time
 
 import astropy.units as u
 import lsst.geom as geom
@@ -263,6 +268,30 @@ class SearchParameters:
     ephemeris_file: str
 
 
+@dataclass
+class SearchParametersPolygon:
+    """
+    Dataclass to hold user-defined search parameters for polygon search.
+
+    Attributes
+    ----------
+    bands : set[str]
+        Set of filter bands to search for
+    ephemeris_file : str
+        Path to the ECSV file containing ephemeris data
+    time_interval: float
+        The maximum duration for each polygon segment in days.
+    widening: float
+        The desired width of the polygon on either side of the path,
+        in arcseconds.
+    """
+
+    bands: set[str]
+    ephemeris_file: str
+    time_interval: float
+    widening: float
+
+    
 @dataclass
 class ImageMetadata:
     """
@@ -519,3 +548,169 @@ class EndResult:
     uncertainty: dict[str, float]
     forced_phot_on_target: PhotometryResult
     phot_within_error_ellipse: list[PhotometryResult]
+
+    def to_csv_row(self) -> dict:
+        """
+        Convert EndResult instance to a flattened dictionary suitable for CSV export.
+        
+        Returns
+        -------
+        dict
+            Flattened dictionary containing all EndResult data
+        """
+        # Base metadata
+        row = {
+            'target_name': self.target_name,
+            'target_type': self.target_type,
+            'image_type': self.image_type,
+            'ephemeris_service': self.ephemeris_service,
+            'visit_id': self.visit_id,
+            'detector_id': self.detector_id,
+            'band': self.band,
+            'coordinates_central_ra': self.coordinates_central[0],
+            'coordinates_central_dec': self.coordinates_central[1],
+            'obs_time_mjd': self.obs_time.mjd if isinstance(self.obs_time, Time) else self.obs_time,
+            'cutout_size': self.cutout_size,
+            'saved_image_name': self.saved_image_name,
+        }
+        
+        # Uncertainty data
+        row.update({
+            'uncertainty_rss': self.uncertainty.get('rss', None),
+            'uncertainty_smaa': self.uncertainty.get('smaa', None),
+            'uncertainty_smia': self.uncertainty.get('smia', None),
+            'uncertainty_theta': self.uncertainty.get('theta', None),
+        })
+        
+        # Forced photometry on target
+        if self.forced_phot_on_target:
+            forced_phot = self.forced_phot_on_target
+            row.update({
+                'forced_phot_ra': forced_phot.ra,
+                'forced_phot_dec': forced_phot.dec,
+                'forced_phot_ra_err': forced_phot.ra_err,
+                'forced_phot_dec_err': forced_phot.dec_err,
+                'forced_phot_x': forced_phot.x,
+                'forced_phot_y': forced_phot.y,
+                'forced_phot_x_err': forced_phot.x_err,
+                'forced_phot_y_err': forced_phot.y_err,
+                'forced_phot_snr': forced_phot.snr,
+                'forced_phot_flux': forced_phot.flux,
+                'forced_phot_flux_err': forced_phot.flux_err,
+                'forced_phot_mag': forced_phot.mag,
+                'forced_phot_mag_err': forced_phot.mag_err,
+                'forced_phot_separation': forced_phot.separation,
+                'forced_phot_sigma': forced_phot.sigma,
+            })
+            
+            # Handle flags
+            if forced_phot.flags:
+                for flag_name, flag_value in forced_phot.flags.items():
+                    row[f'forced_phot_flag_{flag_name}'] = flag_value
+        
+        # Sources within error ellipse (flatten to single best source or count)
+        row['num_sources_in_ellipse'] = len(self.phot_within_error_ellipse)
+        
+        # If there are sources in the ellipse, add the first/best one
+        if self.phot_within_error_ellipse:
+            best_source = self.phot_within_error_ellipse[0]  # Assuming first is best
+            row.update({
+                'best_ellipse_source_ra': best_source.ra,
+                'best_ellipse_source_dec': best_source.dec,
+                'best_ellipse_source_ra_err': best_source.ra_err,
+                'best_ellipse_source_dec_err': best_source.dec_err,
+                'best_ellipse_source_x': best_source.x,
+                'best_ellipse_source_y': best_source.y,
+                'best_ellipse_source_x_err': best_source.x_err,
+                'best_ellipse_source_y_err': best_source.y_err,
+                'best_ellipse_source_snr': best_source.snr,
+                'best_ellipse_source_flux': best_source.flux,
+                'best_ellipse_source_flux_err': best_source.flux_err,
+                'best_ellipse_source_mag': best_source.mag,
+                'best_ellipse_source_mag_err': best_source.mag_err,
+                'best_ellipse_source_separation': best_source.separation,
+                'best_ellipse_source_sigma': best_source.sigma,
+            })
+            
+            # Handle flags for best source
+            if best_source.flags:
+                for flag_name, flag_value in best_source.flags.items():
+                    row[f'best_ellipse_source_flag_{flag_name}'] = flag_value
+        
+        return row
+    
+    
+    def save_results_to_csv(
+        results: Union[List['EndResult'], 'EndResult'], 
+        output_file: Union[str, Path],
+        include_all_ellipse_sources: bool = False
+    ) -> None:
+        """
+        Save EndResult instances to CSV file.
+        
+        Parameters
+        ----------
+        results : List[EndResult] or EndResult
+            Single EndResult or list of EndResult instances to save
+        output_folder : str
+            Output folder path
+        include_all_ellipse_sources : bool, optional
+            If True, create separate rows for each source within error ellipse.
+            If False, only include the best source per result. Default is False.
+        """
+        # Ensure results is a list
+        if not isinstance(results, list):
+            results = [results]
+        
+        if not results:
+            raise ValueError("No results provided")
+        
+        output_file = Path(output_file)
+        
+        # Collect all rows
+        all_rows = []
+        
+        for result in results:
+            if include_all_ellipse_sources and result.phot_within_error_ellipse:
+                # Create separate row for each source in ellipse
+                for i, source in enumerate(result.phot_within_error_ellipse):
+                    row = result.to_csv_row()
+                    
+                    # Override the best_ellipse_source fields with current source
+                    row.update({
+                        'ellipse_source_index': i,
+                        'best_ellipse_source_ra': source.ra,
+                        'best_ellipse_source_dec': source.dec,
+                        'best_ellipse_source_ra_err': source.ra_err,
+                        'best_ellipse_source_dec_err': source.dec_err,
+                        'best_ellipse_source_x': source.x,
+                        'best_ellipse_source_y': source.y,
+                        'best_ellipse_source_x_err': source.x_err,
+                        'best_ellipse_source_y_err': source.y_err,
+                        'best_ellipse_source_snr': source.snr,
+                        'best_ellipse_source_flux': source.flux,
+                        'best_ellipse_source_flux_err': source.flux_err,
+                        'best_ellipse_source_mag': source.mag,
+                        'best_ellipse_source_mag_err': source.mag_err,
+                        'best_ellipse_source_separation': source.separation,
+                        'best_ellipse_source_sigma': source.sigma,
+                    })
+                    
+                    # Handle flags
+                    if source.flags:
+                        for flag_name, flag_value in source.flags.items():
+                            row[f'best_ellipse_source_flag_{flag_name}'] = flag_value
+                    
+                    all_rows.append(row)
+            else:
+                # Standard mode - one row per result
+                all_rows.append(result.to_csv_row())
+        
+        # Write to CSV
+        if all_rows:
+            fieldnames = all_rows[0].keys()
+            
+            with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(all_rows)

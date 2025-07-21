@@ -16,6 +16,7 @@ from tornado import gen
 # Set up logger
 root_logger = logging.getLogger()
 root_logger.setLevel(logging.INFO)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 # Panel extensions and template
 pn.extension("tabulator", "terminal", design="material")
@@ -218,7 +219,8 @@ class EphemerisTab:
         self.day_range = pn.widgets.IntInput(name="Day Range", value=1, start=1, width=120)
         self.step_value = pn.widgets.FloatInput(name="Step Value", value=1, start=1, step=1, width=120)
         self.step_unit = pn.widgets.Select(name="Step Unit", options=["d", "h", "m"], value="h", width=50)
-        self.save_data = pn.widgets.Checkbox(name="Save Ephemeris")
+        self.save_ephem_data = pn.widgets.Checkbox(name="Save Ephemeris")
+        self.output_folder = pn.widgets.TextInput(name="Output folder", value="./output")
         self.run_button = pn.widgets.Button(
             name=pn.bind(
                 lambda s: "Update" if s == "Upload ECSV" else "Run Query", self.ephemeris_source.param.value
@@ -235,7 +237,8 @@ class EphemerisTab:
         self.day_range.disabled = pn.bind(lambda s: s == "Upload ECSV", self.ephemeris_source.param.value)
         self.step_value.disabled = pn.bind(lambda s: s == "Upload ECSV", self.ephemeris_source.param.value)
         self.step_unit.disabled = pn.bind(lambda s: s == "Upload ECSV", self.ephemeris_source.param.value)
-        self.save_data.disabled = pn.bind(lambda s: s == "Upload ECSV", self.ephemeris_source.param.value)
+        self.save_ephem_data.disabled = pn.bind(lambda s: s == "Upload ECSV", self.ephemeris_source.param.value)
+        self.output_folder.visible = pn.bind(lambda save_checked: save_checked, self.save_ephem_data.param.value)
 
         # Link button click
         self.run_button.on_click(self.run_query)
@@ -268,7 +271,7 @@ class EphemerisTab:
 
         def conditional_upload(source):
             """Condition check for ephemeris data source"""
-            return self.file_upload if source == "Upload ECSV" else pn.pane.Str("Using existing data.")
+            return self.file_upload if source == "Upload ECSV" else pn.pane.Str("Using Ephemeris service.")
 
         self.layout = pn.Row(
             pn.Column(
@@ -286,7 +289,8 @@ class EphemerisTab:
                     pn.Column("### Unit", self.step_unit),
                     sizing_mode="stretch_width",
                 ),
-                self.save_data,
+                self.save_ephem_data,
+                self.output_folder,
                 self.run_button,
                 sizing_mode="stretch_width",
             ),
@@ -317,7 +321,7 @@ class EphemerisTab:
 
                 input_data = {
                     "ephemeris": {
-                        "service": self.service.value,
+                        "ephemeris_service": self.service.value.lower(),
                         "target": self.target_name.value,
                         "target_type": self.target_type.value,
                         "ecsv_file": self.file_upload.filename,
@@ -336,13 +340,14 @@ class EphemerisTab:
             root_logger.info("Running Ephemeris service.")
             input_data = {
                 "ephemeris": {
-                    "service": self.service.value,
+                    "ephemeris_service": self.service.value.lower(),
                     "target": self.target_name.value,
                     "target_type": self.target_type.value,
                     "start": self.start_time.value.strftime("%Y-%m-%d %H:%M:%S"),
-                    "save_data": self.save_data.value,
-                    "observer_location": "X05",
                     "step": self.get_step_string(),
+                    "observer_location": "X05",
+                    "save_ephem_data": self.save_ephem_data.value,
+                    "output_folder": self.output_folder.value,                
                 }
             }
 
@@ -388,18 +393,46 @@ class ImageTab:
         self.controller = controller
 
         # Widgets
+        self.search_method = pn.widgets.RadioButtonGroup(
+            name="Image Search Method",
+            options=["Point", "Polygon"],
+            value="Point",
+        )
+        
         self.filters = pn.widgets.ToggleGroup(
             name="Filters",
             options=["u", "g", "r", "i", "z", "y"],
             value=["r"],
             behavior="check",
             button_type="success",
-            width=60,
+            width=70,
             height=60,
             margin=5,
             align=("center", "center"),
             orientation="horizontal",
         )
+
+        # Polygon-specific options
+        self.widening = pn.widgets.FloatInput(
+            name="Widening (arcsec)",
+            value=1.0,
+            start=0,
+            step=0.5,
+            width=120,
+        )
+        
+        self.time_interval = pn.widgets.FloatInput(
+            name="Time Interval (days)",
+            value=5.0,
+            start=0.1,
+            step=0.5,
+            width=120,
+        )
+
+        # Set up visibility bindings for polygon options
+        self.widening.visible = pn.bind(lambda method: method == "Polygon", self.search_method.param.value)
+        self.time_interval.visible = pn.bind(lambda method: method == "Polygon", self.search_method.param.value)
+        
         self.run_button = pn.widgets.Button(name="Run Image Query", button_type="primary")
         self.results_pane = pn.pane.JSON(object={}, height=300)
         self.table_view = pn.widgets.Tabulator(
@@ -421,9 +454,17 @@ class ImageTab:
         self.layout = pn.Row(
             pn.Column(
                 "### Image Query Parameters",
+                self.search_method,
                 pn.Column(
                     pn.Row("### Filters:", margin=(0, 10)),
                     pn.Row(self.filters, margin=(0, 10)),
+                ),
+                # Polygon-specific options (conditionally visible)
+                pn.Column(
+                    "### Polygon Options",
+                    self.widening,
+                    self.time_interval,
+                    visible=pn.bind(lambda method: method == "Polygon", self.search_method.param.value)
                 ),
                 self.run_button,
                 sizing_mode="stretch_width",
@@ -437,13 +478,21 @@ class ImageTab:
         """Image query main logic"""
         # logger.info("Running Image search.")
         await gen.sleep(0.01)
-        root_logger.info("Starting the image query...")
+        # root_logger.info("Starting the image query...")
+        
         input_data = {
             "image": {
                 "filters": self.filters.value,
-                "ephemeris_data": self.controller.ephemeris_results.get("ephemeris"),
+                "ephemeris_data": self.controller.ephemeris_results,
+                "image_search_method": self.search_method.value.lower(),
             }
         }
+        # root_logger.info(self.controller.ephemeris_results)
+
+        # Add polygon-specific parameters if polygon method is selected
+        if self.search_method.value == "Polygon":
+            input_data["image"]["widening"] = self.widening.value
+            input_data["image"]["time_interval"] = self.time_interval.value
 
         try:
             result = self.controller.api_connection(input_data)
@@ -482,10 +531,26 @@ class PhotometryTab:
             name="Detection Threshold", value=5.0, start=0, width=150
         )
         self.cutout_size = pn.widgets.IntInput(name="Cutout Size (pixels)", value=800, start=0, width=150)
+        self.override_error = pn.widgets.FloatInput(
+            name="Override error (arcsec)",
+            value=0.0,
+            start=0,
+            step=0.1,
+            width=120,
+        )
         self.save_cutouts = pn.widgets.Checkbox(name="Save Cutouts", value=False)
         self.display = pn.widgets.Checkbox(name="Display Results", value=False)
         self.save_json = pn.widgets.Checkbox(name="Save Result to JSON", value=False)
+        self.save_csv = pn.widgets.Checkbox(name="Save Result to csv", value=False)
+        self.error_ellipse_sources = pn.widgets.Checkbox(name="Save all the sources within the error ellipse", value=False)
+        self.output_folder = pn.widgets.TextInput(name="Output folder", value="./output")
         self.run_button = pn.widgets.Button(name="Run Photometry", button_type="primary")
+
+        # Set up visibility bindings
+        self.output_folder.visible = pn.bind(lambda save_checked: save_checked, self.save_cutouts.param.value)
+        self.output_folder.visible = pn.bind(lambda save_checked: save_checked, self.save_json.param.value)
+        self.output_folder.visible = pn.bind(lambda save_checked: save_checked, self.save_csv.param.value)
+        self.error_ellipse_sources.visible = pn.bind(lambda save_checked: save_checked, self.save_csv.param.value)
 
         # Results pane and table
         self.results_pane = pn.pane.JSON(object={}, height=300)
@@ -515,9 +580,13 @@ class PhotometryTab:
                 self.image_type,
                 self.detection_threshold,
                 self.cutout_size,
+                self.override_error,
                 self.save_cutouts,
                 self.display,
                 self.save_json,
+                self.save_csv,
+                self.output_folder,
+                self.error_ellipse_sources,
                 self.run_button,
                 sizing_mode="stretch_width",
             ),
@@ -537,9 +606,13 @@ class PhotometryTab:
                 "image_type": self.image_type.value,
                 "threshold": self.detection_threshold.value,
                 "min_cutout_size": self.cutout_size.value,
+                "override_error": self.override_error.value,
                 "save_cutouts": self.save_cutouts.value,
                 "display": self.display.value,
                 "save_json": self.save_json.value,
+                "save_csv": self.save_csv.value,
+                "save_error_sources": self.error_ellipse_sources.value,
+                "output_folder": self.output_folder.value,
             }
         }
         try:
@@ -606,7 +679,7 @@ class CompleteRunTab:
         self.day_range = pn.widgets.IntInput(name="Day Range", value=1, start=1, width=120)
         self.step_value = pn.widgets.FloatInput(name="Step Value", value=1, start=1, step=1, width=120)
         self.step_unit = pn.widgets.Select(name="Step Unit", options=["d", "h", "m"], value="h", width=50)
-        self.save_data = pn.widgets.Checkbox(name="Save Ephemeris")
+        self.save_ephem_data = pn.widgets.Checkbox(name="Save Ephemeris")
 
         # Image Section Widgets
         self.filters = pn.widgets.ToggleGroup(
@@ -637,7 +710,7 @@ class CompleteRunTab:
         self.day_range.disabled = pn.bind(lambda s: s == "Upload ECSV", self.ephemeris_source.param.value)
         self.step_value.disabled = pn.bind(lambda s: s == "Upload ECSV", self.ephemeris_source.param.value)
         self.step_unit.disabled = pn.bind(lambda s: s == "Upload ECSV", self.ephemeris_source.param.value)
-        self.save_data.disabled = pn.bind(lambda s: s == "Upload ECSV", self.ephemeris_source.param.value)
+        self.save_ephem_data.disabled = pn.bind(lambda s: s == "Upload ECSV", self.ephemeris_source.param.value)
 
         # Results Table
         self.table_view = pn.widgets.Tabulator(
@@ -678,7 +751,7 @@ class CompleteRunTab:
                         self.time_spec,
                         pn.Row(self.end_time, self.day_range),
                         pn.Row(self.step_value, self.step_unit),
-                        self.save_data,
+                        self.save_ephem_data,
                     ),
                     title="Ephemeris Settings",
                     collapsed=False,
@@ -742,7 +815,7 @@ class CompleteRunTab:
                 # Prepare input data for API
                 input_data_ephemeris = {
                     "ephemeris": {
-                        "service": self.service.value,
+                        "ephemeris_service": self.service.value,
                         "target": self.target_name.value,
                         "target_type": self.target_type.value,
                         "ecsv_file": self.file_upload.filename,
@@ -760,11 +833,11 @@ class CompleteRunTab:
             # Existing ephemeris generation logic
             input_data_ephemeris = {
                 "ephemeris": {
-                    "service": self.service.value,
+                    "ephemeris_service": self.service.value,
                     "target": self.target_name.value,
                     "target_type": self.target_type.value,
                     "start": self.start_time.value.strftime("%Y-%m-%d %H:%M:%S"),
-                    "save_data": self.save_data.value,
+                    "save_ephem_data": self.save_ephem_data.value,
                     "observer_location": "X05",
                     "step": self.get_step_string(),
                 }
