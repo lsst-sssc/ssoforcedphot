@@ -289,7 +289,7 @@ class ObjectDetectionController:
                 self.args.target, self.args.start_time, self.args.end_time, ephemeris_data_temp
             )
         elif ephemeris_results:
-            self.logger.info("Loading ephemeris data.")
+            # self.logger.info("Loading ephemeris data.")
             self.ephemeris_results = ephemeris_results
         else:
             if not self.ephemeris_results:
@@ -344,8 +344,6 @@ class ObjectDetectionController:
             override_error=self.args.override_error,
             display=self.args.display,
             output_folder=output_folder,
-            # save_json=self.args.save_json,
-            # save_csv=self.args.save_csv,
         )
         if self.args.save_json:
             self.imphot_controller.save_results_to_json(

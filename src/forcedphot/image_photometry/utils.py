@@ -615,27 +615,27 @@ class EndResult:
         if self.phot_within_error_ellipse:
             best_source = self.phot_within_error_ellipse[0]  # Assuming first is best
             row.update({
-                'best_ellipse_source_ra': best_source.ra,
-                'best_ellipse_source_dec': best_source.dec,
-                'best_ellipse_source_ra_err': best_source.ra_err,
-                'best_ellipse_source_dec_err': best_source.dec_err,
-                'best_ellipse_source_x': best_source.x,
-                'best_ellipse_source_y': best_source.y,
-                'best_ellipse_source_x_err': best_source.x_err,
-                'best_ellipse_source_y_err': best_source.y_err,
-                'best_ellipse_source_snr': best_source.snr,
-                'best_ellipse_source_flux': best_source.flux,
-                'best_ellipse_source_flux_err': best_source.flux_err,
-                'best_ellipse_source_mag': best_source.mag,
-                'best_ellipse_source_mag_err': best_source.mag_err,
-                'best_ellipse_source_separation': best_source.separation,
-                'best_ellipse_source_sigma': best_source.sigma,
+                'ellipse_source_ra': best_source.ra,
+                'ellipse_source_dec': best_source.dec,
+                'ellipse_source_ra_err': best_source.ra_err,
+                'ellipse_source_dec_err': best_source.dec_err,
+                'ellipse_source_x': best_source.x,
+                'ellipse_source_y': best_source.y,
+                'ellipse_source_x_err': best_source.x_err,
+                'ellipse_source_y_err': best_source.y_err,
+                'ellipse_source_snr': best_source.snr,
+                'ellipse_source_flux': best_source.flux,
+                'ellipse_source_flux_err': best_source.flux_err,
+                'ellipse_source_mag': best_source.mag,
+                'ellipse_source_mag_err': best_source.mag_err,
+                'ellipse_source_separation': best_source.separation,
+                'ellipse_source_sigma': best_source.sigma,
             })
             
             # Handle flags for best source
             if best_source.flags:
                 for flag_name, flag_value in best_source.flags.items():
-                    row[f'best_ellipse_source_flag_{flag_name}'] = flag_value
+                    row[f'ellipse_source_flag_{flag_name}'] = flag_value
         
         return row
     
@@ -676,30 +676,30 @@ class EndResult:
                 for i, source in enumerate(result.phot_within_error_ellipse):
                     row = result.to_csv_row()
                     
-                    # Override the best_ellipse_source fields with current source
+                    # Override the ellipse_source fields with current source
                     row.update({
                         'ellipse_source_index': i,
-                        'best_ellipse_source_ra': source.ra,
-                        'best_ellipse_source_dec': source.dec,
-                        'best_ellipse_source_ra_err': source.ra_err,
-                        'best_ellipse_source_dec_err': source.dec_err,
-                        'best_ellipse_source_x': source.x,
-                        'best_ellipse_source_y': source.y,
-                        'best_ellipse_source_x_err': source.x_err,
-                        'best_ellipse_source_y_err': source.y_err,
-                        'best_ellipse_source_snr': source.snr,
-                        'best_ellipse_source_flux': source.flux,
-                        'best_ellipse_source_flux_err': source.flux_err,
-                        'best_ellipse_source_mag': source.mag,
-                        'best_ellipse_source_mag_err': source.mag_err,
-                        'best_ellipse_source_separation': source.separation,
-                        'best_ellipse_source_sigma': source.sigma,
+                        'ellipse_source_ra': source.ra,
+                        'ellipse_source_dec': source.dec,
+                        'ellipse_source_ra_err': source.ra_err,
+                        'ellipse_source_dec_err': source.dec_err,
+                        'ellipse_source_x': source.x,
+                        'ellipse_source_y': source.y,
+                        'ellipse_source_x_err': source.x_err,
+                        'ellipse_source_y_err': source.y_err,
+                        'ellipse_source_snr': source.snr,
+                        'ellipse_source_flux': source.flux,
+                        'ellipse_source_flux_err': source.flux_err,
+                        'ellipse_source_mag': source.mag,
+                        'ellipse_source_mag_err': source.mag_err,
+                        'ellipse_source_separation': source.separation,
+                        'ellipse_source_sigma': source.sigma,
                     })
                     
                     # Handle flags
                     if source.flags:
                         for flag_name, flag_value in source.flags.items():
-                            row[f'best_ellipse_source_flag_{flag_name}'] = flag_value
+                            row[f'ellipse_source_flag_{flag_name}'] = flag_value
                     
                     all_rows.append(row)
             else:

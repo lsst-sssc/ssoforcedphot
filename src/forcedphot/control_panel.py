@@ -487,7 +487,6 @@ class ImageTab:
                 "image_search_method": self.search_method.value.lower(),
             }
         }
-        # root_logger.info(self.controller.ephemeris_results)
 
         # Add polygon-specific parameters if polygon method is selected
         if self.search_method.value == "Polygon":
@@ -547,9 +546,12 @@ class PhotometryTab:
         self.run_button = pn.widgets.Button(name="Run Photometry", button_type="primary")
 
         # Set up visibility bindings
-        self.output_folder.visible = pn.bind(lambda save_checked: save_checked, self.save_cutouts.param.value)
-        self.output_folder.visible = pn.bind(lambda save_checked: save_checked, self.save_json.param.value)
-        self.output_folder.visible = pn.bind(lambda save_checked: save_checked, self.save_csv.param.value)
+        self.output_folder.visible = pn.bind(
+            lambda cutouts, json, csv: cutouts or json or csv,
+            self.save_cutouts.param.value,
+            self.save_json.param.value,
+            self.save_csv.param.value,
+        )
         self.error_ellipse_sources.visible = pn.bind(lambda save_checked: save_checked, self.save_csv.param.value)
 
         # Results pane and table
@@ -665,7 +667,7 @@ class CompleteRunTab:
         self.service = pn.widgets.Select(name="Service", options=["Horizons", "Miriade"], value="Horizons")
         self.target_name = pn.widgets.TextInput(name="Target Name")
         self.target_type = pn.widgets.Select(
-            name="Target Type", options=["smallbody", "comet_name"], value="smallbody"
+            name="Target Type", options=["smallbody", "comet_name", "designation"], value="smallbody"
         )
         self.start_time = pn.widgets.DatetimePicker(
             name="Start Time", value=datetime.datetime.now(), enable_time=True
@@ -677,11 +679,18 @@ class CompleteRunTab:
             name="End Time", value=datetime.datetime.now() + datetime.timedelta(days=1), enable_time=True
         )
         self.day_range = pn.widgets.IntInput(name="Day Range", value=1, start=1, width=120)
-        self.step_value = pn.widgets.FloatInput(name="Step Value", value=1, start=1, step=1, width=120)
+        self.step_value = pn.widgets.FloatInput(name="Step Value", value=12, start=1, step=1, width=120)
         self.step_unit = pn.widgets.Select(name="Step Unit", options=["d", "h", "m"], value="h", width=50)
         self.save_ephem_data = pn.widgets.Checkbox(name="Save Ephemeris")
+        self.output_folder = pn.widgets.TextInput(name="Output folder", value="./output")
 
         # Image Section Widgets
+        self.search_method = pn.widgets.RadioButtonGroup(
+            name="Image Search Method",
+            options=["Point", "Polygon"],
+            value="Point",
+        )
+        
         self.filters = pn.widgets.ToggleGroup(
             name="Filters",
             options=["u", "g", "r", "i", "z", "y"],
@@ -690,17 +699,44 @@ class CompleteRunTab:
             button_type="success",
         )
 
+        # Polygon-specific options
+        self.widening = pn.widgets.FloatInput(
+            name="Widening (arcsec)",
+            value=1.0,
+            start=0,
+            step=0.5,
+            width=120,
+        )
+        
+        self.time_interval = pn.widgets.FloatInput(
+            name="Time Interval (days)",
+            value=5.0,
+            start=0.1,
+            step=0.5,
+            width=120,
+        )
+
         # Photometry Section Widgets
         self.image_type = pn.widgets.Select(
             name="Image type", options=["visit_image", "goodSeeingDiff_differenceExp"], value="visit_image"
         )
         self.detection_threshold = pn.widgets.FloatInput(
-            name="Detection Threshold", value=5.0, start=0, width=100
+            name="Detection Threshold", value=5.0, start=0, width=150
         )
-        self.cutout_size = pn.widgets.IntInput(name="Cutout Size (pixels)", value=800, start=0, width=100)
+        self.cutout_size = pn.widgets.IntInput(name="Cutout Size (pixels)", value=800, start=0, width=150)
+        self.override_error = pn.widgets.FloatInput(
+            name="Override error (arcsec)",
+            value=0.0,
+            start=0,
+            step=0.1,
+            width=120,
+        )
         self.save_cutouts = pn.widgets.Checkbox(name="Save Cutouts", value=False)
         self.display = pn.widgets.Checkbox(name="Display Results", value=False)
         self.save_json = pn.widgets.Checkbox(name="Save Result to JSON", value=False)
+        self.save_csv = pn.widgets.Checkbox(name="Save Result to csv", value=False)
+        self.error_ellipse_sources = pn.widgets.Checkbox(name="Save all the sources within the error ellipse", value=False)
+        self.output_folder = pn.widgets.TextInput(name="Output folder", value="./output")
 
         # Set up visibility bindings
         self.end_time.visible = pn.bind(lambda ts: ts == "End Time", self.time_spec.param.value)
@@ -711,6 +747,22 @@ class CompleteRunTab:
         self.step_value.disabled = pn.bind(lambda s: s == "Upload ECSV", self.ephemeris_source.param.value)
         self.step_unit.disabled = pn.bind(lambda s: s == "Upload ECSV", self.ephemeris_source.param.value)
         self.save_ephem_data.disabled = pn.bind(lambda s: s == "Upload ECSV", self.ephemeris_source.param.value)
+
+        # Visibility for polygon options in Image section
+        self.widening.visible = pn.bind(lambda method: method == "Polygon", self.search_method.param.value)
+        self.time_interval.visible = pn.bind(lambda method: method == "Polygon", self.search_method.param.value)
+
+        # Combined visibility for output_folder
+        self.output_folder.visible = pn.bind(
+            lambda save_eph, save_cut, save_js, save_csv: save_eph or save_cut or save_js or save_csv,
+            self.save_ephem_data.param.value,
+            self.save_cutouts.param.value,
+            self.save_json.param.value,
+            self.save_csv.param.value,
+        )
+
+        # Visibility for error ellipse sources in Photometry section
+        self.error_ellipse_sources.visible = pn.bind(lambda save_csv: save_csv, self.save_csv.param.value)
 
         # Results Table
         self.table_view = pn.widgets.Tabulator(
@@ -736,7 +788,7 @@ class CompleteRunTab:
         self.run_all_button = pn.widgets.Button(name="Run All", button_type="primary")
         self.run_all_button.on_click(self.run_all)
 
-        # Layout
+        # --- Layout ---
         self.layout = pn.Row(
             pn.Column(
                 pn.Card(
@@ -759,7 +811,15 @@ class CompleteRunTab:
                 pn.Card(
                     pn.Column(
                         "### Image Search Parameters",
-                        self.filters,
+                        self.search_method,
+                        pn.Row("### Filters:", margin=(0, 10)),
+                        pn.Row(self.filters, margin=(0, 10)),
+                        pn.Column(
+                            "### Polygon Options",
+                            self.widening,
+                            self.time_interval,
+                            visible=pn.bind(lambda method: method == "Polygon", self.search_method.param.value)
+                        ),
                     ),
                     title="Image Search Settings",
                     collapsed=False,
@@ -772,11 +832,22 @@ class CompleteRunTab:
                         self.image_type,
                         self.detection_threshold,
                         self.cutout_size,
+                        self.override_error,
                         self.save_cutouts,
                         self.display,
                         self.save_json,
+                        self.save_csv,
+                        self.error_ellipse_sources,
                     ),
                     title="Photometry Settings",
+                    collapsed=False,
+                ),
+                pn.Card(
+                    pn.Column(
+                        "### Output Settings",
+                        self.output_folder,
+                    ),
+                    title="Output",
                     collapsed=False,
                 ),
                 self.run_all_button,
@@ -810,7 +881,7 @@ class CompleteRunTab:
                 # Read the uploaded ECSV
                 content = io.BytesIO(self.file_upload.value)
                 table = Table.read(content, format="ascii.ecsv")
-                df = table.to_pandas()
+                # df = table.to_pandas()
 
                 # Prepare input data for API
                 input_data_ephemeris = {
@@ -830,7 +901,6 @@ class CompleteRunTab:
                 self.table_view.value = pd.DataFrame()
                 return
         else:
-            # Existing ephemeris generation logic
             input_data_ephemeris = {
                 "ephemeris": {
                     "ephemeris_service": self.service.value,
@@ -838,6 +908,7 @@ class CompleteRunTab:
                     "target_type": self.target_type.value,
                     "start": self.start_time.value.strftime("%Y-%m-%d %H:%M:%S"),
                     "save_ephem_data": self.save_ephem_data.value,
+                    "output_folder": self.output_folder.value,
                     "observer_location": "X05",
                     "step": self.get_step_string(),
                 }
@@ -871,13 +942,18 @@ class CompleteRunTab:
         input_data_image = {
             "image": {
                 "filters": self.filters.value,
-                "ephemeris_data": self.controller.ephemeris_results.get("ephemeris"),
+                "ephemeris_data": self.controller.ephemeris_results,
+                "image_search_method": self.search_method.value.lower(),
             }
         }
 
+        if self.search_method.value == "Polygon":
+            input_data_image["image"]["widening"] = self.widening.value
+            input_data_image["image"]["time_interval"] = self.time_interval.value
+
         try:
             root_logger.info("Running image search...")
-            self.controller.image_result = self.controller.api_connection(input_data_image)
+            result = self.controller.api_connection(input_data_image)
             await gen.sleep(0.01)
         except Exception as e:
             root_logger.error(f"Image search failed: {str(e)}")
@@ -891,9 +967,13 @@ class CompleteRunTab:
                 "image_type": self.image_type.value,
                 "threshold": self.detection_threshold.value,
                 "min_cutout_size": self.cutout_size.value,
+                "override_error": self.override_error.value,
                 "save_cutouts": self.save_cutouts.value,
                 "display": self.display.value,
                 "save_json": self.save_json.value,
+                "save_csv": self.save_csv.value,
+                "save_error_sources": self.error_ellipse_sources.value,
+                "output_folder": self.output_folder.value,
             }
         }
 

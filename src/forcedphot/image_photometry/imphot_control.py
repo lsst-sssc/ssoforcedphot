@@ -235,9 +235,6 @@ class ImPhotController:
         if not self.results:
             raise ValueError("No results to save. Run process_images() first.")
 
-        # csv_data = [asdict(result) for result in self.results]
-        # print("*************")
-        # print(csv_data)
         t_name = str(target_name).replace(":", "-").replace(" ", "_").replace("/", "_")
         filename = t_name + "_photometry_results.csv"
 
