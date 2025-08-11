@@ -114,12 +114,6 @@ class ObjectDetectionController:
         )
 
         parser.add_argument(
-            "--save-cutouts",
-            action="store_true",
-            help="Save image cutouts (default: False)",
-        )
-
-        parser.add_argument(
             "--min-cutout-size",
             type=int,
             default=800,
@@ -180,6 +174,7 @@ class ObjectDetectionController:
             help="Display the images and the error ellipses in Firefly (default: False)",
         )
 
+        # Save options
         parser.add_argument(
             "--save-json",
             action="store_true",
@@ -196,6 +191,18 @@ class ObjectDetectionController:
             "--all-ellipse-sources",
             action="store_true",
             help="If True, create separate rows (in the result csv file) for each source within error ellipse. If False, only include the best source per result. Default is False.",
+        )
+        
+        parser.add_argument(
+            "--save-diag-plots",
+            action="store_true",
+            help="Save diagnostic images (png) marked with sources and error ellipse (default: False)",
+        )
+
+        parser.add_argument(
+            "--save-fits",
+            action="store_true",
+            help="Save the fits images (default: False)",
         )
 
         return parser
@@ -339,7 +346,8 @@ class ObjectDetectionController:
             image_type=self.args.image_type,
             ephemeris_service=self.args.ephemeris_service,
             image_metadata=image_results,
-            save_cutout=self.args.save_cutouts,
+            save_diag_plots=self.args.save_diag_plots,
+            save_fits=self.args.save_fits,
             cutout_size=self.args.min_cutout_size,
             override_error=self.args.override_error,
             display=self.args.display,
@@ -464,7 +472,8 @@ class ObjectDetectionController:
                 self.args.image_type = photometry_params.get("image_type", "visit_image")
                 self.args.ephemeris_service = self.args.ephemeris_service
                 self.args.threshold = photometry_params.get("threshold", 5)
-                self.args.save_cutouts = photometry_params.get("save_cutouts", False)
+                self.args.save_diag_plots = photometry_params.get("save_diag_plots", False)
+                self.args.save_fits = photometry_params.get("save_fits", False)
                 self.args.min_cutout_size = photometry_params.get("min_cutout_size", 800)
                 self.args.override_error = photometry_params.get("override_error")
                 self.args.display = photometry_params.get("display", False)

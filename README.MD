@@ -50,13 +50,16 @@ python odc.py --service-selection all \
               --start-time "2024-12-01 00:00" \
               --day-range 10 \
               --step 12h \
-              --image-search-method polygon \
+              --image-search-method point \
               --save-ephem-data \
               --filters u g r i z y\
-              --output-dir ./output \
+              --output-folder ./output \
+              --save-diag-plots \
+              --save-fits \
               --min-cutout-size 800 \
+              --all-ellipse-sources \
               --save-json \
-              --save-cutouts
+              --save-csv \
 ```
 
 ## Command Line Options

@@ -69,7 +69,8 @@ class PhotometryService:
         image_type: str,
         ephemeris_service: str,
         cutout_size: int = 800,
-        save_cutout: bool = False,
+        save_diag_plots: bool = False,
+        save_fits: bool = False,
         override_error: float = 0,
         display: bool = True,
         output_folder: Optional[str] = None,
@@ -96,7 +97,7 @@ class PhotometryService:
             Size of image cutout in pixels, by default 800
         override_error: float
             Override the error ellipse with the value
-        save_cutout : bool, optional
+        save_diag_plots : bool, optional
             Whether to save the cutout image, by default False
         display : bool, optional
             Whether to display results, by default True
@@ -159,11 +160,14 @@ class PhotometryService:
 
         # Create base image name if saving output
         base_image_name = ""
-        if save_cutout and output_folder: # Ensure output_folder is also checked before forming base name
+        if (save_diag_plots or save_fits) and output_folder: # Ensure output_folder is also checked before forming base name
+            target_name_modified = target_name.replace(":", "-").replace(" ", "_").replace("/", "_")
+
             base_image_name = (
-                f"diag_plot_visit{image_metadata.visit_id}_"
+                f"{target_name_modified}_visit{image_metadata.visit_id}_"
                 f"detector{image_metadata.detector_id}_band{image_metadata.band}"
             )
+            print(f"Base image name: {base_image_name}")
 
         # Perform photometry
         # self.logger.info(f"perform photometry, error_ellipse: {error_ellipse}")
@@ -174,7 +178,8 @@ class PhotometryService:
             cutout_size=cutout_size,
             display=display,
             error_ellipse=error_ellipse,
-            save_cutout=save_cutout,
+            save_diag_plots=save_diag_plots,
+            save_fits=save_fits,
             output_folder=output_folder,
             image_name=base_image_name,
             image_metadata_for_plot=image_metadata, # Pass full metadata for plot
@@ -183,8 +188,8 @@ class PhotometryService:
 
         # Prepare end result
         saved_image_name_for_result = ""
-        if save_cutout and output_folder and base_image_name: # if base_image_name is empty, this will be false
-            saved_image_name_for_result = base_image_name + ".png"
+        if save_diag_plots and output_folder and base_image_name: # if base_image_name is empty, this will be false
+            saved_image_name_for_result = base_image_name
 
         end_result = self._prepare_end_results(
             target_name=target_name,
@@ -218,7 +223,8 @@ class PhotometryService:
         display=True,
         psf_only=True,
         find_sources_flag=True,
-        save_cutout=False,
+        save_diag_plots=False,
+        save_fits=False,
         output_folder=None,
         image_name: Optional[str] = None,
         error_ellipse: Optional[ErrorEllipse] = None,
@@ -245,7 +251,9 @@ class PhotometryService:
             If True, only perform PSF photometry (default: True)
         find_sources_flag : bool, optional
             Whether to find nearby sources (default: True)
-        save_cutout : bool, optional
+        save_diag_plots : bool, optional
+            Whether to save the diagnostic plots (default: False)
+        save_fits : bool, optional
             Whether to save the cutout (default: False)
         output_folder : str, optional
             Directory to save cutouts (default: None)
@@ -284,7 +292,7 @@ class PhotometryService:
         )
 
         # Handle display and visualization (including saving diagnostic plot)
-        if display or save_cutout:
+        if display or save_fits:
             wcs = target_img.getWcs() # WCS needed for both display and plot
 
             # Firefly display logic (existing)
@@ -300,20 +308,27 @@ class PhotometryService:
                 afw_display = afwdisplay.Display(frame=1)
                 afw_display.mtv(target_img)
                 afw_display.setMaskTransparency(100)
-                with afw_display.Buffering():
-                    # Plot target coordinates (always the first in display_coords)
-                    afw_display.dot("o", display_coords[0][0], display_coords[0][1], size=10, ctype="red")
-                    # Plot other detected/measured sources
-                    for coord_disp in display_coords[1:]:
-                        afw_display.dot("o", coord_disp[0], coord_disp[1], size=20, ctype="blue")
-                    if error_ellipse:
-                        error_ellipse._plot_error_ellipse(
-                            display=afw_display, wcs=wcs, x_offset=x_offset, y_offset=y_offset
-                        )
+                # with afw_display.Buffering():
+                #     # Plot target coordinates (always the first in display_coords)
+                #     afw_display.dot("o", display_coords[0][0], display_coords[0][1], size=10, ctype="red")
+                #     # Plot other detected/measured sources
+                #     for coord_disp in display_coords[1:]:
+                #         afw_display.dot("o", coord_disp[0], coord_disp[1], size=20, ctype="blue")
+                #     if error_ellipse:
+                #         error_ellipse._plot_error_ellipse(
+                #             display=afw_display, wcs=wcs, x_offset=x_offset, y_offset=y_offset
+                #         )
+
+            if save_fits and output_folder:
+                # Save fits
+                fits_filename = image_name + ".fits"
+                output_filepath_fits = os.path.join(output_folder, fits_filename)
+                target_img.writeFits(output_filepath_fits)
+                print(f"Fits saved successfully to: {output_filepath_fits}")
 
             # Save diagnostic plot if requested
             # image_name here is the base name like "diag_plot_visitX_detY_bandZ"
-            if save_cutout and output_folder and image_name and image_metadata_for_plot:
+            if save_diag_plots and output_folder and image_name and image_metadata_for_plot:
                 png_filename = image_name + ".png"
                 output_filepath_png = os.path.join(output_folder, png_filename)
                 
@@ -346,7 +361,7 @@ class PhotometryService:
                     self.logger.info(f"Diagnostic plot saved successfully to: {output_filepath_png}")
                 except Exception as e:
                     self.logger.error(f"Failed to create diagnostic plot: {e}", exc_info=True)
-            elif save_cutout: # If save_cutout is true but some condition above failed
+            elif save_diag_plots: # If save_diag_plots is true but some condition above failed
                 missing_info = []
                 if not output_folder: missing_info.append("output_folder")
                 if not image_name: missing_info.append("image_name (base)")

@@ -535,9 +535,10 @@ class PhotometryTab:
             value=0.0,
             start=0,
             step=0.1,
-            width=120,
+            width=150,
         )
-        self.save_cutouts = pn.widgets.Checkbox(name="Save Cutouts", value=False)
+        self.save_diag_plots = pn.widgets.Checkbox(name="Save Diagnostic Plots", value=False)
+        self.save_fits = pn.widgets.Checkbox(name="Save Fits", value=False)
         self.display = pn.widgets.Checkbox(name="Display Results", value=False)
         self.save_json = pn.widgets.Checkbox(name="Save Result to JSON", value=False)
         self.save_csv = pn.widgets.Checkbox(name="Save Result to csv", value=False)
@@ -547,8 +548,8 @@ class PhotometryTab:
 
         # Set up visibility bindings
         self.output_folder.visible = pn.bind(
-            lambda cutouts, json, csv: cutouts or json or csv,
-            self.save_cutouts.param.value,
+            lambda diag, json, csv: diag or json or csv,
+            self.save_diag_plots.param.value,
             self.save_json.param.value,
             self.save_csv.param.value,
         )
@@ -583,7 +584,8 @@ class PhotometryTab:
                 self.detection_threshold,
                 self.cutout_size,
                 self.override_error,
-                self.save_cutouts,
+                self.save_diag_plots,
+                self.save_fits,
                 self.display,
                 self.save_json,
                 self.save_csv,
@@ -609,7 +611,8 @@ class PhotometryTab:
                 "threshold": self.detection_threshold.value,
                 "min_cutout_size": self.cutout_size.value,
                 "override_error": self.override_error.value,
-                "save_cutouts": self.save_cutouts.value,
+                "save_diag_plots": self.save_diag_plots.value,
+                "save_fits" : self.save_fits.value,
                 "display": self.display.value,
                 "save_json": self.save_json.value,
                 "save_csv": self.save_csv.value,
@@ -729,9 +732,10 @@ class CompleteRunTab:
             value=0.0,
             start=0,
             step=0.1,
-            width=120,
+            width=150,
         )
-        self.save_cutouts = pn.widgets.Checkbox(name="Save Cutouts", value=False)
+        self.save_diag_plots = pn.widgets.Checkbox(name="Save Diagnostic Plots", value=False)
+        self.save_fits = pn.widgets.Checkbox(name="Save Fits", value=False)
         self.display = pn.widgets.Checkbox(name="Display Results", value=False)
         self.save_json = pn.widgets.Checkbox(name="Save Result to JSON", value=False)
         self.save_csv = pn.widgets.Checkbox(name="Save Result to csv", value=False)
@@ -754,9 +758,9 @@ class CompleteRunTab:
 
         # Combined visibility for output_folder
         self.output_folder.visible = pn.bind(
-            lambda save_eph, save_cut, save_js, save_csv: save_eph or save_cut or save_js or save_csv,
+            lambda save_eph, save_diag, save_js, save_csv: save_eph or save_diag or save_js or save_csv,
             self.save_ephem_data.param.value,
-            self.save_cutouts.param.value,
+            self.save_diag_plots.param.value,
             self.save_json.param.value,
             self.save_csv.param.value,
         )
@@ -833,7 +837,8 @@ class CompleteRunTab:
                         self.detection_threshold,
                         self.cutout_size,
                         self.override_error,
-                        self.save_cutouts,
+                        self.save_diag_plots,
+                        self.save_fits,
                         self.display,
                         self.save_json,
                         self.save_csv,
@@ -968,7 +973,8 @@ class CompleteRunTab:
                 "threshold": self.detection_threshold.value,
                 "min_cutout_size": self.cutout_size.value,
                 "override_error": self.override_error.value,
-                "save_cutouts": self.save_cutouts.value,
+                "save_diag_plots": self.save_diag_plots.value,
+                "save_fits": self.save_fits.value,
                 "display": self.display.value,
                 "save_json": self.save_json.value,
                 "save_csv": self.save_csv.value,

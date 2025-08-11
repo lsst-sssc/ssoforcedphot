@@ -138,7 +138,8 @@ class ImPhotController:
         image_metadata: list[ImageMetadata],
         cutout_size: int = 800,
         override_error: float = 0,
-        save_cutout: bool = False,
+        save_diag_plots: bool = False,
+        save_fits: bool = False,
         display: bool = True,
         output_folder: str = "./output",
         save_json: bool = False,
@@ -155,7 +156,7 @@ class ImPhotController:
             image_metadata: Metadata for the images.
             cutout_size: Size of image cutout in pixels (default: 800).
             override_error: Overwrite the error ellipse with the value (cicle).
-            save_cutout: Whether to save cutout images (default: False).
+            save_diag_plots: Whether to save diagnostic images (default: False).
             display: Whether to display results (default: True).
             output_folder: Directory for output files, by default None
             save_json: Whether to save results as JSON, by default False
@@ -174,7 +175,8 @@ class ImPhotController:
                 ephemeris_service=ephemeris_service,
                 cutout_size=cutout_size,
                 override_error=override_error,
-                save_cutout=save_cutout,
+                save_diag_plots=save_diag_plots,
+                save_fits=save_fits,
                 display=display,
                 output_folder=output_folder,
                 save_json=save_json,
