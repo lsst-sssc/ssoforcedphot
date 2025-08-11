@@ -1,8 +1,8 @@
 import argparse
 import logging
+import time
 from dataclasses import asdict
 from typing import Any, Optional
-import time 
 
 import astropy.units as u
 from astropy.time import Time
@@ -33,12 +33,12 @@ class ObjectDetectionController:
         Sets up the argument parser and initializes default argument values.
         Also initializes various service clients and controllers needed for
         ephemeris queries, image searches, and photometry processing, including:
-        - `self.logger`: A dedicated logger for this controller.
-        - `self.ephemeris_client`: Client for interacting with ephemeris services.
-        - `self.ephemeris_results`: Stores results from ephemeris queries.
-        - `self.image_service`, `self.image_service_butler`: Services for image discovery.
-        - `self.photometry_service`: Service for performing photometry.
-        - `self.imphot_controller`: Orchestrates image processing and photometry.
+        - 'self.logger': A dedicated logger for this controller.
+        - 'self.ephemeris_client': Client for interacting with ephemeris services.
+        - 'self.ephemeris_results': Stores results from ephemeris queries.
+        - 'self.image_service', 'self.image_service_butler': Services for image discovery.
+        - 'self.photometry_service': Service for performing photometry.
+        - 'self.imphot_controller': Orchestrates image processing and photometry.
         """
         self.parser = self.create_parser()
         self.args = argparse.Namespace()
@@ -54,24 +54,24 @@ class ObjectDetectionController:
         self.image_results: list[ImageMetadata]
         self.photometry_service = PhotometryService()
         self.imphot_controller = ImPhotController()
-    
+
     def create_parser(self):
         """
         Create and configure the argument parser.
 
         Defines command-line arguments for:
-        - **Service Selection**: `--service-selection` to choose which part of the pipeline to run.
-        - **Ephemeris Queries**: `--ephemeris-service`, `--target`, `--target-type`,
-          `--start-time`, `--end-time`, `--day-range`, `--step`, `--location`,
-          `--save-ephem-data`.
-        - **Input Data**: `--ephem-ecsv` (for single ECSV input), `--csv` (for batch CSV input).
-        - **Image Search**: `--ephemeris_file` (alternative ECSV input for image search),
-          `--filters`, `--output-folder`, `--min-cutout-size`, `--image-type`,
-          `--image-search-method` (point/polygon), `--time-interval` (for polygon),
-          `--widening` (for polygon).
-        - **Photometry**: `--photometry-service`, `--threshold`, `--override-error`,
-          `--display`, `--save-json`, `--save-csv`, `--all-ellipse-sources`,
-          `--save-diag-plots`, `--save-fits`.
+        - **Service Selection**: '--service-selection' to choose which part of the pipeline to run.
+        - **Ephemeris Queries**: '--ephemeris-service', '--target', '--target-type',
+          '--start-time', '--end-time', '--day-range', '--step', '--location',
+          '--save-ephem-data'.
+        - **Input Data**: '--ephem-ecsv' (for single ECSV input), '--csv' (for batch CSV input).
+        - **Image Search**: '--ephemeris_file' (alternative ECSV input for image search),
+          '--filters', '--output-folder', '--min-cutout-size', '--image-type',
+          '--image-search-method' (point/polygon), '--time-interval' (for polygon),
+          '--widening' (for polygon).
+        - **Photometry**: '--photometry-service', '--threshold', '--override-error',
+          '--display', '--save-json', '--save-csv', '--all-ellipse-sources',
+          '--save-diag-plots', '--save-fits'.
 
 
         Returns:
@@ -84,7 +84,10 @@ class ObjectDetectionController:
             "--service-selection",
             choices=["all", "ephemeris", "catalog", "image", "photometry"],
             default="ephemeris",
-            help="Select which services to use (default: ephemeris) 'all' runs ephemeris, image, and photometry sequentially.",
+            help=(
+                "Select which services to use (default: ephemeris) 'all'"
+                "runs ephemeris, image, and photometry sequentially."
+            ),
         )
 
         # Ephemeris Service selection
@@ -119,7 +122,7 @@ class ObjectDetectionController:
         parser.add_argument(
             "--location", default="X05", help="Observer location code (default: X05 for Rubin Observatory)"
         )
-        parser.add_argument("--save-ephem-data", action="store_true", help="Save query results (Ephemeris data)")
+        parser.add_argument("--save-ephem-data", action="store_true", help="Save query results (Ephemeris)")
 
         # Image service
         parser.add_argument("--ephemeris_file", help="Path to an existing ephemeris file")
@@ -134,7 +137,7 @@ class ObjectDetectionController:
         )
 
         parser.add_argument(
-            "--output-folder", default="./output", help="Directory to save all output files (default: ./output)"
+            "--output-folder", default="./output", help="Directory to save all output files"
         )
 
         parser.add_argument(
@@ -163,7 +166,11 @@ class ObjectDetectionController:
             "--image-search-method",
             choices=["point", "polygon"],
             default="point",
-            help="Select the method for image search. Point: based on the ephemeris rows (slower for longer ephemeris data), Polygon: create a polygon from the ephemeris data, and look for overlapsed images",
+            help=(
+                "Select the method for image search. Point: based on the ephemeris rows"
+                "(slower for longer ephemeris data), Polygon: create a polygon from the"
+                "ephemeris data, and look for overlapsed images"
+            ),
         )
 
         # Parameters for polygon search
@@ -180,7 +187,7 @@ class ObjectDetectionController:
             default=1,
             help="Widening factor for polygon search method (default: 1 arcsec)",
         )
-        
+
         parser.add_argument(
             "--threshold", type=int, default=3, help="Threshold SNR for forced photometry (defaullt: 3)"
         )
@@ -189,9 +196,12 @@ class ObjectDetectionController:
             "--override-error",
             type=float,
             default=0,
-            help="Overrides the calculated error ellipse with a user-defined circular radius in arcseconds for source extraction, default: 0 (no override)",
+            help=(
+                "Overrides the calculated error ellipse with a user-defined circular"
+                "radius in arcseconds for source extraction, default: 0 (no override)"
+            ),
         )
-        
+
         parser.add_argument(
             "--display",
             action="store_true",
@@ -214,9 +224,13 @@ class ObjectDetectionController:
         parser.add_argument(
             "--all-ellipse-sources",
             action="store_true",
-            help="If True and saving to CSV, creates separate rows in the CSV file for each source detected within the error ellipse. If False, only includes the best (closest) source per result. Default: False.",
+            help=(
+                "If True and saving to CSV, creates separate rows in the CSV file for each"
+                "source detected within the error ellipse. If False, only includes the best"
+                "(closest) source per result. Default: False."
+            ),
         )
-        
+
         parser.add_argument(
             "--save-diag-plots",
             action="store_true",
@@ -234,22 +248,22 @@ class ObjectDetectionController:
     def parse_args(self, args=None):
         """
         Parse command-line arguments and process time-related arguments.
-        
-        If a `--day-range` is provided, it calculates the `end_time` based on
-        the `start_time`. Converts `start_time` and `end_time` arguments
-        from string format to Astropy `Time` objects.
+
+        If a '--day-range' is provided, it calculates the 'end_time' based on
+        the 'start_time'. Converts 'start_time' and 'end_time' arguments
+        from string format to Astropy 'Time' objects.
 
         Args:
             args (list, optional): A list of command-line arguments to parse,
                                    useful for testing or programmatic control.
-                                   Defaults to None, which causes `argparse`
-                                   to use `sys.argv`.
+                                   Defaults to None, which causes 'argparse'
+                                   to use 'sys.argv'.
 
         Returns:
             argparse.Namespace: The parsed argument object with processed time values.
 
         Raises:
-            argparse.ArgumentError: If `--day-range` is used without `--start-time`.
+            argparse.ArgumentError: If '--day-range' is used without '--start-time'.
         """
         self.args = self.parser.parse_args(args)
 
@@ -267,12 +281,12 @@ class ObjectDetectionController:
 
     def run_ephemeris_query(self):
         """
-        Execute the ephemeris query based on the arguments set in `self.args`.
+        Execute the ephemeris query based on the arguments set in 'self.args'.
 
         This method supports three ways of obtaining ephemeris data:
-        1. Loading from an ECSV file specified by `--ephem-ecsv`.
-        2. Batch processing multiple targets from a CSV file specified by `--csv`.
-        3. Performing a single query using `--target`, `--target-type`, `--start-time`, and `--end-time`.
+        1. Loading from an ECSV file specified by '--ephem-ecsv'.
+        2. Batch processing multiple targets from a CSV file specified by '--csv'.
+        3. Performing a single query using '--target', '--target-type', '--start-time', and '--end-time'.
 
         Returns:
             QueryResult: An object containing the results of the ephemeris query.
@@ -316,30 +330,34 @@ class ObjectDetectionController:
         else:
             self.parser.error("Either provide a CSV/ECSV file or all single query parameters")
 
-    def run_image_query(self, ephemeris_results: Optional[dict] = None, search_method: Optional[str] = "point") -> list[Any]:
+    def run_image_query(
+        self,
+        ephemeris_results: Optional[dict] = None,
+        search_method: Optional[str] = "point"
+    ) -> list[Any]:
         """
         Execute image search using ephemeris data with the specified search method.
-        
+
         This method can either use ephemeris data generated by a previous
-        `run_ephemeris_query` call (stored in `self.ephemeris_results`),
-        loaded from an ECSV file specified by `--ephemeris_file`, or passed directly
-        as the `ephemeris_results` parameter. It configures the image search based
-        on `self.args.filters`, `self.args.time_interval`, and `self.args.widening`,
+        'run_ephemeris_query' call (stored in 'self.ephemeris_results'),
+        loaded from an ECSV file specified by '--ephemeris_file', or passed directly
+        as the 'ephemeris_results' parameter. It configures the image search based
+        on 'self.args.filters', 'self.args.time_interval', and 'self.args.widening',
         then executes either a point-based or polygon-based search.
 
         Args:
             ephemeris_results (Optional[QueryResult]): Pre-existing ephemeris data
                                                        to use for the image search. If None,
-                                                       the method attempts to use `self.ephemeris_results`
-                                                       (from a prior `run_ephemeris_query`) or
-                                                       load from `self.args.ephemeris_file`.
+                                                       the method attempts to use 'self.ephemeris_results'
+                                                       (from a prior 'run_ephemeris_query') or
+                                                       load from 'self.args.ephemeris_file'.
             search_method (Optional[str]): Overrides the search method specified
-                                           in `self.args.image_search_method`.
+                                           in 'self.args.image_search_method'.
                                            Accepted values are "point" or "polygon".
-                                           If None, `self.args.image_search_method` is used.
+                                           If None, 'self.args.image_search_method' is used.
 
         Returns:
-            list[ImageMetadata]: A list of `ImageMetadata` objects found during the search.
+            list[ImageMetadata]: A list of 'ImageMetadata' objects found during the search.
 
         Raises:
             ValueError: If no ephemeris data is available or provided through any means.
@@ -350,7 +368,7 @@ class ObjectDetectionController:
         print("-" * 40)
 
         start_time = time.time()
-        
+
         # Determine ephemeris source
         if self.args.ephem_ecsv:
             ephemeris_data_temp = DataLoader.load_ephemeris_from_ecsv(self.args.ephem_ecsv)
@@ -366,7 +384,7 @@ class ObjectDetectionController:
 
         # Use provided search method or fall back to args
         effective_search_method = self.args.image_search_method or search_method.lower()
-        
+
         # Configure search parameters
         self.imphot_controller.configure_search(
             bands=self.args.filters,
@@ -374,7 +392,7 @@ class ObjectDetectionController:
             time_interval=self.args.time_interval,
             widening=self.args.widening,
         )
-        
+
         # Execute search based on the selected method
         if effective_search_method == "polygon":
             self.logger.info("Using polygon-based image search method")
@@ -387,29 +405,33 @@ class ObjectDetectionController:
         print("The image search has been completed.")
         print(f"The process took {(time.time()-start_time)/60:.2f} minutes.")
         print("-" * 40)
-        
+
         return image_metadata
 
-    def run_photometry(self, image_results: list[Any], output_folder: Optional[str] = "./output") -> list[Any]:
+    def run_photometry(
+        self,
+        image_results: list[Any],
+        output_folder: Optional[str] = "./output"
+    ) -> list[Any]:
         """
         Execute photometry on the retrieved image results.
 
-        This method configures the photometry process using parameters from `self.args`,
+        This method configures the photometry process using parameters from 'self.args',
         such as detection threshold, image type, error override, cutout size,
         and display options. It also handles saving the photometry results
         in JSON or CSV format, along with diagnostic plots and FITS cutouts,
         to the specified output folder.
 
         Args:
-            image_results (list[ImageMetadata]): A list of `ImageMetadata` objects
+            image_results (list[ImageMetadata]): A list of 'ImageMetadata' objects
                                                  on which to perform photometry.
             output_folder (Optional[str]): The directory where output files
                                            (e.g., plots, FITS, results CSV/JSON) should be saved.
-                                           If None, `self.args.output_folder` is used.
+                                           If None, 'self.args.output_folder' is used.
 
         Returns:
-            list[Any]: A list of photometry results returned by the `imphot_controller`.
-                       The specific type depends on the `imphot_controller`'s output.
+            list[Any]: A list of photometry results returned by the 'imphot_controller'.
+                       The specific type depends on the 'imphot_controller''s output.
         """
 
         print("-" * 40)
@@ -417,7 +439,7 @@ class ObjectDetectionController:
         print("-" * 40)
 
         start_time = time.time()
-        
+
         # Configure photometry parameters
         self.imphot_controller.detection_threshold = self.args.threshold
         # Execute photometry
@@ -462,42 +484,49 @@ class ObjectDetectionController:
 
         This method allows programmatic control of the object detection workflow
         by accepting a dictionary of input parameters. It configures the
-        controller's internal arguments (`self.args`) based on the `input_data`
+        controller's internal arguments ('self.args') based on the 'input_data'
         and then orchestrates the ephemeris query, image search, and photometry
         steps.
 
         Args:
-            input_data (dict[str, Any]): A dictionary containing input parameters
-                                         for the object detection process. Expected top-level keys:
-                                         - "output_folder" (Optional[str]): Directory for output files.
-                                         - "ephemeris" (Optional[dict]): Parameters for ephemeris query.
-                                           Can include:
-                                           - "target" (str), "target_type" (str), "ephemeris_service" (str, e.g., "Horizons"),
-                                             "start" (str, YYYY-MM-DD HH:MM:SS), "end" (str, YYYY-MM-DD HH:MM:SS),
-                                             "step" (str, e.g., "1h"), "observer_location" (str, e.g., "X05"),
-                                             "save_ephem_data" (bool), "output_folder" (str).
-                                           - OR "ecsv_file" (str): Path to a pre-computed ECSV ephemeris file.
-                                           - OR "csv_file" (str): Path to a CSV file for batch ephemeris queries.
-                                         - "image" (Optional[dict]): Parameters for image search.
-                                           Can include:
-                                           - "filters" (list[str], e.g., ["g", "r"]), "ephemeris_file" (str, path to ECSV for image search if not already queried).
-                                           - "image_search_method" (str, "point" or "polygon"), "time_interval" (float), "widening" (float).
-                                           - "ephemeris_data" (QueryResult): A `QueryResult` object if ephemeris data is already available.
-                                         - "photometry" (Optional[dict]): Parameters for photometry.
-                                           Can include:
-                                           - "image_type" (str, "visit_image" or "goodSeeingDiff_differenceExp"), "threshold" (int),
-                                             "save_diag_plots" (bool), "save_fits" (bool), "min_cutout_size" (int),
-                                             "override_error" (float), "display" (bool), "save_json" (bool),
-                                             "save_csv" (bool), "save_error_sources" (bool, maps to `all_ellipse_sources`),
-                                             "output_folder" (str).
+            input_data (dict[str, Any]):
+                A dictionary containing input parameters for the object detection process.
+                Expected top-level keys:
+                    - "output_folder" (Optional[str]): Directory for output files.
+                    - "ephemeris" (Optional[dict]): Parameters for ephemeris query.
+                    Can include:
+                        - "target" (str), "target_type" (str), "ephemeris_service" (str, e.g., "Horizons"),
+                            "start" (str, YYYY-MM-DD HH:MM:SS), "end" (str, YYYY-MM-DD HH:MM:SS),
+                            "step" (str, e.g., "1h"), "observer_location" (str, e.g., "X05"),
+                            "save_ephem_data" (bool), "output_folder" (str).
+                        - OR "ecsv_file" (str): Path to a pre-computed ECSV ephemeris file.
+                        - OR "csv_file" (str): Path to a CSV file for batch ephemeris queries.
+                        - "image" (Optional[dict]): Parameters for image search.
+                            Can include:
+                                - "filters" (list[str], e.g., ["g", "r"]), "ephemeris_file" (str, path
+                                    to ECSV for image search if not already queried).
+                                - "image_search_method" (str, "point" or "polygon"), "time_interval"
+                                    (float), "widening" (float).
+                                - "ephemeris_data" (QueryResult): A 'QueryResult' object if ephemeris
+                                    data is already available.
+                                - "photometry" (Optional[dict]): Parameters for photometry.
+                                    Can include:
+                                        - "image_type" (str, "visit_image" or "goodSeeingDiff_differenceExp"),
+                                            "threshold" (int), "save_diag_plots" (bool), "save_fits" (bool),
+                                            "min_cutout_size" (int), "override_error" (float), "display",
+                                            "save_json" (bool), "save_csv" (bool), "save_error_sources"
+                                            (bool, maps to 'all_ellipse_sources'), "output_folder" (str).
 
         Returns:
             dict[str, Any]: A dictionary containing the results of the object detection process.
-                            Keys can include "ephemeris" (QueryResult object), "image" (list of dicts of ImageMetadata),
-                            "photometry" (list of dicts of photometry results), or "error" if an exception occurs.
+                            Keys can include "ephemeris" (QueryResult object), "image" (list of dicts
+                            of ImageMetadata),
+                            "photometry" (list of dicts of photometry results), or "error" if an exception
+                            occurs.
 
         Raises:
-            ValueError: If required parameters for ephemeris queries are missing or invalid within `input_data['ephemeris']`.
+            ValueError: If required parameters for ephemeris queries are missing or invalid within
+            'input_data['ephemeris']'.
             Exception: Catches general exceptions during processing and returns them within the "error" key.
         """
         try:
@@ -506,7 +535,7 @@ class ObjectDetectionController:
             # Set output folder from input data if provided
             if "output_folder" in input_data:
                 self.args.output_folder = input_data["output_folder"]
-            
+
             # Process ephemeris service request
             if "ephemeris" in input_data:
                 ephemeris_input = input_data["ephemeris"]
@@ -534,7 +563,10 @@ class ObjectDetectionController:
                             observer_location=ephemeris_input.get(
                                 "observer_location", EphemerisClient.DEFAULT_OBSERVER_LOCATION
                             ),
-                            save_ephem_data=ephemeris_input.get("save_ephem_data", EphemerisClient.DEFAUT_save_ephem_data),
+                            save_ephem_data=ephemeris_input.get(
+                                "save_ephem_data",
+                                EphemerisClient.DEFAUT_save_ephem_data
+                            ),
                             output_folder=self.args.output_folder,
                         )
                     else:
@@ -551,7 +583,7 @@ class ObjectDetectionController:
                                 output_folder=ephemeris_input.get("output_folder"),
                             )
                         except Exception as e:
-                            root_logger.error(f"Ephemeris query failed: {e}")
+                            self.logger.error(f"Ephemeris query failed: {e}")
                             self.result_pane.object = {"error": str(e)}
                 else:
                     raise ValueError("Invalid ephemeris query parameters")
@@ -570,11 +602,14 @@ class ObjectDetectionController:
                 self.args.time_interval = image_params.get("time_interval", 1.0)
                 self.args.widening = image_params.get("widening", 1.0)
                 ephemeris_data = image_params.get("ephemeris_data")
-                
+
                 # Pass the search method to run_image_query
                 search_method = image_params.get("image_search_method")
-                self.image_results = self.run_image_query(ephemeris_results = ephemeris_data["ephemeris"], search_method = search_method)
-                
+                self.image_results = self.run_image_query(
+                    ephemeris_results = ephemeris_data["ephemeris"],
+                    search_method = search_method
+                )
+
                 results["image"] = [asdict(md) for md in self.image_results] if self.image_results else None
 
             # Process photometry if requested and image results exist
@@ -608,10 +643,10 @@ class ObjectDetectionController:
     def run(self):
         """
         Execute the main control flow of the object detection process based on
-        the command-line arguments parsed into `self.args`.
+        the command-line arguments parsed into 'self.args'.
 
         This method orchestrates the execution of ephemeris queries, image searches,
-        and photometry based on the `--service-selection` argument:
+        and photometry based on the '--service-selection' argument:
         - If "ephemeris" is selected, only the ephemeris query is run.
         - If "image" is selected, ephemeris query runs first (unless data is from file), then image search.
         - If "all" or "photometry" is selected, ephemeris query runs first (unless data is from file),
@@ -621,7 +656,7 @@ class ObjectDetectionController:
         """
         self.parse_args()
         start_time = time.time()
-        
+
         if self.args.service_selection in ["ephemeris"]:
             self.ephemeris_results = self.run_ephemeris_query()
             print(f"Ephemeris data loaded: {len(self.ephemeris_results.ephemeris.datetime)} entries")
@@ -635,11 +670,11 @@ class ObjectDetectionController:
             self.image_results = self.run_image_query()
 
             if self.image_results:
-                photometry_results = self.run_photometry(self.image_results, self.args.output_folder)
+                self.run_photometry(self.image_results, self.args.output_folder)
                 # print(photometry_results)
 
         print(f"The total duration of the process was {(time.time()-start_time)/60:.2f} minutes.")
-        
+
 if __name__ == "__main__":
     controller = ObjectDetectionController()
     controller.run()

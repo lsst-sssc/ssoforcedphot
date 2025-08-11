@@ -319,7 +319,7 @@ class EphemerisTab:
             and displays it in the table. It also attempts to pass the file to the controller.
         2.  **Running Live Query**: Constructs the input data for a live ephemeris query
             based on user selections (target, time range, step, service) and calls the
-            `ObjectDetectionController`'s API connection. Displays results in the table.
+            'ObjectDetectionController''s API connection. Displays results in the table.
 
         Parameters
         ----------
@@ -511,7 +511,7 @@ class ImageTab:
 
         This asynchronous method constructs the input data for the image search based on
         user selections (filters, search method, polygon parameters) and calls the
-        `ObjectDetectionController`'s API connection. It then displays the returned
+        'ObjectDetectionController''s API connection. It then displays the returned
         image metadata in a Pandas DataFrame within a Tabulator widget.
 
         Parameters
@@ -658,7 +658,7 @@ class PhotometryTab:
 
         This asynchronous method constructs the input data for the photometry process based on
         user selections (image type, detection threshold, saving options, etc.) and calls the
-        `ObjectDetectionController`'s API connection. It then processes and displays the
+        'ObjectDetectionController''s API connection. It then processes and displays the
         photometry results in a Pandas DataFrame within a Tabulator widget.
 
         Parameters
