@@ -181,18 +181,26 @@ def serialize_query_result(result):
 
 
 class EphemerisTab:
-    """GUI tab for managing ephemeris queries and displaying results.
+    """
+    GUI tab for managing ephemeris queries and displaying the results.
 
-    Args:
-        controller (ObjectDetectionController): The main application controller.
+    This tab allows users to either upload an ECSV file with pre-computed ephemeris data
+    or perform a live query using selected services (Horizons, Miriade) for a specific target
+    within a defined time range and step. Query results are displayed in a table and JSON pane.
+
+    Parameters
+    ----------
+    controller : ObjectDetectionController
+        The main application controller instance, used to interact with the backend
+        ephemeris services and store results.
     """
 
     def __init__(self, controller):
         self.controller = controller
         root_logger.warning(
-            """The image and photometry service may take a while,
-            but this terminal widget will not refresh until the process is complete.
-            Please be patient..."""
+            """Note: The image and photometry service may take a while.
+            This terminal widget will not refresh in real-time until each full step completes.
+            Please be patient after initiating a run."""
         )
 
         # Widgets
@@ -302,8 +310,23 @@ class EphemerisTab:
         return f"{self.step_value.value}{self.step_unit.value}"
 
     async def run_query(self, event):
-        """Handle query execution and display results"""
-        await gen.sleep(0.01)
+        """
+        Handles the execution of the ephemeris query when the "Run Query" or "Update Table"
+        button is clicked.
+
+        This asynchronous method manages two main workflows:
+        1.  **Uploading ECSV**: Reads an ECSV file, converts it to a Pandas DataFrame,
+            and displays it in the table. It also attempts to pass the file to the controller.
+        2.  **Running Live Query**: Constructs the input data for a live ephemeris query
+            based on user selections (target, time range, step, service) and calls the
+            `ObjectDetectionController`'s API connection. Displays results in the table.
+
+        Parameters
+        ----------
+        event : pn.viewable.singles.Button
+            The button click event (unused, but required by Panel's on_click signature).
+        """
+        await gen.sleep(0.01) # Allow Panel to update the UI before long operations
         if self.ephemeris_source.value == "Upload ECSV":
             root_logger.info("Processing uploaded ECSV file.")
             if not self.file_upload.value:
@@ -383,10 +406,18 @@ class EphemerisTab:
 
 
 class ImageTab:
-    """GUI tab for image search operations using ephemeris data.
+    """
+    GUI tab for configuring and executing image search operations using ephemeris data.
 
-    Args:
-        controller (ObjectDetectionController): The main application controller.
+    This tab allows users to select image filters, define the search method (point or polygon),
+    and configure polygon-specific parameters like widening and time interval. The results
+    (image metadata) are displayed in a table.
+
+    Parameters
+    ----------
+    controller : ObjectDetectionController
+        The main application controller instance, which holds the ephemeris results
+        and provides the image search functionality.
     """
 
     def __init__(self, controller):
@@ -475,7 +506,19 @@ class ImageTab:
         self.run_button.on_click(self.run_query)
 
     async def run_query(self, event):
-        """Image query main logic"""
+        """
+        Handles the execution of the image search query when the "Run Image Search" button is clicked.
+
+        This asynchronous method constructs the input data for the image search based on
+        user selections (filters, search method, polygon parameters) and calls the
+        `ObjectDetectionController`'s API connection. It then displays the returned
+        image metadata in a Pandas DataFrame within a Tabulator widget.
+
+        Parameters
+        ----------
+        event : pn.viewable.singles.Button
+            The button click event (unused, but required by Panel's on_click signature).
+        """
         # logger.info("Running Image search.")
         await gen.sleep(0.01)
         # root_logger.info("Starting the image query...")
@@ -513,10 +556,19 @@ class ImageTab:
 
 
 class PhotometryTab:
-    """GUI tab for configuring and executing photometry analysis.
+    """
+    GUI tab for configuring and executing photometry analysis on detected images.
 
-    Args:
-        controller (ObjectDetectionController): The main application controller.
+    This tab allows users to specify photometry parameters such as image type,
+    detection threshold, cutout size, and error ellipse override. It also provides
+    options to save diagnostic plots, FITS files, and the final results in JSON/CSV formats.
+    Results are displayed in a table summarizing photometry measurements.
+
+    Parameters
+    ----------
+    controller : ObjectDetectionController
+        The main application controller instance, which holds the image metadata results
+        and provides the photometry processing functionality.
     """
 
     def __init__(self, controller):
@@ -548,8 +600,9 @@ class PhotometryTab:
 
         # Set up visibility bindings
         self.output_folder.visible = pn.bind(
-            lambda diag, json, csv: diag or json or csv,
+            lambda diag, fits, json, csv: diag or fits or json or csv,
             self.save_diag_plots.param.value,
+            self.save_fits.param.value,
             self.save_json.param.value,
             self.save_csv.param.value,
         )
@@ -601,8 +654,19 @@ class PhotometryTab:
 
     async def run_photometry(self, event):
         """
-        Main logic for photometry
+        Handles the execution of the photometry analysis when the "Run Photometry Analysis" button is clicked.
+
+        This asynchronous method constructs the input data for the photometry process based on
+        user selections (image type, detection threshold, saving options, etc.) and calls the
+        `ObjectDetectionController`'s API connection. It then processes and displays the
+        photometry results in a Pandas DataFrame within a Tabulator widget.
+
+        Parameters
+        ----------
+        event : pn.viewable.singles.Button
+            The button click event (unused, but required by Panel's on_click signature).
         """
+        
         await gen.sleep(0.01)
         root_logger.info("Starting photometry process...")
         input_data = {
@@ -653,10 +717,18 @@ class PhotometryTab:
 
 
 class CompleteRunTab:
-    """GUI tab for handling a complete run from ephemeris to photometry.
+    """
+    GUI tab for handling a complete end-to-end run of the object detection pipeline,
+    from ephemeris query to image search and finally photometry.
 
-    Args:
-        controller (ObjectDetectionController): The main application controller.
+    This tab consolidates all parameters from the individual tabs into one interface,
+    allowing users to configure and execute the entire workflow sequentially.
+    Results of the final photometry step are displayed in a table.
+
+    Parameters
+    ----------
+    controller : ObjectDetectionController
+        The main application controller instance that orchestrates all steps of the pipeline.
     """
 
     def __init__(self, controller):
@@ -758,9 +830,10 @@ class CompleteRunTab:
 
         # Combined visibility for output_folder
         self.output_folder.visible = pn.bind(
-            lambda save_eph, save_diag, save_js, save_csv: save_eph or save_diag or save_js or save_csv,
+            lambda save_eph, save_diag, save_fits, save_js, save_csv: save_eph or save_diag or save_fits or save_js or save_csv,
             self.save_ephem_data.param.value,
             self.save_diag_plots.param.value,
+            self.save_fits.param.value,
             self.save_json.param.value,
             self.save_csv.param.value,
         )
@@ -870,7 +943,22 @@ class CompleteRunTab:
         return f"{self.step_value.value}{self.step_unit.value}"
 
     async def run_all(self, event):
-        """End-to-end process"""
+        """
+        Handles the execution of the entire end-to-end object detection pipeline
+        when the "Run All Services" button is clicked.
+
+        This asynchronous method orchestrates the sequential execution of:
+        1.  **Ephemeris Query**: Based on user selection (live query or ECSV upload).
+        2.  **Image Search**: Uses the results from the ephemeris step.
+        3.  **Photometry Analysis**: Uses results from the image search step.
+
+        It logs progress and updates the final photometry results table.
+
+        Parameters
+        ----------
+        event : pn.viewable.singles.Button
+            The button click event (unused, but required by Panel's on_click signature).
+        """
         await gen.sleep(0.01)
         root_logger.info("Starting complete run...")
 
@@ -1046,7 +1134,11 @@ complete_run_tab = CompleteRunTab(controller).layout
 
 # Terminal test and clear
 def test_logging():
-    """Test the terminal widget"""
+    """
+    Tests the logging system by emitting messages at different log levels
+    and writing to stdout/stderr. These messages should appear in the
+    Terminal widget.
+    """
     logging.debug("Debug message")
     logging.info("Info message")
     logging.warning("Warning message")

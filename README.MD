@@ -3,17 +3,16 @@
 [![Template](https://img.shields.io/badge/Template-LINCC%20Frameworks%20Python%20Project%20Template-brightgreen)](https://lincc-ppt.readthedocs.io/en/latest/)
 
 ## Overview
-The Faint Solar System Object Detection Service is a Python tool designed for moving solar system object detection and photometry within Rubin Science Platform. 
-It integrates multiple services including ephemeris queries, image searching, and photometry processing.
+The Faint Solar System Object Detection Service is a Python tool designed for moving solar system object detection and photometry within the Rubin Science Platform. It integrates multiple services including ephemeris queries, image searching, and photometry processing.
 
 ## Features
-- Ephemeris data retrieval from multiple services (JPL Horizons, Miriade)
-- Image search and processing (ObsCore)
-- Forced photometry on target coordinates
-- Photomerty on nearby sources (within error ellipse)
-- Multiple filters selection (u, g, r, i, z, y)
-- Flexible input options (single query, batch processing via CSV)
-- Multiple output options (The end results are JSON files)
+- Ephemeris data retrieval from multiple services (JPL Horizons, Miriade).
+- Image search and processing using ObsCore.
+- Forced photometry on target coordinates.
+- Photometry on nearby sources detected within a specified error ellipse.
+- Multiple filter selection for image searches (u, g, r, i, z, y).
+- Flexible input options: single query for a target, or batch processing via CSV files.
+- Multiple output options: JSON and CSV files for results, diagnostic plots (PNG), and FITS image cutouts.
 
 ## Installation Requirements
 
@@ -41,100 +40,120 @@ python odc.py [service options] [target options] [time options] [filter options]
 ```
 
 ### Example Command
+This example demonstrates a full pipeline run, from ephemeris query to photometry, with various saving options.
 ```bash
 python odc.py --service-selection all \
               --ephemeris-service Horizons \
               --image-type visit_image \
               --target "2024 TN57" \
               --target-type smallbody \
-              --start-time "2024-12-01 00:00" \
+              --start-time "2024-12-01 00:00:00" \
               --day-range 10 \
               --step 12h \
               --image-search-method point \
               --save-ephem-data \
-              --filters u g r i z y\
+              --filters u g r i z y \
               --output-folder ./output \
               --save-diag-plots \
               --save-fits \
               --min-cutout-size 800 \
               --all-ellipse-sources \
               --save-json \
-              --save-csv \
+              --save-csv
 ```
 
 ## Command Line Options
 
 ### Service Selection
-- `--service-selection`: Choose which services to use
-  - Options: "all", "ephemeris", "image", "photometry"
-  - Default: "ephemeris"
+- `--service-selection`: Choose which services to use in the pipeline.
+  - Options: `"all"`, `"ephemeris"`, `"image"`, `"photometry"`.
+  - Default: `"ephemeris"`.
 
 ### Ephemeris Options
-- `--ephemeris-service`: Select the ephemeris service
-  - Options: "Horizons", "Miriade"
-  - Default: "Horizons"
-- `--target`: Target object identifier
-- `--target-type`: Type of target object (e.g., "smallbody")
+- `--ephemeris-service`: Select the ephemeris service provider.
+  - Options: `"Horizons"`, `"Miriade"`.
+  - Default: `"Horizons"`.
+- `--target`: Target object identifier (e.g., "2024 TN57" for a single query).
+- `--target-type`: Type of target object (e.g., "smallbody", "asteroid_name", "comet_name", "designation").
 
 ### Input Options
-- `--csv`: CSV file for batch processing
-- `--ecsv`: ECSV file for using pre-computed ephemeris data
+- `--csv`: Path to a CSV file for batch processing multiple targets. Used by the ephemeris service.
+- `--ephem-ecsv`: Path to an ECSV file containing pre-computed ephemeris data. This bypasses the ephemeris query service.
 
 ### Time Range Options
-- `--start-time`: Start time (format: "YYYY-MM-DD HH:MM:SS")
-- `--end-time`: End time (format: "YYYY-MM-DD HH:MM:SS")
-- `--day-range`: Number of days to search forward from start time
-- `--step`: Time step for ephemeris query (default: "1h")
+- `--start-time`: Start time for the search (format: `"YYYY-MM-DD HH:MM:SS"`).
+- `--end-time`: End time for the search (format: `"YYYY-MM-DD HH:MM:SS"`).
+- `--day-range`: Number of days to search forward from the start time (alternative to `--end-time`).
+- `--step`: Time step for ephemeris query (e.g., `"1h"`, `"10m"`, `"1d"`).
+  - Default: `"1h"`.
 
 ### Filter and Image Options
-- `--filters`: List of filters to use (e.g., "g r i")
-  - Available filters: u, g, r, i, z, y
-  - Default: ["r"]
-- `--image-type`: Type of image to process
-  - Options: "calexp", "goodSeeingDiff_differenceExp"
-  - Default: "calexp"
+- `--filters`: List of filters for image search (e.g., `--filters g r i`).
+  - Available filters: `u`, `g`, `r`, `i`, `z`, `y`.
+  - Default: `["r"]`.
+- `--image-type`: Type of image to process for photometry.
+  - Options: `"visit_image"`, `"goodSeeingDiff_differenceExp"`.
+  - Default: `"visit_image"`.
+- `--image-search-method`: Method to search for images.
+  - Options: `"point"`, `"polygon"`.
+  - Default: `"point"`.
+- `--time-interval`: Time interval in days for grouping ephemeris points when using the `"polygon"` image search method.
+  - Default: `5.0`.
+- `--widening`: Widening factor in arcseconds for the polygon search area around the ephemeris track.
+  - Default: `1.0`.
 
 ### Output Options
-- `--output-dir`: Directory for output files (default: "./output")
-- `--save-data`: Save query results
-- `--save-cutouts`: Save image cutouts
-- `--min-cutout-size`: Minimum size of cutouts (default: 800)
-- `--save_json`: Save results as JSON
-- `--display`: Display images and error ellipses in Firefly
+- `--output-folder`: Directory to save all output files (ephemeris data, diagnostic plots, FITS, JSON/CSV results).
+  - Default: `./output`.
+- `--save-ephem-data`: Save ephemeris query results to a file in the output folder.
+- `--save-diag-plots`: Save diagnostic images (PNG) marked with sources and the error ellipse.
+- `--save-fits`: Save the FITS image cutouts.
+- `--min-cutout-size`: Minimum size of square image cutouts in pixels.
+  - Default: `800`.
+- `--save-json`: Save final photometry results as JSON.
+- `--save-csv`: Save final photometry results as CSV.
+- `--all-ellipse-sources`: If `True` and saving to CSV, create separate rows for each source detected within the error ellipse. If `False`, only include the best source per result.
 
 ### Additional Options
-- `--location`: Observer location code (default: "X05" for Rubin Observatory)
-- `--threshold`: SNR threshold for forced photometry (default: 3)
-- `-h, --help`: Show help message and exit
+- `--location`: Observer location code (e.g., "X05" for Rubin Observatory).
+  - Default: `"X05"`.
+- `--threshold`: Signal-to-Noise Ratio (SNR) threshold for source detection in photometry.
+  - Default: `3`.
+- `--override-error`: If greater than 0, this value in arcseconds will be used as the radius for a circular error ellipse, overriding the ephemeris's reported uncertainty.
+  - Default: `0` (no override).
+- `--display`: If `True`, attempts to display results (images and error ellipses) in Firefly for visualization.
+  - Default: `False`.
+- `-h, --help`: Show help message and exit.
 
 ## Working with Input Files
 
 ### Using ECSV Ephemeris Data
-You can use pre-computed ephemeris data in ECSV format:
+You can use pre-computed ephemeris data in ECSV format to bypass live ephemeris queries:
 
 ```bash
 python odc.py --service-selection all \
               --ephem-ecsv /path/to/ephemeris.ecsv \
               --filters g r i \
-              --save-cutouts
+              --save-diag-plots \
+              --save-fits
 ```
 
-The ECSV file should contain the necessary columns:
-- datetime
-- RA_deg (degrees)
-- DEC_deg (degrees)
-- RA_rate_arcsec_per_h (arcsec / h)
-- DEC_rate_arcsec_per_h (arcsec / h)
-- AZ_deg (degrees)
-- EL_deg (degrees)
-- r_au (AU)
-- delta_au (AU)
-- V_mag (optional)
-- alpha_deg (degrees)
-- RSS_3sigma_arcsec (arcsec)
-- SMAA_3sigma_arcsec (arcsec)
-- SMIA_3sigma_arcsec (arcsec)
-- Theta_3sigma_deg (degrees)
+The ECSV file should contain the necessary columns with their respective units and descriptions:
+- `datetime` (float64, unit: `d`, description: Time for the ephemeris data points.)
+- `RA_deg` (float64, unit: `deg`, description: Right Ascension in degrees)
+- `DEC_deg` (float64, unit: `deg`, description: Declination in degrees)
+- `RA_rate_arcsec_per_h` (float64, unit: `arcsec / h`, description: Rate of change in Right Ascension)
+- `DEC_rate_arcsec_per_h` (float64, unit: `arcsec / h`, description: Rate of change in Declination)
+- `AZ_deg` (float64, unit: `deg`, description: Azimuth in degrees)
+- `EL_deg` (float64, unit: `deg`, description: Elevation in degrees)
+- `r_au` (float64, unit: `AU`, description: Heliocentric distance in astronomical units)
+- `delta_au` (float64, unit: `AU`, description: Geocentric distance in astronomical units)
+- `V_mag` (float64, optional, description: Visual magnitude)
+- `alpha_deg` (float64, unit: `deg`, description: Phase angle in degrees)
+- `RSS_3sigma_arcsec` (float64, unit: `arcsec`, description: 3-sigma Root Sum Square uncertainty in arcseconds)
+- `SMAA_3sigma_arcsec` (float64, unit: `arcsec`, description: Semi-major axis of error ellipse)
+- `SMIA_3sigma_arcsec` (float64, unit: `arcsec`, description: Semi-minor axis of error ellipse)
+- `Theta_3sigma_deg` (float64, unit: `deg`, description: Position angle of error ellipse)
 
 Example ECSV format:
 ```
@@ -163,245 +182,249 @@ datetime RA_deg DEC_deg RA_rate_arcsec_per_h DEC_rate_arcsec_per_h AZ_deg EL_deg
 ```
 
 ### Using CSV for Multiple Targets
-For batch processing multiple targets, you can use a CSV file. 
-This is currently only usable for the ephemeris service.
+For batch processing multiple targets through the ephemeris service, you can use a CSV file. This is currently only supported for the ephemeris query step.
 
 ```bash
 python odc.py --service-selection all \
               --csv /path/to/targets.csv \
               --ephemeris-service Horizons \
               --filters g r i \
-              --save-data
+              --save-ephem-data
 ```
 
 The CSV file should contain the following columns:
-- target_id
-- target_type
-- start_time
-- end_time (optional if using day_range)
-- day_range (optional if using end_time)
+- `target_id`
+- `target_type`
+- `start_time` (format: `"YYYY-MM-DD HH:MM:SS"`)
+- `end_time` (optional, if `day_range` is used instead)
+- `day_range` (optional, if `end_time` is used instead, integer number of days)
 
 Example CSV format:
 ```csv
 target_id,target_type,start_time,day_range
-65803,smallbody,2022-09-25 00:00,6
-2014MU69,smallbody,2022-09-25 00:00,3
-```
-
-### API Usage for Single Target
-You can also process a single target programmatically:
-
-```python
-from odc import ObjectDetectionController
-
-controller = ObjectDetectionController()
-
-# Using CSV file
-input_data = {
-    "ephemeris": {
-        "service": "Horizons",
-        "csv_file": "/path/to/targets.csv",
-        "observer_location": "X05",
-        "save_data": True
-    },
-    "image": {
-        "filters": ["g", "r", "i"]
-    },
-    "photometry": {
-        "image_type": "calexp",
-        "threshold": 5
-    }
-}
-
-results = controller.api_connection(input_data)
-
-```
-
-## Common Use Cases
-
-### 1. Basic Ephemeris Query
-```bash
-python odc.py --service-selection ephemeris \
-              --target 65803 \
-              --target-type smallbody \
-              --start-time "2022-09-25 00:00" \
-              --day-range 1
-```
-
-### 2. Multi-filter Image Search
-```bash
-python odc.py --service-selection image \
-              --filters g r i \
-              --target 65803 \
-              --start-time "2022-09-25 00:00" \
-              --day-range 1
-```
-
-### 3. Full Pipeline with Photometry
-```bash
-python odc.py --service-selection all \
-              --target 65803 \
-              --target-type smallbody \
-              --start-time "2022-09-25 00:00" \
-              --day-range 1 \
-              --filters g r i \
-              --save-cutouts \
-              --save_json
+65803,smallbody,2022-09-25 00:00:00,6
+2014MU69,smallbody,2022-09-25 00:00:00,3
 ```
 
 ## API Usage
-The ODC can also be used programmatically through its API interface:
+The Object Detection Controller (`odc.ObjectDetectionController`) can be used programmatically to integrate into other Python scripts or applications. The `api_connection` method provides a unified interface for all pipeline steps.
 
 ```python
 from odc import ObjectDetectionController
 
 controller = ObjectDetectionController()
 
+# Example for a complete end-to-end run via API
 input_data = {
     "ephemeris": {
         "target": "65803",
         "target_type": "smallbody",
-        "service": "Horizons",
-        "start": "2022-09-25 00:00",
-        "end": "2022-09-26 00:00",
-        "step": "1h"
+        "ephemeris_service": "Horizons",
+        "start": "2022-09-25 00:00:00",
+        "end": "2022-09-26 00:00:00",
+        "step": "1h",
+        "observer_location": "X05",
+        "save_ephem_data": True,
+        "output_folder": "./api_output"
     },
     "image": {
-        "filters": ["g", "r", "i"]
+        "filters": ["g", "r", "i"],
+        # ephemeris_data will be populated by the controller from the "ephemeris" step if run first
+        # For a standalone image query, you might pass a pre-loaded QueryResult object here:
+        # "ephemeris_data": pre_loaded_ephem_query_result_object,
+        "image_search_method": "point",
+        "widening": 1.0, # Only relevant if image_search_method is "polygon"
+        "time_interval": 5.0 # Only relevant if image_search_method is "polygon"
     },
     "photometry": {
-        "image_type": "calexp",
+        "image_type": "visit_image", # Corrected from "calexp"
         "threshold": 5,
-        "save_cutouts": True
+        "save_diag_plots": True, # Corrected from "save_cutouts"
+        "save_fits": True, # New option for FITS cutouts
+        "display": False,
+        "save_json": True,
+        "save_csv": True,
+        "save_error_sources": True, # New option for all ellipse sources in CSV
+        "output_folder": "./api_output"
     }
 }
 
 results = controller.api_connection(input_data)
+
+# 'results' will contain a dictionary with keys 'ephemeris', 'image', 'photometry'
+# holding the respective output data, or an 'error' key if a step failed.
+print(results)
+```
+
+## Common Use Cases
+
+### 1. Basic Ephemeris Query (CLI)
+Query and display ephemeris data for a single target for one day.
+```bash
+python odc.py --service-selection ephemeris \
+              --target 65803 \
+              --target-type smallbody \
+              --start-time "2022-09-25 00:00:00" \
+              --day-range 1
+```
+
+### 2. Multi-filter Image Search (CLI)
+Find images in multiple filters for a target, assuming ephemeris data is either pre-computed or will be queried based on target/time parameters.
+```bash
+python odc.py --service-selection image \
+              --filters g r i \
+              --target 65803 \
+              --target-type smallbody \
+              --start-time "2022-09-25 00:00:00" \
+              --day-range 1 \
+              --image-search-method polygon \
+              --time-interval 5.0 \
+              --widening 2.0
+```
+
+### 3. Full Pipeline with Photometry (CLI)
+Execute the entire pipeline: ephemeris query, image search, and photometry, saving diagnostic plots and JSON/CSV results.
+```bash
+python odc.py --service-selection all \
+              --target 2024 TN57 \
+              --target-type smallbody \
+              --start-time "2024-12-01 00:00:00" \
+              --day-range 10 \
+              --step 12h \
+              --filters g r i \
+              --save-diag-plots \
+              --save-fits \
+              --save-json \
+              --save-csv \
+              --all-ellipse-sources \
+              --output-folder ./output
 ```
 
 ## Panel application
 The package provides a Panel-based web interface for interactive use:
-- Open /src/forcedphot/control_panel.py in the RSP notebook enviroment. 
-- Start the Panel app with the "Preview with Lumen" icon (top left corner of code view)
-The application is divided into four main tabs, each handling a specific part of the detection and analysis process.
+- Open `control_panel.py` in your RSP notebook environment.
+- Start the Panel app by clicking the "Preview with Lumen" icon (usually in the top left corner of the code view, or by running `panel serve control_panel.py` in a terminal).
+The application is divided into five main tabs, each handling a specific part of the detection and analysis process.
 
 ### Main Features
-- Ephemeris generation and management
-- Image search and filtering
-- Photometric analysis
-- Complete pipeline execution
+- Ephemeris generation and management.
+- Image search and filtering.
+- Photometric analysis.
+- Complete pipeline execution (combining all steps).
+- Real-time logging output (with some caveats, see "Tips").
 
 ### Tab Descriptions
 
-#### 1. Ephemeris Tab
+#### 1. Ephemeris Query Tab
 This tab handles the generation and management of ephemeris data.
 
 ##### Key Parameters:
-- **Ephemeris Source**: Choose between using existing data or uploading an ECSV file
-- **Service**: Select between Horizons and Miriade services
-- **Target Name**: Enter the name of the target
-- **Target Type**: Choose between 'smallbody' or 'comet_name'
+- **Ephemeris Source**: Choose between "Use Generated Data" (live query) or "Upload ECSV" (use a local file).
+- **Service**: Select between "Horizons" and "Miriade" services for live queries.
+- **Target Name**: Enter the name of the target (e.g., "C/2020 F3 (NEOWISE)").
+- **Target Type**: Choose between `smallbody`, `asteroid_name`, `comet_name`, or `designation`.
 - **Time Parameters**:
-  - Start Time: Set the beginning of the observation period
-  - Time Specification: Choose between End Time or Day Range
-  - Step Value and Unit: Define the time resolution of the ephemeris
+  - `Start Time`: Set the beginning of the observation period.
+  - `Time Specification`: Choose between defining an `End Time` or a `Day Range` from the start.
+  - `Step Value` and `Unit`: Define the time resolution of the ephemeris (e.g., `1` `h`).
+- **Save Ephemeris Data**: Option to save the queried ephemeris data to the `Output Folder`.
 
 ##### Output:
 Displays a table with detailed ephemeris data including:
-- DateTime
+- DateTime (ISO format)
 - RA/Dec coordinates (degrees)
-- Motion rates
-- Azimuth/Elevation
-- Distance measurements
-- Magnitude and uncertainty information
+- RA/Dec motion rates (arcsec/h)
+- Azimuth/Elevation (degrees)
+- Heliocentric distance (`r` in AU)
+- Geocentric distance (`delta` in AU)
+- Visual magnitude (`V mag`)
+- Phase angle (`Alpha` in degrees)
+- Uncertainty information (RSS 3σ, SMAA 3σ, SMIA 3σ, Theta 3σ in arcsec/deg)
 
-#### 2. Image Tab
-Handles image search operations based on ephemeris data.
-
-##### Key Features:
-- Filter selection (u, g, r, i, z, y bands)
-- Integration with ephemeris data
-- Tabulated results showing:
-  - Visit ID
-  - Detector ID
-  - Filter band
-  - Time range (min/max)
-
-#### 3. Photometry Tab
-Configures and executes photometric analysis.
+#### 2. Image Search Tab
+Handles image search operations based on ephemeris data provided by the "Ephemeris Query" tab or an ECSV file.
 
 ##### Key Parameters:
-- **Image Type**: Choose between 'calexp' and 'goodSeeingDiff_differenceExp'
-- **Detection Threshold**: Set sensitivity for detection
-- **Cutout Size**: Define the analysis window in pixels
+- **Image Search Method**: Choose `"Point"` (searches for images overlapping individual ephemeris points) or `"Polygon"` (creates a polygon from the ephemeris track and searches for images overlapping this area).
+- **Filters (Bands)**: Select desired photometric bands (e.g., `u`, `g`, `r`, `i`, `z`, `y`). Multiple selections are allowed.
+- **Polygon Search Options** (visible only when "Polygon" method is selected):
+  - `Widening (arcsec)`: Expansion factor around the polygon track.
+  - `Time Interval (days)`: Time window for grouping ephemeris points into polygons.
+
+##### Output:
+Displays a table with metadata for found images, including:
+- Visit ID
+- Detector ID
+- Filter band
+- Observation Start Time (`Obs Start`) and End Time (`Obs End`) in ISO format.
+
+#### 3. Photometry Analysis Tab
+Configures and executes photometric analysis on the image metadata retrieved from the "Image Search" tab.
+
+##### Key Parameters:
+- **Image Type**: Choose between `"visit_image"` (raw visit data) and `"goodSeeingDiff_differenceExp"` (difference images).
+- **Detection Threshold (SNR)**: Set the Signal-to-Noise Ratio (SNR) sensitivity for source detection.
+- **Cutout Size (pixels)**: Define the square analysis window in pixels (e.g., `800` for 800x800). Set to `0` to use the full image.
+- **Override Error Ellipse (arcsec)**: If greater than 0, provides a user-defined circular radius to override the ephemeris's reported uncertainty for forced photometry.
 - **Output Options**:
-  - Save Cutouts
-  - Display Results
-  - Save to JSON
+  - `Save Diagnostic Plots (PNG)`: Save plots showing sources and error ellipses.
+  - `Save FITS Cutouts`: Save the FITS image cutouts.
+  - `Display Results in Firefly`: Attempt to display images and results in a Firefly viewer.
+  - `Save Results to JSON`: Save the final photometry results in JSON format.
+  - `Save Results to CSV`: Save the final photometry results in CSV format.
+  - `Include All Sources within Error Ellipse in CSV`: If `Save Results to CSV` is checked, this creates separate rows for each source detected within the error ellipse.
 
 ##### Results Display:
-- Visit and Detector IDs
-- Band information
-- Flux measurements (nJy)
-- Magnitude measurements (AB)
+The table summarizes photometry measurements for the target object in each processed image, including:
+- Visit ID, Detector ID, Band
+- Flux measurements (nJy) and their errors
+- Magnitude measurements (AB) and their errors
 - Signal-to-Noise Ratio (SNR)
-- Nearby source counts
+- Count of nearby sources detected within the error ellipse.
 
 #### 4. Complete Run Tab
-Executes the full detection pipeline from ephemeris to photometry.
+Executes the full object detection pipeline end-to-end, from ephemeris query, through image search, to final photometry.
 
 ##### Features:
-- Combines all parameters from previous tabs
-- Single-click execution of the entire workflow
-- Collapsible parameter cards for better organization
+- Consolidates all parameters from the previous tabs into a single, comprehensive interface.
+- Provides collapsible parameter cards for better organization and navigation.
+- Offers single-click execution of the entire workflow, streamlining the process.
+
+##### Usage:
+1. Configure all parameters across the Ephemeris, Image Search, and Photometry sections.
+2. Click the "Run All Services" button to start the complete pipeline execution.
+3. The final photometry results will be displayed in the table at the bottom of the tab.
 
 ### Using the Application
 
 #### Basic Workflow:
-1. **Generate Ephemeris**:
-   - Select the appropriate service
-   - Enter target information
-   - Define time parameters
-   - Run the ephemeris query
-
-2. **Search for Images**:
-   - Select desired filters
-   - Use generated ephemeris or uploaded ECSV
-   - Execute image search
-
-3. **Perform Photometry**:
-   - Configure detection parameters
-   - Set output preferences
-   - Run photometric analysis
-
-4. **Complete Pipeline**:
-   - Use the Complete Run tab for end-to-end processing
-   - Configure all parameters in one place
-   - Execute with single button press
+1. **Generate Ephemeris**: Navigate to the "Ephemeris Query" tab. Select your source, enter target information, and define time parameters. Click "Run Ephemeris Query".
+2. **Search for Images**: Go to the "Image Search" tab. Select desired filters and the image search method. Click "Run Image Search". This step will use the ephemeris data obtained in the previous step.
+3. **Perform Photometry**: Switch to the "Photometry Analysis" tab. Configure detection and output parameters. Click "Run Photometry Analysis". This step will use the image metadata from the previous step.
+4. **Complete Pipeline**: For an integrated workflow, use the "Complete Run" tab. Configure all parameters in one place and execute the entire pipeline with a single button press.
 
 #### Additional Features:
-- **Terminal Output**: View real-time (not really) logging and system messages
-- **Test Functions**: Verify system functionality
-- **Clear Terminal**: Reset the terminal display
-- **Table Views**: Interactive data tables with sorting and filtering capabilities
-
+- **Terminal Output**: View real-time (note: actual updates might be slightly delayed in the browser due to Panel's rendering mechanism) logging and system messages at the bottom of the application window.
+- **Test Functions**: Use the "Test Logging" and "Test Terminal" buttons to verify the logging and terminal display functionality.
+- **Clear Terminal**: Use the "Clear Terminal" button to reset the terminal display.
+- **Table Views**: Interactive data tables (powered by Tabulator) with sorting and filtering capabilities for easy data exploration.
 
 ## Tips 
-1. Always specify a target and time range
-2. Consider using `--save-data` for long queries
-3. Adjust `--threshold` based on your detection requirements
-4. Use `--display` for visual inspection
-5. When processing multiple targets, monitor memory usage for large datasets
-6. Consider using ECSV format for pre-computed ephemeris data to save processing time
-7. Use the Panel application for a more user-friendly interface
-8. Use the `--help` option for detailed command-line options
-9. If you run the different services in the panel application, the terminal output will be delayed. 
+1. Always specify a target and time range for ephemeris queries.
+2. Consider using `--save-ephem-data` for long ephemeris queries to avoid re-running them.
+3. Adjust the `--threshold` (SNR) for photometry based on your desired detection sensitivity.
+4. Use `--display` (in CLI) or `Display Results in Firefly` (in Panel) for visual inspection of results and cutouts.
+5. When processing multiple targets or large time ranges, monitor memory usage.
+6. Consider using pre-computed ECSV ephemeris data (`--ephem-ecsv` or "Upload ECSV" in Panel) to save processing time, especially for repetitive runs.
+7. Use the Panel application for a more user-friendly, interactive interface.
+8. Use the `--help` option for detailed command-line options and their descriptions.
+9. If you run the different services within the Panel application, the terminal output may experience a slight delay in refreshing. Be patient.
 
 ## Troubleshooting
-- If ephemeris query fails, verify target ID and type
-- Check time format if getting time-related errors
-- Ensure output directory exists and is writable
-- For large queries, consider using larger time steps
-- If the ephemeris data is too large, the image search can be slow or fail
-- If the code is running in the Panel application, the terminal output will be delayed, be patient.
-- Check the terminal output with the Test Terminal button. If the code is running in the background, the button will not work.
+- If an ephemeris query fails, verify the target ID/name, target type, and ensure the start/end times or day range are valid.
+- Check time format if getting time-related errors (ensure "YYYY-MM-DD HH:MM:SS").
+- Ensure the specified output directory exists and is writable if saving files.
+- For queries covering large time ranges or a high number of steps, consider using larger time steps (`--step`) to reduce the amount of ephemeris data.
+- If the ephemeris data generated or loaded is exceptionally large, the subsequent image search step might be slow or fail due to memory constraints.
+- If the code is running in the Panel application, the terminal output will be delayed, so be patient for messages to appear.
+- Use the "Test Terminal" button in the Panel app to confirm the terminal is responsive. If it doesn't work, it might indicate the main application process is busy.

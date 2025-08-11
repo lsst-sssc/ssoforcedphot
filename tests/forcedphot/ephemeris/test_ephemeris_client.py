@@ -49,7 +49,9 @@ def test_query_single_horizons(ephemeris_client, mock_horizons_interface):
     assert isinstance(result, QueryResult)
     assert result.target == "Ceres"
     mock_horizons_interface.assert_called_once_with("X05")
-    mock_horizons_instance.query_single_range.assert_called_once_with(ANY, save_data=False)
+    mock_horizons_instance.query_single_range.assert_called_once_with(
+        query=ANY, save_ephem_data=False, output_folder="./output"
+    )
 
 
 def test_query_single_miriade(ephemeris_client, mock_miriade_interface):
@@ -69,7 +71,9 @@ def test_query_single_miriade(ephemeris_client, mock_miriade_interface):
     assert isinstance(result, QueryResult)
     assert result.target == "Encke"
     mock_miriade_interface.assert_called_once_with("X05")
-    mock_miriade_instance.query_single_range.assert_called_once_with(ANY, save_data=False)
+    mock_miriade_instance.query_single_range.assert_called_once_with(
+        query=ANY, save_ephem_data=False, output_folder="./output"
+    )
 
 
 def test_query_single_invalid_service(ephemeris_client):
