@@ -67,7 +67,7 @@ class ImageServiceButler:
                         self.butler.query_datasets(
                             "visit_image",
                             where=where_clause,
-                            bind={"timespan": timespan_search, "region": region_search}
+                            bind={"timespan": timespan_search, "region": region_search},
                         )
                     )
                     self.logger.info(f"Polygon {i+1}: Found {len(dataset_refs_for_item)} dataset_refs.")
@@ -208,7 +208,7 @@ class ImageServiceButler:
 
             except Exception as e:
                 self.logger.error(
-                    f"Error processing dataset ref {ref.dataId if ref else "N/A"} (index {ref_idx}): {e}",
+                    f"Error processing dataset ref {ref.dataId if ref else 'N/A'} (index {ref_idx}): {e}",
                     exc_info=True,
                 )
                 # Continue to next ref if one fails
