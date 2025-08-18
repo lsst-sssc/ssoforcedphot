@@ -99,7 +99,7 @@ class ImPhotController:
         bands: set[str],
         ephemeris_data: Any,
         time_interval: Optional[float] = 5,
-        widening: Optional[float] = 1
+        widening: Optional[float] = 1,
     ) -> None:
         """
         Set up the search parameters for image retrieval, supporting both
@@ -127,10 +127,7 @@ class ImPhotController:
         """
         self.search_params = SearchParameters(bands=bands, ephemeris_file=ephemeris_data)
         self.search_params_polygon = SearchParametersPolygon(
-            bands=bands,
-            ephemeris_file=ephemeris_data,
-            time_interval=time_interval,
-            widening=widening
+            bands=bands, ephemeris_file=ephemeris_data, time_interval=time_interval, widening=widening
         )
 
     def search_images(self) -> list[ImageMetadata]:
@@ -188,16 +185,16 @@ class ImPhotController:
             f"and widening: {self.search_params_polygon.widening} arcsec"
         )
         if isinstance(self.search_params_polygon.ephemeris_file, QueryResult):
-                ephemeris_compressed = EphemerisDataCompressed.compress_ephemeris(
-                    self.search_params_polygon.ephemeris_file
-                )
+            ephemeris_compressed = EphemerisDataCompressed.compress_ephemeris(
+                self.search_params_polygon.ephemeris_file
+            )
         else:
             ephemeris_compressed = self.search_params_polygon.ephemeris_file
 
         self.polygon_data = calculate_polygons(
-            ephemeris_data = ephemeris_compressed,
-            time_interval = self.search_params_polygon.time_interval,
-            widening = self.search_params_polygon.widening
+            ephemeris_data=ephemeris_compressed,
+            time_interval=self.search_params_polygon.time_interval,
+            widening=self.search_params_polygon.widening,
         )
 
         if not self.polygon_data:
@@ -207,9 +204,9 @@ class ImPhotController:
         # Search images based on the polygons
         self.logger.info(f"Searching for images intersecting with {len(self.polygon_data)} polygons.")
         self.image_metadata = self.image_service_butler.search_images_polygon(
-            polygons = self.polygon_data,
-            bands = self.search_params_polygon.bands,
-            ephemeris = ephemeris_compressed,
+            polygons=self.polygon_data,
+            bands=self.search_params_polygon.bands,
+            ephemeris=ephemeris_compressed,
         )
 
         return self.image_metadata
@@ -353,7 +350,7 @@ class ImPhotController:
         self,
         target_name: Optional[str] = "target",
         output_folder: str = "./output",
-        all_ellipse_sources: bool = False
+        all_ellipse_sources: bool = False,
     ) -> str:
         """
         Saves all accumulated photometry results ('self.results') to a CSV file.
@@ -393,14 +390,13 @@ class ImPhotController:
         output_path = os.path.join(output_folder, filename)
 
         EndResult.save_results_to_csv(
-            results = self.results,
-            output_file = output_path,
-            include_all_ellipse_sources = all_ellipse_sources,
+            results=self.results,
+            output_file=output_path,
+            include_all_ellipse_sources=all_ellipse_sources,
         )
 
         print(f"Results saved to {output_path}")
         return output_path
-
 
 
     def print_summary(self) -> None:
@@ -434,7 +430,7 @@ class ImPhotController:
 
 # Example usage
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     start_time = time.time()
     controller = ImPhotController(detection_threshold=5, output_folder="./output")
 

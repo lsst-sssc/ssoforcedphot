@@ -62,9 +62,7 @@ class ImageService:
             elif isinstance(ephemeris_data, QueryResult):
                 ephemeris_rows = EphemerisDataCompressed.compress_ephemeris(ephemeris_data)
             else:
-                raise ValueError(
-                    "Ephemeris_data must be a string or a QueryResult objects"
-                )
+                raise ValueError("Ephemeris_data must be a string or a QueryResult objects")
 
             if not ephemeris_rows:
                 self.logger.error("No ephemeris data found")

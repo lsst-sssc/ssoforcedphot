@@ -82,7 +82,7 @@ class PhotometryService:
         output_folder: Optional[str] = None,
         save_json: bool = False,
         json_filename: Optional[str] = None,
-        save_csv: bool =False,
+        save_csv: bool = False,
     ) -> EndResult:
         """
         Process a single image by performing forced photometry at the ephemeris
@@ -180,7 +180,7 @@ class PhotometryService:
                     theta=image_metadata.exact_ephemeris.uncertainty["theta"],
                     center_coord=(
                         image_metadata.exact_ephemeris.ra_deg,
-                        image_metadata.exact_ephemeris.dec_deg
+                        image_metadata.exact_ephemeris.dec_deg,
                     ),
                 )
             else:
@@ -191,7 +191,7 @@ class PhotometryService:
                     theta=0,
                     center_coord=(
                         image_metadata.exact_ephemeris.ra_deg,
-                        image_metadata.exact_ephemeris.dec_deg
+                        image_metadata.exact_ephemeris.dec_deg,
                     ),
                 )
 
@@ -219,8 +219,8 @@ class PhotometryService:
             save_fits=save_fits,
             output_folder=output_folder,
             image_name=base_image_name,
-            image_metadata_for_plot=image_metadata, # Pass full metadata for plot
-            target_name_for_plot=target_name # Pass target name for plot title
+            image_metadata_for_plot=image_metadata,
+            target_name_for_plot=target_name
         )
 
         # Prepare end result
@@ -374,11 +374,7 @@ class PhotometryService:
             if sources_phot_results_list:
                 for src_result in sources_phot_results_list:
                     nearby_skycoords_for_plot.append(
-                        SkyCoord(
-                            ra=src_result.ra,
-                            dec=src_result.dec,
-                            unit="deg"
-                        )
+                        SkyCoord(ra=src_result.ra, dec=src_result.dec, unit="deg")
                     )
 
             plot_title = (
@@ -397,12 +393,12 @@ class PhotometryService:
                     error_ellipse_obj=error_ellipse,
                     nearby_skycoords=nearby_skycoords_for_plot,
                     output_filepath=output_filepath_png,
-                    title=plot_title
+                    title=plot_title,
                 )
                 self.logger.info(f"Diagnostic plot saved successfully to: {output_filepath_png}")
             except Exception as e:
                 self.logger.error(f"Failed to create diagnostic plot: {e}", exc_info=True)
-        elif save_diag_plots: # If save_diag_plots is true but some condition above failed
+        elif save_diag_plots:
             missing_info = []
             if not output_folder:
                 missing_info.append("output_folder")
@@ -459,11 +455,7 @@ class PhotometryService:
         return table
 
     def find_measure_sources(
-        self,
-        visit_image,
-        ra_coord,
-        dec_coord,
-        error_ellipse: Optional[ErrorEllipse] = None
+        self, visit_image, ra_coord, dec_coord, error_ellipse: Optional[ErrorEllipse] = None
     ):
         """
         Detects sources in an image and performs single-frame measurements on them.
@@ -784,8 +776,8 @@ class PhotometryService:
 
         # Prepare forced photometry results for the coordinates
         target_result = PhotometryResult(
-            ra=ra, # Target RA from parameters
-            dec=dec, # Target Dec from parameters
+            ra=ra,
+            dec=dec,
             ra_err=0,
             dec_err=0,
             x=forced_meas_cat[0].get("slot_Centroid_x"),
@@ -793,28 +785,27 @@ class PhotometryService:
             x_err=0,
             y_err=0,
             snr=(
-                forced_meas_cat[0].get("base_PsfFlux_instFlux") /
-                forced_meas_cat[0].get("base_PsfFlux_instFluxErr")
-                if (
-                    len(forced_meas_cat) > 0
-                    and forced_meas_cat[0].get("base_PsfFlux_instFluxErr") > 0
-                )
+                forced_meas_cat[0].get("base_PsfFlux_instFlux") 
+                / forced_meas_cat[0].get("base_PsfFlux_instFluxErr")
+                if (len(forced_meas_cat) > 0 and forced_meas_cat[0].get("base_PsfFlux_instFluxErr") > 0)
                 else 0
             ),
             flux=(
                 forced_meas_cat[0].get("base_PsfFlux_instFlux")
-                if (forced_meas_cat
+                if (
+                    forced_meas_cat
                     and len(forced_meas_cat) > 0
                     and not np.isnan(forced_meas_cat[0].get("base_PsfFlux_instFlux"))
-                   )
+                )
                 else 0
             ),
             flux_err=(
                 forced_meas_cat[0].get("base_PsfFlux_instFluxErr")
-                if (forced_meas_cat
+                if (
+                    forced_meas_cat
                     and len(forced_meas_cat) > 0
                     and forced_meas_cat[0].get("base_PsfFlux_instFluxErr") > 0
-                   )
+                )
                 else 0
             ),
             mag=(
@@ -827,9 +818,10 @@ class PhotometryService:
                 else 0
             ),
             mag_err=(
-                2.5 / np.log(10) *
-                forced_meas_cat[0].get("base_PsfFlux_instFluxErr") /
-                forced_meas_cat[0].get("base_PsfFlux_instFlux")
+                2.5
+                / np.log(10)
+                * forced_meas_cat[0].get("base_PsfFlux_instFluxErr") 
+                / forced_meas_cat[0].get("base_PsfFlux_instFlux")
                 if (
                     forced_meas_cat
                     and len(forced_meas_cat) > 0
@@ -838,8 +830,8 @@ class PhotometryService:
                 )
                 else 0
             ),
-            separation=0, # By definition for the target itself
-            sigma=0,      # By definition for the target itself
+            separation=0,
+            sigma=0,
             flags={},
         )
 
@@ -872,8 +864,8 @@ class PhotometryService:
                         x_err=0,
                         y_err=0,
                         snr=(
-                            meas_record.get("base_PsfFlux_instFlux") /
-                            meas_record.get("base_PsfFlux_instFluxErr")
+                            meas_record.get("base_PsfFlux_instFlux")
+                            / meas_record.get("base_PsfFlux_instFluxErr")
                             if meas_record.get("base_PsfFlux_instFluxErr") > 0
                             else 0
                         ),
@@ -893,9 +885,10 @@ class PhotometryService:
                             else 0
                         ),
                         mag_err=(
-                            2.5 / np.log(10) *
-                            meas_record.get("base_PsfFlux_instFluxErr") /
-                            meas_record.get("base_PsfFlux_instFlux")
+                            2.5 
+                            / np.log(10)
+                            * meas_record.get("base_PsfFlux_instFluxErr")
+                            / meas_record.get("base_PsfFlux_instFlux")
                             if (
                                 meas_record.get("base_PsfFlux_instFlux") > 0
                                 and meas_record.get("base_PsfFlux_instFluxErr") > 0
@@ -917,7 +910,6 @@ class PhotometryService:
                     )
 
         return target_result, sources_phot_results_list
-
 
     def _prepare_end_results(
         self,

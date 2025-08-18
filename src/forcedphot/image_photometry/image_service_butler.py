@@ -17,18 +17,18 @@ class ImageServiceButler:
     """
 
     def __init__(self):
-        self.butler = Butler('dp1', collections='LSSTComCam/DP1')
+        self.butler = Butler("dp1", collections="LSSTComCam/DP1")
         self.logger = logging.getLogger("ImageServiceButler")
 
-    def search_images_polygon(self, polygons: list,
-                                 bands: list[str],
-                                 ephemeris: list[EphemerisDataCompressed]) -> list[ImageMetadata]:
+    def search_images_polygon(
+        self, polygons: list, bands: list[str], ephemeris: list[EphemerisDataCompressed])
+    -> list[ImageMetadata]:
         """
         Searches for images (visit_image) that intersect with given polygons and time ranges,
         then enriches them with metadata and ephemeris information.
 
         Args:
-            polygons: List of dicts, each with 'time_start', 'time_end', 'polygon_corners'.
+            polygons: List of dicts, each with "time_start", "time_end", "polygon_corners".
             bands: List of band names (strings) to search for.
             ephemeris: A list of EphemerisDataCompressed objects.
 
@@ -40,19 +40,19 @@ class ImageServiceButler:
 
         for i, item in enumerate(polygons):
             try:
-                time_start_str = item['time_start']
-                time_end_str = item['time_end']
+                time_start_str = item["time_start"]
+                time_end_str = item["time_end"]
 
                 time_start = Time(time_start_str, format="iso", scale="tai")
                 time_end = Time(time_end_str, format="iso", scale="tai")
                 timespan_search = Timespan(time_start, time_end)
 
-                corners = item['polygon_corners']
+                corners = item["polygon_corners"]
 
                 polygon_string = "POLYGON " + " ".join([f"{c[0]} {c[1]}" for c in corners])
                 region_search = sphgeom.Region.from_ivoa_pos(polygon_string)
 
-                bands_clause = "band.name IN (" + ", ".join([f"'{b}'" for b in bands]) + ")"
+                bands_clause = "band.name IN (" + ", ".join([f""{b}"" for b in bands]) + ")"
                 where_clause = f"""{bands_clause} AND visit.timespan OVERLAPS timespan AND
                 visit_detector_region.region OVERLAPS region"""
 
@@ -63,11 +63,13 @@ class ImageServiceButler:
                 self.logger.debug(f"Polygon {i+1}: Where clause: {where_clause}")
 
                 try:
-                    dataset_refs_for_item = list(self.butler.query_datasets(
-                        "visit_image",
-                        where=where_clause,
-                        bind={"timespan": timespan_search, "region": region_search}
-                    ))
+                    dataset_refs_for_item = list(
+                        self.butler.query_datasets(
+                            "visit_image",
+                            where=where_clause,
+                            bind={"timespan": timespan_search, "region": region_search}
+                        )
+                    )
                     self.logger.info(f"Polygon {i+1}: Found {len(dataset_refs_for_item)} dataset_refs.")
                     all_dataset_refs.extend(dataset_refs_for_item)
                 except Exception as butler_error:
@@ -75,7 +77,8 @@ class ImageServiceButler:
                     if "EmptyQueryResultError" in str(type(butler_error)):
                         self.logger.info(
                             f"""Polygon {i+1}: No datasets found for this polygon (EmptyQueryResultError).
-                            Continuing to next polygon.""")
+                            Continuing to next polygon."""
+                        )
                     else:
                         self.logger.warning(
                             f"""Polygon {i+1}: Butler query failed with error: {butler_error}.
@@ -102,16 +105,16 @@ class ImageServiceButler:
         for ref_idx, ref in enumerate(unique_refs):
             try:
                 self.logger.debug(f"Processing ref {ref_idx + 1}/{len(unique_refs)}: {ref.dataId}")
-                visit_id = ref.dataId['visit']
-                detector_id = ref.dataId['detector']
+                visit_id = ref.dataId["visit"]
+                detector_id = ref.dataId["detector"]
 
-                band_name = ref.dataId['band']
+                band_name = ref.dataId["band"]
 
                 visit_info = self.butler.get("visit_image.visitInfo", visit=visit_id, detector=detector_id)
 
                 t_min = visit_info.date.toAstropy()
                 exp_time = visit_info.exposureTime
-                t_max = t_min + TimeDelta(exp_time, format='sec')
+                t_max = t_min + TimeDelta(exp_time, format="sec")
                 central_ra = visit_info.boresightRaDec.getRa().asDegrees()
                 central_dec = visit_info.boresightRaDec.getDec().asDegrees()
 
@@ -133,12 +136,12 @@ class ImageServiceButler:
                         if len(relevant_eph_for_image) == 1:
                             interp_ra = relevant_eph_for_image[0].ra_deg
                             interp_dec = relevant_eph_for_image[0].dec_deg
-                            exact_eph_for_image = relevant_eph_for_image[0] # Use the single point as "exact"
+                            exact_eph_for_image = relevant_eph_for_image[0]
                             self.logger.debug(
                                 f"""Ref {ref.dataId}: Using single ephem point for exact_eph:
                                 {exact_eph_for_image}"""
                             )
-                        else: # len > 1, interpolate
+                        else:  # len > 1, interpolate
                             # Use first and last points from the *relevant subset* for interpolation span
                             p_start = relevant_eph_for_image[0]
                             p_end = relevant_eph_for_image[-1]
@@ -146,14 +149,17 @@ class ImageServiceButler:
                             self.logger.debug(
                                 f"""Ref {ref.dataId}: Interpolating using start={p_start.datetime.isot},
                                 end={p_end.datetime.isot} for
-                                t_mid={Time(t_mid_mjd, format='mjd', scale='tai').isot}"""
+                                t_mid={Time(t_mid_mjd, format="mjd", scale="tai").isot}"""
                             )
 
                             interp_ra, interp_dec, _ = interpolate_coordinates(
-                                p_start.ra_deg, p_start.dec_deg,
-                                p_end.ra_deg, p_end.dec_deg,
-                                p_start.datetime.mjd, p_end.datetime.mjd,
-                                t_mid_mjd
+                                p_start.ra_deg,
+                                p_start.dec_deg,
+                                p_end.ra_deg,
+                                p_end.dec_deg,
+                                p_start.datetime.mjd,
+                                p_end.datetime.mjd,
+                                t_mid_mjd,
                             )
 
                             # Find the point closest to t_mid_mjd for rates/uncertainty
@@ -161,8 +167,9 @@ class ImageServiceButler:
                                 relevant_eph_for_image, key=lambda eph: abs(eph.datetime.mjd - t_mid_mjd)
                             )
                             exact_eph_for_image = EphemerisDataCompressed(
-                                datetime=Time(t_mid_mjd, format='mjd', scale='tai'),
-                                ra_deg=interp_ra, dec_deg=interp_dec,
+                                datetime=Time(t_mid_mjd, format="mjd", scale="tai"),
+                                ra_deg=interp_ra,
+                                dec_deg=interp_dec,
                                 ra_rate=closest_eph_for_aux_data.ra_rate,
                                 dec_rate=closest_eph_for_aux_data.dec_rate,
                                 # uncertainty=closest_eph_for_aux_data.uncertainty
@@ -194,15 +201,15 @@ class ImageServiceButler:
                     t_min=t_min,
                     t_max=t_max,
                     ephemeris_data=relevant_eph_for_image,
-                    exact_ephemeris=exact_eph_for_image
+                    exact_ephemeris=exact_eph_for_image,
                 )
                 image_metadata_list.append(image_meta)
                 self.logger.debug(f"Successfully created ImageMetadata for visit_id {visit_id}")
 
             except Exception as e:
                 self.logger.error(
-                    f"Error processing dataset ref {ref.dataId if ref else 'N/A'} (index {ref_idx}): {e}",
-                    exc_info=True
+                    f"Error processing dataset ref {ref.dataId if ref else "N/A"} (index {ref_idx}): {e}",
+                    exc_info=True,
                 )
                 # Continue to next ref if one fails
                 continue

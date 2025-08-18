@@ -330,7 +330,7 @@ class EphemerisTab:
         event : pn.viewable.singles.Button
             The button click event (unused, but required by Panel's on_click signature).
         """
-        await gen.sleep(0.01) # Allow Panel to update the UI before long operations
+        await gen.sleep(0.01)
         if self.ephemeris_source.value == "Upload ECSV":
             root_logger.info("Processing uploaded ECSV file.")
             if not self.file_upload.value:
@@ -502,7 +502,7 @@ class ImageTab:
                     "### Polygon Options",
                     self.widening,
                     self.time_interval,
-                    visible=pn.bind(lambda method: method == "Polygon", self.search_method.param.value)
+                    visible=pn.bind(lambda method: method == "Polygon", self.search_method.param.value),
                 ),
                 self.run_button,
                 sizing_mode="stretch_width",
@@ -602,8 +602,7 @@ class PhotometryTab:
         self.save_json = pn.widgets.Checkbox(name="Save Result to JSON", value=False)
         self.save_csv = pn.widgets.Checkbox(name="Save Result to csv", value=False)
         self.error_ellipse_sources = pn.widgets.Checkbox(
-            name="Save all the sources within the error ellipse",
-            value=False
+            name="Save all the sources within the error ellipse", value=False
         )
         self.output_folder = pn.widgets.TextInput(name="Output folder", value="./output")
         self.run_button = pn.widgets.Button(name="Run Photometry", button_type="primary")
@@ -688,7 +687,7 @@ class PhotometryTab:
                 "min_cutout_size": self.cutout_size.value,
                 "override_error": self.override_error.value,
                 "save_diag_plots": self.save_diag_plots.value,
-                "save_fits" : self.save_fits.value,
+                "save_fits": self.save_fits.value,
                 "display": self.display.value,
                 "save_json": self.save_json.value,
                 "save_csv": self.save_csv.value,
@@ -824,8 +823,7 @@ class CompleteRunTab:
         self.save_json = pn.widgets.Checkbox(name="Save Result to JSON", value=False)
         self.save_csv = pn.widgets.Checkbox(name="Save Result to csv", value=False)
         self.error_ellipse_sources = pn.widgets.Checkbox(
-            name="Save all the sources within the error ellipse",
-            value=False
+            name="Save all the sources within the error ellipse", value=False
         )
         self.output_folder = pn.widgets.TextInput(name="Output folder", value="./output")
 
@@ -838,25 +836,19 @@ class CompleteRunTab:
         self.step_value.disabled = pn.bind(lambda s: s == "Upload ECSV", self.ephemeris_source.param.value)
         self.step_unit.disabled = pn.bind(lambda s: s == "Upload ECSV", self.ephemeris_source.param.value)
         self.save_ephem_data.disabled = pn.bind(
-            lambda s: s == "Upload ECSV",
-            self.ephemeris_source.param.value
+            lambda s: s == "Upload ECSV", self.ephemeris_source.param.value
         )
 
         # Visibility for polygon options in Image section
         self.widening.visible = pn.bind(lambda method: method == "Polygon", self.search_method.param.value)
         self.time_interval.visible = pn.bind(
-            lambda method: method == "Polygon",
-            self.search_method.param.value
+            lambda method: method == "Polygon", self.search_method.param.value
         )
 
         # Combined visibility for output_folder
         self.output_folder.visible = pn.bind(
             lambda save_eph, save_diag, save_fits, save_js, save_csv: (
-                save_eph
-                or save_diag
-                or save_fits
-                or save_js
-                or save_csv
+                save_eph or save_diag or save_fits or save_js or save_csv
             ),
             self.save_ephem_data.param.value,
             self.save_diag_plots.param.value,
@@ -923,8 +915,7 @@ class CompleteRunTab:
                             self.widening,
                             self.time_interval,
                             visible=pn.bind(
-                                lambda method: method == "Polygon",
-                                self.search_method.param.value
+                                lambda method: method == "Polygon", self.search_method.param.value
                             )
                         ),
                     ),

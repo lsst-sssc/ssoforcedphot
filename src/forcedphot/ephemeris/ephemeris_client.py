@@ -49,7 +49,7 @@ class EphemerisClient:
         step: str,
         observer_location: str,
         save_ephem_data: bool = DEFAULT_save_ephemeris_data,
-        output_folder: str = "./output"
+        output_folder: str = "./output",
     ) -> Union[QueryInput, None]:
         """
         Query ephemeris for a single target using the specified service.
@@ -87,9 +87,7 @@ class EphemerisClient:
             self.logger.info(f"Querying {service} for target: {target}")
 
             return interface.query_single_range(
-                query=query,
-                save_ephem_data=save_ephem_data,
-                output_folder=output_folder
+                query=query, save_ephem_data=save_ephem_data, output_folder=output_folder
             )
 
         except Exception as e:
@@ -153,7 +151,7 @@ class EphemerisClient:
                         query.step,
                         observer_location,
                         save_ephem_data=save_ephem_data,
-                        output_folder=output_folder
+                        output_folder=output_folder,
                     )
 
                     if query_result is not None:

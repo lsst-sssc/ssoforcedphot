@@ -56,21 +56,21 @@ def create_diagnostic_plot(
         # Display the image
         image_array = image_exposure.image.array
         norm = ImageNormalize(image_array, interval=ZScaleInterval())
-        ax.imshow(image_array, origin='lower', cmap='gray', norm=norm)
+        ax.imshow(image_array, origin="lower", cmap="gray", norm=norm)
 
         # Add WCS gridlines.
-        ax.grid(color='black', linestyle='dotted', linewidth=0.5)
+        ax.grid(color="black", linestyle="dotted", linewidth=0.5)
 
         # Plot target
         ax.plot(
             target_skycoord.ra.deg,
             target_skycoord.dec.deg,
-            'o', markersize=3,
-            markerfacecolor='none',
+            "o", markersize=3,
+            markerfacecolor="none",
             markeredgewidth=0.5,
-            markeredgecolor='red',
-            label='Target',
-            transform=ax.get_transform('world')
+            markeredgecolor="red",
+            label="Target",
+            transform=ax.get_transform("world")
         )
 
         # Plot error ellipse
@@ -78,10 +78,10 @@ def create_diagnostic_plot(
         ax.plot(
             ellipse_ra,
             ellipse_dec,
-            'r--',
+            "r--",
             linewidth = 0.5,
-            label='Error Ellipse',
-            transform=ax.get_transform('world')
+            label="Error Ellipse",
+            transform=ax.get_transform("world")
         )
 
         # Plot nearby sources
@@ -95,11 +95,11 @@ def create_diagnostic_plot(
             ax.plot(
                 nearby_ra_degrees,
                 nearby_dec_degrees,
-                'bo', markersize=3,
-                mfc='none',
+                "bo", markersize=3,
+                mfc="none",
                 markeredgewidth=0.5,
-                label='Nearby Sources',
-                transform=ax.get_transform('world')
+                label="Nearby Sources",
+                transform=ax.get_transform("world")
             )
 
         # Set labels and title
@@ -118,5 +118,5 @@ def create_diagnostic_plot(
         raise
     finally:
         # Ensure the figure is closed
-        if 'fig' in locals() and plt.fignum_exists(fig.number):
+        if "fig" in locals() and plt.fignum_exists(fig.number):
             plt.close(fig)

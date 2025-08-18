@@ -169,10 +169,7 @@ class MiriadeInterface:
         return query_miriade
 
     def save_miriade_data_to_ecsv(
-        self,
-        query_input,
-        ephemeris_data,
-        output_folder: Optional[str] = "./output"
+        self, query_input, ephemeris_data, output_folder: Optional[str] = "./output"
     ):
         """
         Save queried ephemeris data to an ECSV file.
@@ -274,10 +271,7 @@ class MiriadeInterface:
         self.logger.info(f"Ephemeris data successfully saved to {output_filename}")
 
     def query_single_range(
-        self,
-        query: QueryInput,
-        save_ephem_data: bool = False,
-        output_folder: Optional[str] = "./output"
+        self, query: QueryInput, save_ephem_data: bool = False, output_folder: Optional[str] = "./output"
     ):
         """
         Query Miriade for ephemeris data within a single time range.

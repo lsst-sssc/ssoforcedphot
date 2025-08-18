@@ -57,7 +57,7 @@ def test_run_ephemeris_query_csv(odc_instance):
     assert result == "mock_result"
 
 
-# @patch('odc.Time')
+# @patch("odc.Time")
 # def test_run_ephemeris_query_single(mock_time, odc_instance):
 #     """Test single target query."""
 #     odc_instance.args.target_name = "2023 ABC"
@@ -109,7 +109,7 @@ def test_run_photometry(odc_instance):
         cutout_size=odc_instance.args.min_cutout_size,
         override_error=0,
         display=False,
-        output_folder='./output',
+        output_folder="./output",
     )
 
 
@@ -154,7 +154,7 @@ def test_api_connection_ephemeris(odc_instance):
 
 
 def test_run_service_selection_all(odc_instance):
-    """Test run method with service_selection='all'."""
+    """Test run method with service_selection="all"."""
     odc_instance.parse_args = MagicMock()
     odc_instance.args.service_selection = "all"
     odc_instance.run_ephemeris_query = MagicMock(return_value=MagicMock())
@@ -162,4 +162,4 @@ def test_run_service_selection_all(odc_instance):
     odc_instance.run_photometry = MagicMock()
     odc_instance.run()
     odc_instance.run_ephemeris_query.assert_called_once()
-    odc_instance.run_photometry.assert_called_once_with(["img"], './output')
+    odc_instance.run_photometry.assert_called_once_with(["img"], "./output")
