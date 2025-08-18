@@ -573,33 +573,37 @@ class EndResult:
         }
 
         # Uncertainty data
-        row.update({
-            "uncertainty_rss": self.uncertainty.get("rss", None),
-            "uncertainty_smaa": self.uncertainty.get("smaa", None),
-            "uncertainty_smia": self.uncertainty.get("smia", None),
-            "uncertainty_theta": self.uncertainty.get("theta", None),
-        })
+        row.update(
+            {
+                "uncertainty_rss": self.uncertainty.get("rss", None),
+                "uncertainty_smaa": self.uncertainty.get("smaa", None),
+                "uncertainty_smia": self.uncertainty.get("smia", None),
+                "uncertainty_theta": self.uncertainty.get("theta", None),
+            }
+        )
 
         # Forced photometry on target
         if self.forced_phot_on_target:
             forced_phot = self.forced_phot_on_target
-            row.update({
-                "forced_phot_ra": forced_phot.ra,
-                "forced_phot_dec": forced_phot.dec,
-                "forced_phot_ra_err": forced_phot.ra_err,
-                "forced_phot_dec_err": forced_phot.dec_err,
-                "forced_phot_x": forced_phot.x,
-                "forced_phot_y": forced_phot.y,
-                "forced_phot_x_err": forced_phot.x_err,
-                "forced_phot_y_err": forced_phot.y_err,
-                "forced_phot_snr": forced_phot.snr,
-                "forced_phot_flux": forced_phot.flux,
-                "forced_phot_flux_err": forced_phot.flux_err,
-                "forced_phot_mag": forced_phot.mag,
-                "forced_phot_mag_err": forced_phot.mag_err,
-                "forced_phot_separation": forced_phot.separation,
-                "forced_phot_sigma": forced_phot.sigma,
-            })
+            row.update(
+                {
+                    "forced_phot_ra": forced_phot.ra,
+                    "forced_phot_dec": forced_phot.dec,
+                    "forced_phot_ra_err": forced_phot.ra_err,
+                    "forced_phot_dec_err": forced_phot.dec_err,
+                    "forced_phot_x": forced_phot.x,
+                    "forced_phot_y": forced_phot.y,
+                    "forced_phot_x_err": forced_phot.x_err,
+                    "forced_phot_y_err": forced_phot.y_err,
+                    "forced_phot_snr": forced_phot.snr,
+                    "forced_phot_flux": forced_phot.flux,
+                    "forced_phot_flux_err": forced_phot.flux_err,
+                    "forced_phot_mag": forced_phot.mag,
+                    "forced_phot_mag_err": forced_phot.mag_err,
+                    "forced_phot_separation": forced_phot.separation,
+                    "forced_phot_sigma": forced_phot.sigma,
+                }
+            )
 
             # Handle flags
             if forced_phot.flags:
@@ -612,23 +616,25 @@ class EndResult:
         # If there are sources in the ellipse, add the first/best one
         if self.phot_within_error_ellipse:
             best_source = self.phot_within_error_ellipse[0]  # Assuming first is best
-            row.update({
-                "ellipse_source_ra": best_source.ra,
-                "ellipse_source_dec": best_source.dec,
-                "ellipse_source_ra_err": best_source.ra_err,
-                "ellipse_source_dec_err": best_source.dec_err,
-                "ellipse_source_x": best_source.x,
-                "ellipse_source_y": best_source.y,
-                "ellipse_source_x_err": best_source.x_err,
-                "ellipse_source_y_err": best_source.y_err,
-                "ellipse_source_snr": best_source.snr,
-                "ellipse_source_flux": best_source.flux,
-                "ellipse_source_flux_err": best_source.flux_err,
-                "ellipse_source_mag": best_source.mag,
-                "ellipse_source_mag_err": best_source.mag_err,
-                "ellipse_source_separation": best_source.separation,
-                "ellipse_source_sigma": best_source.sigma,
-            })
+            row.update(
+                {
+                    "ellipse_source_ra": best_source.ra,
+                    "ellipse_source_dec": best_source.dec,
+                    "ellipse_source_ra_err": best_source.ra_err,
+                    "ellipse_source_dec_err": best_source.dec_err,
+                    "ellipse_source_x": best_source.x,
+                    "ellipse_source_y": best_source.y,
+                    "ellipse_source_x_err": best_source.x_err,
+                    "ellipse_source_y_err": best_source.y_err,
+                    "ellipse_source_snr": best_source.snr,
+                    "ellipse_source_flux": best_source.flux,
+                    "ellipse_source_flux_err": best_source.flux_err,
+                    "ellipse_source_mag": best_source.mag,
+                    "ellipse_source_mag_err": best_source.mag_err,
+                    "ellipse_source_separation": best_source.separation,
+                    "ellipse_source_sigma": best_source.sigma,
+                }
+            )
 
             # Handle flags for best source
             if best_source.flags:
@@ -637,11 +643,10 @@ class EndResult:
 
         return row
 
-
     def save_results_to_csv(
         results: Union[list["EndResult"], "EndResult"],
         output_file: Union[str, Path],
-        include_all_ellipse_sources: bool = False
+        include_all_ellipse_sources: bool = False,
     ) -> None:
         """
         Save EndResult instances to CSV file.
@@ -675,24 +680,26 @@ class EndResult:
                     row = result.to_csv_row()
 
                     # Override the ellipse_source fields with current source
-                    row.update({
-                        "ellipse_source_index": i,
-                        "ellipse_source_ra": source.ra,
-                        "ellipse_source_dec": source.dec,
-                        "ellipse_source_ra_err": source.ra_err,
-                        "ellipse_source_dec_err": source.dec_err,
-                        "ellipse_source_x": source.x,
-                        "ellipse_source_y": source.y,
-                        "ellipse_source_x_err": source.x_err,
-                        "ellipse_source_y_err": source.y_err,
-                        "ellipse_source_snr": source.snr,
-                        "ellipse_source_flux": source.flux,
-                        "ellipse_source_flux_err": source.flux_err,
-                        "ellipse_source_mag": source.mag,
-                        "ellipse_source_mag_err": source.mag_err,
-                        "ellipse_source_separation": source.separation,
-                        "ellipse_source_sigma": source.sigma,
-                    })
+                    row.update(
+                        {
+                            "ellipse_source_index": i,
+                            "ellipse_source_ra": source.ra,
+                            "ellipse_source_dec": source.dec,
+                            "ellipse_source_ra_err": source.ra_err,
+                            "ellipse_source_dec_err": source.dec_err,
+                            "ellipse_source_x": source.x,
+                            "ellipse_source_y": source.y,
+                            "ellipse_source_x_err": source.x_err,
+                            "ellipse_source_y_err": source.y_err,
+                            "ellipse_source_snr": source.snr,
+                            "ellipse_source_flux": source.flux,
+                            "ellipse_source_flux_err": source.flux_err,
+                            "ellipse_source_mag": source.mag,
+                            "ellipse_source_mag_err": source.mag_err,
+                            "ellipse_source_separation": source.separation,
+                            "ellipse_source_sigma": source.sigma,
+                        }
+                    )
 
                     # Handle flags
                     if source.flags:

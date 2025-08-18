@@ -136,9 +136,7 @@ class ObjectDetectionController:
             help="List of filters for image search (e.g., --filters g r i)",
         )
 
-        parser.add_argument(
-            "--output-folder", default="./output", help="Directory to save all output files"
-        )
+        parser.add_argument("--output-folder", default="./output", help="Directory to save all output files")
 
         parser.add_argument(
             "--min-cutout-size",
@@ -331,9 +329,7 @@ class ObjectDetectionController:
             self.parser.error("Either provide a CSV/ECSV file or all single query parameters")
 
     def run_image_query(
-        self,
-        ephemeris_results: Optional[dict] = None,
-        search_method: Optional[str] = "point"
+        self, ephemeris_results: Optional[dict] = None, search_method: Optional[str] = "point"
     ) -> list[Any]:
         """
         Execute image search using ephemeris data with the specified search method.
@@ -409,9 +405,7 @@ class ObjectDetectionController:
         return image_metadata
 
     def run_photometry(
-        self,
-        image_results: list[Any],
-        output_folder: Optional[str] = "./output"
+        self, image_results: list[Any], output_folder: Optional[str] = "./output"
     ) -> list[Any]:
         """
         Execute photometry on the retrieved image results.
@@ -458,16 +452,16 @@ class ObjectDetectionController:
         )
         if self.args.save_json:
             self.imphot_controller.save_results_to_json(
-                    target_name=self.args.target,
-                    output_folder=self.args.output_folder,
-                )
+                target_name=self.args.target,
+                output_folder=self.args.output_folder,
+            )
 
         if self.args.save_csv:
             self.imphot_controller.save_results_to_csv(
-                    target_name=self.args.target,
-                    output_folder=self.args.output_folder,
-                    all_ellipse_sources=self.args.all_ellipse_sources,
-                )
+                target_name=self.args.target,
+                output_folder=self.args.output_folder,
+                all_ellipse_sources=self.args.all_ellipse_sources,
+            )
 
         self.imphot_controller.print_summary()
 
@@ -564,8 +558,7 @@ class ObjectDetectionController:
                                 "observer_location", EphemerisClient.DEFAULT_OBSERVER_LOCATION
                             ),
                             save_ephem_data=ephemeris_input.get(
-                                "save_ephem_data",
-                                EphemerisClient.DEFAUT_save_ephem_data
+                                "save_ephem_data", EphemerisClient.DEFAUT_save_ephem_data
                             ),
                             output_folder=self.args.output_folder,
                         )
@@ -606,8 +599,7 @@ class ObjectDetectionController:
                 # Pass the search method to run_image_query
                 search_method = image_params.get("image_search_method")
                 self.image_results = self.run_image_query(
-                    ephemeris_results = ephemeris_data["ephemeris"],
-                    search_method = search_method
+                    ephemeris_results = ephemeris_data["ephemeris"], search_method = search_method
                 )
 
                 results["image"] = [asdict(md) for md in self.image_results] if self.image_results else None
@@ -674,6 +666,7 @@ class ObjectDetectionController:
                 # print(photometry_results)
 
         print(f"The total duration of the process was {(time.time()-start_time)/60:.2f} minutes.")
+
 
 if __name__ == "__main__":
     controller = ObjectDetectionController()

@@ -220,7 +220,7 @@ class PhotometryService:
             output_folder=output_folder,
             image_name=base_image_name,
             image_metadata_for_plot=image_metadata,
-            target_name_for_plot=target_name
+            target_name_for_plot=target_name,
         )
 
         # Prepare end result
@@ -785,7 +785,7 @@ class PhotometryService:
             x_err=0,
             y_err=0,
             snr=(
-                forced_meas_cat[0].get("base_PsfFlux_instFlux") 
+                forced_meas_cat[0].get("base_PsfFlux_instFlux")
                 / forced_meas_cat[0].get("base_PsfFlux_instFluxErr")
                 if (len(forced_meas_cat) > 0 and forced_meas_cat[0].get("base_PsfFlux_instFluxErr") > 0)
                 else 0
@@ -820,7 +820,7 @@ class PhotometryService:
             mag_err=(
                 2.5
                 / np.log(10)
-                * forced_meas_cat[0].get("base_PsfFlux_instFluxErr") 
+                * forced_meas_cat[0].get("base_PsfFlux_instFluxErr")
                 / forced_meas_cat[0].get("base_PsfFlux_instFlux")
                 if (
                     forced_meas_cat
@@ -885,7 +885,7 @@ class PhotometryService:
                             else 0
                         ),
                         mag_err=(
-                            2.5 
+                            2.5
                             / np.log(10)
                             * meas_record.get("base_PsfFlux_instFluxErr")
                             / meas_record.get("base_PsfFlux_instFlux")

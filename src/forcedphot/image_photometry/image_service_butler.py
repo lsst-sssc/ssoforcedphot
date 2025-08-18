@@ -21,8 +21,8 @@ class ImageServiceButler:
         self.logger = logging.getLogger("ImageServiceButler")
 
     def search_images_polygon(
-        self, polygons: list, bands: list[str], ephemeris: list[EphemerisDataCompressed])
-    -> list[ImageMetadata]:
+        self, polygons: list, bands: list[str], ephemeris: list[EphemerisDataCompressed]
+    ) -> list[ImageMetadata]:
         """
         Searches for images (visit_image) that intersect with given polygons and time ranges,
         then enriches them with metadata and ephemeris information.

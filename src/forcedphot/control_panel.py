@@ -916,7 +916,7 @@ class CompleteRunTab:
                             self.time_interval,
                             visible=pn.bind(
                                 lambda method: method == "Polygon", self.search_method.param.value
-                            )
+                            ),
                         ),
                     ),
                     title="Image Search Settings",

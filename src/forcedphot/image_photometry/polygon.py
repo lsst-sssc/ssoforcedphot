@@ -24,14 +24,14 @@ def calculate_polygons(ephemeris_data: list[EphemerisDataCompressed], time_inter
     Returns:
         list[dict]: A list of dictionaries, where each dictionary represents a
         calculated polygon and contains:
-            - 'time_start' (str): ISO timestamp of the segment's start.
-            - 'time_end' (str): ISO timestamp of the segment's end.
-            - 'polygon_corners' (list): A list of (RA, Dec) tuples in degrees
+            - "time_start" (str): ISO timestamp of the segment"s start.
+            - "time_end" (str): ISO timestamp of the segment"s end.
+            - "polygon_corners" (list): A list of (RA, Dec) tuples in degrees
               for the four corners of the polygon.
     """
     # --- 1. Input Validation ---
     if isinstance(ephemeris_data, QueryResult):
-                ephemeris_rows = EphemerisDataCompressed.compress_ephemeris(ephemeris_data)
+        ephemeris_rows = EphemerisDataCompressed.compress_ephemeris(ephemeris_data)
     else:
         ephemeris_rows = ephemeris_data
 
@@ -55,10 +55,10 @@ def calculate_polygons(ephemeris_data: list[EphemerisDataCompressed], time_inter
         # We take the last two points to form the final segment.
         if len(segment_points) < 2:
             if len(ephemeris_rows) - current_index < 2:
-                break # Not enough points left for a final segment
+                break
             segment_points = ephemeris_rows[-2:]
             end_point = segment_points[-1]
-            current_index = len(ephemeris_rows) # End loop
+            current_index = len(ephemeris_rows)
         else:
             end_point = segment_points[-1]
             # Find the index of the end_point to set up the next iteration
@@ -68,8 +68,8 @@ def calculate_polygons(ephemeris_data: list[EphemerisDataCompressed], time_inter
 
 
         # --- 2b. Calculate Polygon for the current segment ---
-        a = SkyCoord(ra=start_point.ra_deg, dec=start_point.dec_deg, unit='deg', frame='icrs')
-        b = SkyCoord(ra=end_point.ra_deg, dec=end_point.dec_deg, unit='deg', frame='icrs')
+        a = SkyCoord(ra=start_point.ra_deg, dec=start_point.dec_deg, unit="deg", frame="icrs")
+        b = SkyCoord(ra=end_point.ra_deg, dec=end_point.dec_deg, unit="deg", frame="icrs")
 
         separation_ab = a.separation(b)
         pa_ab = a.position_angle(b) if separation_ab > 1e-10 * u.arcsec else 0.0 * u.deg
@@ -95,10 +95,12 @@ def calculate_polygons(ephemeris_data: list[EphemerisDataCompressed], time_inter
         ]
 
         # --- 2c. Store the calculated polygon ---
-        all_polygons.append({
-            'time_start': start_point.datetime.iso,
-            'time_end': end_point.datetime.iso,
-            'polygon_corners': polygon_corners
-        })
+        all_polygons.append(
+            {
+                "time_start": start_point.datetime.iso,
+                "time_end": end_point.datetime.iso,
+                "polygon_corners": polygon_corners
+            }
+        )
 
     return all_polygons

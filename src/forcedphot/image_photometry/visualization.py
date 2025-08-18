@@ -11,7 +11,7 @@ def create_diagnostic_plot(
     error_ellipse_obj,
     nearby_skycoords,
     output_filepath,
-    title=None
+    title=None,
 ):
     """
     Generates and saves a diagnostic plot for forced photometry.
@@ -65,12 +65,13 @@ def create_diagnostic_plot(
         ax.plot(
             target_skycoord.ra.deg,
             target_skycoord.dec.deg,
-            "o", markersize=3,
+            "o",
+            markersize=3,
             markerfacecolor="none",
             markeredgewidth=0.5,
             markeredgecolor="red",
             label="Target",
-            transform=ax.get_transform("world")
+            transform=ax.get_transform("world"),
         )
 
         # Plot error ellipse
@@ -79,9 +80,9 @@ def create_diagnostic_plot(
             ellipse_ra,
             ellipse_dec,
             "r--",
-            linewidth = 0.5,
+            linewidth=0.5,
             label="Error Ellipse",
-            transform=ax.get_transform("world")
+            transform=ax.get_transform("world"),
         )
 
         # Plot nearby sources
@@ -91,15 +92,16 @@ def create_diagnostic_plot(
             nearby_ra_degrees.append(nearby_coord.ra.deg)
             nearby_dec_degrees.append(nearby_coord.dec.deg)
 
-        if nearby_ra_degrees: # Only plot if there are nearby sources
+        if nearby_ra_degrees:
             ax.plot(
                 nearby_ra_degrees,
                 nearby_dec_degrees,
-                "bo", markersize=3,
+                "bo",
+                markersize=3,
                 mfc="none",
                 markeredgewidth=0.5,
                 label="Nearby Sources",
-                transform=ax.get_transform("world")
+                transform=ax.get_transform("world"),
             )
 
         # Set labels and title

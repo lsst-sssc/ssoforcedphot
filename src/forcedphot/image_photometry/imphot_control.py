@@ -398,7 +398,6 @@ class ImPhotController:
         print(f"Results saved to {output_path}")
         return output_path
 
-
     def print_summary(self) -> None:
         """
         Prints a consolidated, human-readable summary of all processed photometry results.
@@ -425,7 +424,6 @@ class ImPhotController:
                     print(f"  Source {j}: Separation = {source.separation:.2f} arcsec")
                     print(f"    Flux: {source.flux:.2f} ± {source.flux_err:.2f} nJy")
                     print(f"    Sigma: {source.sigma:.2f}σ")
-
 
 
 # Example usage
