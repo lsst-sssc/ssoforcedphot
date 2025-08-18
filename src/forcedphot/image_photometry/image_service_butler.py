@@ -52,7 +52,7 @@ class ImageServiceButler:
                 polygon_string = "POLYGON " + " ".join([f"{c[0]} {c[1]}" for c in corners])
                 region_search = sphgeom.Region.from_ivoa_pos(polygon_string)
 
-                bands_clause = "band.name IN (" + ", ".join([f""{b}"" for b in bands]) + ")"
+                bands_clause = "band.name IN (" + ", ".join([f"'{b}'" for b in bands]) + ")"
                 where_clause = f"""{bands_clause} AND visit.timespan OVERLAPS timespan AND
                 visit_detector_region.region OVERLAPS region"""
 

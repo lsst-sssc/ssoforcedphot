@@ -66,7 +66,6 @@ def calculate_polygons(ephemeris_data: list[EphemerisDataCompressed], time_inter
             end_point_global_index = ephemeris_rows.index(end_point)
             current_index = end_point_global_index + 1
 
-
         # --- 2b. Calculate Polygon for the current segment ---
         a = SkyCoord(ra=start_point.ra_deg, dec=start_point.dec_deg, unit="deg", frame="icrs")
         b = SkyCoord(ra=end_point.ra_deg, dec=end_point.dec_deg, unit="deg", frame="icrs")
@@ -99,7 +98,7 @@ def calculate_polygons(ephemeris_data: list[EphemerisDataCompressed], time_inter
             {
                 "time_start": start_point.datetime.iso,
                 "time_end": end_point.datetime.iso,
-                "polygon_corners": polygon_corners
+                "polygon_corners": polygon_corners,
             }
         )
 

@@ -306,7 +306,6 @@ class ObjectDetectionController:
             target_name = self.args.target if self.args.target else "UploadedECSV"
             return QueryResult(target_name, self.args.start_time, self.args.end_time, ephemeris_data)
 
-
         # Batch process from csv file
         elif self.args.csv:
             return self.ephemeris_client.query_from_csv(
@@ -599,7 +598,7 @@ class ObjectDetectionController:
                 # Pass the search method to run_image_query
                 search_method = image_params.get("image_search_method")
                 self.image_results = self.run_image_query(
-                    ephemeris_results = ephemeris_data["ephemeris"], search_method = search_method
+                    ephemeris_results=ephemeris_data["ephemeris"], search_method=search_method
                 )
 
                 results["image"] = [asdict(md) for md in self.image_results] if self.image_results else None
