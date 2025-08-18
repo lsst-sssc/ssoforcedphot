@@ -644,6 +644,7 @@ class EndResult:
         return row
 
     def save_results_to_csv(
+        self,
         results: Union[list["EndResult"], "EndResult"],
         output_file: Union[str, Path],
         include_all_ellipse_sources: bool = False,
