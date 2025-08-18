@@ -12,19 +12,19 @@ import logging
 import os
 import time
 from dataclasses import asdict
-from typing import Optional, Any
+from typing import Any, Optional
 
-from image_photometry.image_service_butler import ImageServiceButler
 from image_photometry.image_service import ImageService
+from image_photometry.image_service_butler import ImageServiceButler
 from image_photometry.photometry_service import PhotometryService
 from image_photometry.polygon import calculate_polygons
 from image_photometry.utils import (
-    QueryResult,
     EndResult,
+    EphemerisDataCompressed,
     ImageMetadata,
+    QueryResult,
     SearchParameters,
     SearchParametersPolygon,
-    EphemerisDataCompressed,
 )
 
 
@@ -42,25 +42,25 @@ class ImPhotController:
 
     Attributes:
         image_service (ImageService): An instance of 'ImageService' for
-                                      ObsCore-based image search operations.
+            ObsCore-based image search operations.
         image_service_butler (ImageServiceButler): An instance of 'ImageServiceButler'
-                                                 for Butler-based image search (e.g., polygon search).
+            for Butler-based image search (e.g., polygon search).
         phot_service (PhotometryService): An instance of 'PhotometryService' for
-                                          performing photometry measurements.
+            performing photometry measurements.
         search_params (Optional[SearchParameters]): Stores configuration for point-based image search.
-                                                  Initialized to None and set by 'configure_search'.
-        search_params_polygon (Optional[SearchParametersPolygon]): Stores configuration for polygon-based image search.
-                                                                 Initialized to None and set by 'configure_search'.
+            Initialized to None and set by 'configure_search'.
+        search_params_polygon (Optional[SearchParametersPolygon]): Stores configuration for polygon-based
+            image search. Initialized to None and set by 'configure_search'.
         polygon_data (Optional[list]): Stores the list of calculated polygon corners and time boundaries
-                                       if a polygon-based search is performed.
+            if a polygon-based search is performed.
         image_metadata (Optional[list[ImageMetadata]]): Stores the list of 'ImageMetadata' objects
-                                                        retrieved from the image search.
+            retrieved from the image search.
         results (list[EndResult]): A list of 'EndResult' objects, each containing the
-                                   aggregated photometry results for a processed image.
+            aggregated photometry results for a processed image.
         output_folder (str): The directory path where output files (JSON, CSV, diagnostic plots, FITS)
-                             will be saved.
+            will be saved.
         detection_threshold (float): The Signal-to-Noise Ratio (SNR) threshold used for source detection
-                                     within the 'PhotometryService'.
+            within the 'PhotometryService'.
     """
 
     def __init__(self, detection_threshold: float = 5, output_folder: str = "./output"):
@@ -94,7 +94,13 @@ class ImPhotController:
         self.output_folder = output_folder
         # os.makedirs(self.output_folder, exist_ok=True)
 
-    def configure_search(self, bands: set[str], ephemeris_data: Any, time_interval: Optional[float] = 5, widening: Optional[float] = 1) -> None:
+    def configure_search(
+        self,
+        bands: set[str],
+        ephemeris_data: Any,
+        time_interval: Optional[float] = 5,
+        widening: Optional[float] = 1
+    ) -> None:
         """
         Set up the search parameters for image retrieval, supporting both
         point-based and polygon-based search methods.
@@ -120,7 +126,12 @@ class ImPhotController:
             side of the ephemeris path, used to define the polygon. Defaults to 1.0 arcsec.
         """
         self.search_params = SearchParameters(bands=bands, ephemeris_file=ephemeris_data)
-        self.search_params_polygon = SearchParametersPolygon(bands=bands, ephemeris_file=ephemeris_data, time_interval=time_interval, widening=widening)
+        self.search_params_polygon = SearchParametersPolygon(
+            bands=bands,
+            ephemeris_file=ephemeris_data,
+            time_interval=time_interval,
+            widening=widening
+        )
 
     def search_images(self) -> list[ImageMetadata]:
         """
@@ -177,7 +188,9 @@ class ImPhotController:
             f"and widening: {self.search_params_polygon.widening} arcsec"
         )
         if isinstance(self.search_params_polygon.ephemeris_file, QueryResult):
-                ephemeris_compressed = EphemerisDataCompressed.compress_ephemeris(self.search_params_polygon.ephemeris_file)
+                ephemeris_compressed = EphemerisDataCompressed.compress_ephemeris(
+                    self.search_params_polygon.ephemeris_file
+                )
         else:
             ephemeris_compressed = self.search_params_polygon.ephemeris_file
 
@@ -186,11 +199,11 @@ class ImPhotController:
             time_interval = self.search_params_polygon.time_interval,
             widening = self.search_params_polygon.widening
         )
-        
+
         if not self.polygon_data:
             self.logger.warning("Polygon calculation resulted in no data. Aborting search.")
             return []
-        
+
         # Search images based on the polygons
         self.logger.info(f"Searching for images intersecting with {len(self.polygon_data)} polygons.")
         self.image_metadata = self.image_service_butler.search_images_polygon(
@@ -200,7 +213,7 @@ class ImPhotController:
         )
 
         return self.image_metadata
-    
+
     def process_images(
         self,
         target_name: str,
@@ -255,6 +268,10 @@ class ImPhotController:
         output_folder : str, optional
             The path to the directory where diagnostic plots and FITS cutouts will be saved.
             Defaults to "./output".
+        save_json : bool, optional
+            Save the final photometry results as JSON (default: False)
+        save_csv : bool, optional
+            Save the final photometry results as csv (default: False)
 
         Raises
         ------
@@ -331,9 +348,12 @@ class ImPhotController:
 
         print(f"Results saved to {output_path}")
         return output_path
-    
+
     def save_results_to_csv(
-        self, target_name: Optional[str] = "target", output_folder: str = "./output", all_ellipse_sources: bool = False
+        self,
+        target_name: Optional[str] = "target",
+        output_folder: str = "./output",
+        all_ellipse_sources: bool = False
     ) -> str:
         """
         Saves all accumulated photometry results ('self.results') to a CSV file.
@@ -372,13 +392,17 @@ class ImPhotController:
 
         output_path = os.path.join(output_folder, filename)
 
-        EndResult.save_results_to_csv(self.results, output_path, include_all_ellipse_sources=all_ellipse_sources)
+        EndResult.save_results_to_csv(
+            results = self.results,
+            output_file = output_path,
+            include_all_ellipse_sources = all_ellipse_sources,
+        )
 
         print(f"Results saved to {output_path}")
         return output_path
 
 
-    
+
     def print_summary(self) -> None:
         """
         Prints a consolidated, human-readable summary of all processed photometry results.
@@ -406,7 +430,7 @@ class ImPhotController:
                     print(f"    Flux: {source.flux:.2f} ± {source.flux_err:.2f} nJy")
                     print(f"    Sigma: {source.sigma:.2f}σ")
 
-    
+
 
 # Example usage
 if __name__ == "__main__":
@@ -420,7 +444,7 @@ if __name__ == "__main__":
     if not os.path.exists(ephem_file_path):
         print(f"Warning: Example ephemeris file not found at {ephem_file_path}")
         exit()
-        
+
     controller.configure_search(bands={"g", "r", "i"}, ephemeris_data=ephem_file_path)
 
     image_metadata = controller.search_images()

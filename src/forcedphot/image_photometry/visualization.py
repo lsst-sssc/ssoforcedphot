@@ -1,13 +1,18 @@
 import matplotlib.pyplot as plt
-import numpy as np
-from astropy.visualization import ZScaleInterval, ImageNormalize
-from astropy.coordinates import SkyCoord
-import lsst.geom as geom
-from astropy.visualization.wcsaxes import WCSAxes
+from astropy.visualization import ImageNormalize, ZScaleInterval
 from astropy.wcs import WCS
 
 
-def create_diagnostic_plot(image_exposure, target_skycoord, x_offset, y_offset, error_ellipse_obj, nearby_skycoords, output_filepath, title=None):
+def create_diagnostic_plot(
+    image_exposure,
+    target_skycoord,
+    x_offset,
+    y_offset,
+    error_ellipse_obj,
+    nearby_skycoords,
+    output_filepath,
+    title=None
+):
     """
     Generates and saves a diagnostic plot for forced photometry.
 
@@ -53,12 +58,31 @@ def create_diagnostic_plot(image_exposure, target_skycoord, x_offset, y_offset, 
         norm = ImageNormalize(image_array, interval=ZScaleInterval())
         ax.imshow(image_array, origin='lower', cmap='gray', norm=norm)
 
-        # Plot target
-        ax.plot(target_skycoord.ra.deg, target_skycoord.dec.deg, 'o', markersize=3, markerfacecolor='none', markeredgewidth=0.5, markeredgecolor='red',label='Target', transform=ax.get_transform('world'))
+        # Add WCS gridlines.
+        ax.grid(color='black', linestyle='dotted', linewidth=0.5)
 
-        # Plot error ellipse        
+        # Plot target
+        ax.plot(
+            target_skycoord.ra.deg,
+            target_skycoord.dec.deg,
+            'o', markersize=3,
+            markerfacecolor='none',
+            markeredgewidth=0.5,
+            markeredgecolor='red',
+            label='Target',
+            transform=ax.get_transform('world')
+        )
+
+        # Plot error ellipse
         ellipse_ra, ellipse_dec = error_ellipse_obj.get_ellipse_points()
-        ax.plot(ellipse_ra, ellipse_dec, 'r--', linewidth = 0.5, label='Error Ellipse', transform=ax.get_transform('world'))
+        ax.plot(
+            ellipse_ra,
+            ellipse_dec,
+            'r--',
+            linewidth = 0.5,
+            label='Error Ellipse',
+            transform=ax.get_transform('world')
+        )
 
         # Plot nearby sources
         nearby_ra_degrees = []
@@ -66,9 +90,17 @@ def create_diagnostic_plot(image_exposure, target_skycoord, x_offset, y_offset, 
         for nearby_coord in nearby_skycoords:
             nearby_ra_degrees.append(nearby_coord.ra.deg)
             nearby_dec_degrees.append(nearby_coord.dec.deg)
-        
+
         if nearby_ra_degrees: # Only plot if there are nearby sources
-            ax.plot(nearby_ra_degrees, nearby_dec_degrees, 'bo', markersize=3, mfc='none', markeredgewidth=0.5, label='Nearby Sources', transform=ax.get_transform('world'))
+            ax.plot(
+                nearby_ra_degrees,
+                nearby_dec_degrees,
+                'bo', markersize=3,
+                mfc='none',
+                markeredgewidth=0.5,
+                label='Nearby Sources',
+                transform=ax.get_transform('world')
+            )
 
         # Set labels and title
         ax.set_xlabel("RA")

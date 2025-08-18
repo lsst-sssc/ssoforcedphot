@@ -8,8 +8,8 @@ import pandas as pd
 import panel as pn
 from astropy.table import Table
 from astropy.time import Time
-from ephemeris.data_model import QueryResult
 from ephemeris.data_loader import DataLoader
+from ephemeris.data_model import QueryResult
 from odc import ObjectDetectionController
 from tornado import gen
 
@@ -245,8 +245,12 @@ class EphemerisTab:
         self.day_range.disabled = pn.bind(lambda s: s == "Upload ECSV", self.ephemeris_source.param.value)
         self.step_value.disabled = pn.bind(lambda s: s == "Upload ECSV", self.ephemeris_source.param.value)
         self.step_unit.disabled = pn.bind(lambda s: s == "Upload ECSV", self.ephemeris_source.param.value)
-        self.save_ephem_data.disabled = pn.bind(lambda s: s == "Upload ECSV", self.ephemeris_source.param.value)
-        self.output_folder.visible = pn.bind(lambda save_checked: save_checked, self.save_ephem_data.param.value)
+        self.save_ephem_data.disabled = pn.bind(
+            lambda s: s == "Upload ECSV", self.ephemeris_source.param.value
+        )
+        self.output_folder.visible = pn.bind(
+            lambda save_checked: save_checked, self.save_ephem_data.param.value
+        )
 
         # Link button click
         self.run_button.on_click(self.run_query)
@@ -350,7 +354,8 @@ class EphemerisTab:
                         "ecsv_file": self.file_upload.filename,
                     }
                 }
-                # TODO Fix this!! Right now, only works (control_panel) if the file is already uploaded next to the control_panel.py
+                # TODO Fix this!! Right now, only works (control_panel) if the file
+                # is already uploaded next to the control_panel.py
                 self.controller.ephemeris_results = self.controller.api_connection(input_data)
                 root_logger.info("ECSV file processed successfully.")
             except Exception as e:
@@ -370,7 +375,7 @@ class EphemerisTab:
                     "step": self.get_step_string(),
                     "observer_location": "X05",
                     "save_ephem_data": self.save_ephem_data.value,
-                    "output_folder": self.output_folder.value,                
+                    "output_folder": self.output_folder.value,
                 }
             }
 
@@ -429,7 +434,7 @@ class ImageTab:
             options=["Point", "Polygon"],
             value="Point",
         )
-        
+
         self.filters = pn.widgets.ToggleGroup(
             name="Filters",
             options=["u", "g", "r", "i", "z", "y"],
@@ -451,7 +456,7 @@ class ImageTab:
             step=0.5,
             width=120,
         )
-        
+
         self.time_interval = pn.widgets.FloatInput(
             name="Time Interval (days)",
             value=5.0,
@@ -462,8 +467,10 @@ class ImageTab:
 
         # Set up visibility bindings for polygon options
         self.widening.visible = pn.bind(lambda method: method == "Polygon", self.search_method.param.value)
-        self.time_interval.visible = pn.bind(lambda method: method == "Polygon", self.search_method.param.value)
-        
+        self.time_interval.visible = pn.bind(
+            lambda method: method == "Polygon", self.search_method.param.value
+        )
+
         self.run_button = pn.widgets.Button(name="Run Image Query", button_type="primary")
         self.results_pane = pn.pane.JSON(object={}, height=300)
         self.table_view = pn.widgets.Tabulator(
@@ -522,7 +529,7 @@ class ImageTab:
         # logger.info("Running Image search.")
         await gen.sleep(0.01)
         # root_logger.info("Starting the image query...")
-        
+
         input_data = {
             "image": {
                 "filters": self.filters.value,
@@ -594,7 +601,10 @@ class PhotometryTab:
         self.display = pn.widgets.Checkbox(name="Display Results", value=False)
         self.save_json = pn.widgets.Checkbox(name="Save Result to JSON", value=False)
         self.save_csv = pn.widgets.Checkbox(name="Save Result to csv", value=False)
-        self.error_ellipse_sources = pn.widgets.Checkbox(name="Save all the sources within the error ellipse", value=False)
+        self.error_ellipse_sources = pn.widgets.Checkbox(
+            name="Save all the sources within the error ellipse",
+            value=False
+        )
         self.output_folder = pn.widgets.TextInput(name="Output folder", value="./output")
         self.run_button = pn.widgets.Button(name="Run Photometry", button_type="primary")
 
@@ -606,7 +616,9 @@ class PhotometryTab:
             self.save_json.param.value,
             self.save_csv.param.value,
         )
-        self.error_ellipse_sources.visible = pn.bind(lambda save_checked: save_checked, self.save_csv.param.value)
+        self.error_ellipse_sources.visible = pn.bind(
+            lambda save_checked: save_checked, self.save_csv.param.value
+        )
 
         # Results pane and table
         self.results_pane = pn.pane.JSON(object={}, height=300)
@@ -666,7 +678,7 @@ class PhotometryTab:
         event : pn.viewable.singles.Button
             The button click event (unused, but required by Panel's on_click signature).
         """
-        
+
         await gen.sleep(0.01)
         root_logger.info("Starting photometry process...")
         input_data = {
@@ -765,7 +777,7 @@ class CompleteRunTab:
             options=["Point", "Polygon"],
             value="Point",
         )
-        
+
         self.filters = pn.widgets.ToggleGroup(
             name="Filters",
             options=["u", "g", "r", "i", "z", "y"],
@@ -782,7 +794,7 @@ class CompleteRunTab:
             step=0.5,
             width=120,
         )
-        
+
         self.time_interval = pn.widgets.FloatInput(
             name="Time Interval (days)",
             value=5.0,
@@ -811,7 +823,10 @@ class CompleteRunTab:
         self.display = pn.widgets.Checkbox(name="Display Results", value=False)
         self.save_json = pn.widgets.Checkbox(name="Save Result to JSON", value=False)
         self.save_csv = pn.widgets.Checkbox(name="Save Result to csv", value=False)
-        self.error_ellipse_sources = pn.widgets.Checkbox(name="Save all the sources within the error ellipse", value=False)
+        self.error_ellipse_sources = pn.widgets.Checkbox(
+            name="Save all the sources within the error ellipse",
+            value=False
+        )
         self.output_folder = pn.widgets.TextInput(name="Output folder", value="./output")
 
         # Set up visibility bindings
@@ -822,15 +837,27 @@ class CompleteRunTab:
         self.day_range.disabled = pn.bind(lambda s: s == "Upload ECSV", self.ephemeris_source.param.value)
         self.step_value.disabled = pn.bind(lambda s: s == "Upload ECSV", self.ephemeris_source.param.value)
         self.step_unit.disabled = pn.bind(lambda s: s == "Upload ECSV", self.ephemeris_source.param.value)
-        self.save_ephem_data.disabled = pn.bind(lambda s: s == "Upload ECSV", self.ephemeris_source.param.value)
+        self.save_ephem_data.disabled = pn.bind(
+            lambda s: s == "Upload ECSV",
+            self.ephemeris_source.param.value
+        )
 
         # Visibility for polygon options in Image section
         self.widening.visible = pn.bind(lambda method: method == "Polygon", self.search_method.param.value)
-        self.time_interval.visible = pn.bind(lambda method: method == "Polygon", self.search_method.param.value)
+        self.time_interval.visible = pn.bind(
+            lambda method: method == "Polygon",
+            self.search_method.param.value
+        )
 
         # Combined visibility for output_folder
         self.output_folder.visible = pn.bind(
-            lambda save_eph, save_diag, save_fits, save_js, save_csv: save_eph or save_diag or save_fits or save_js or save_csv,
+            lambda save_eph, save_diag, save_fits, save_js, save_csv: (
+                save_eph
+                or save_diag
+                or save_fits
+                or save_js
+                or save_csv
+            ),
             self.save_ephem_data.param.value,
             self.save_diag_plots.param.value,
             self.save_fits.param.value,
@@ -895,7 +922,10 @@ class CompleteRunTab:
                             "### Polygon Options",
                             self.widening,
                             self.time_interval,
-                            visible=pn.bind(lambda method: method == "Polygon", self.search_method.param.value)
+                            visible=pn.bind(
+                                lambda method: method == "Polygon",
+                                self.search_method.param.value
+                            )
                         ),
                     ),
                     title="Image Search Settings",
@@ -972,8 +1002,8 @@ class CompleteRunTab:
             try:
                 await gen.sleep(0.01)
                 # Read the uploaded ECSV
-                content = io.BytesIO(self.file_upload.value)
-                table = Table.read(content, format="ascii.ecsv")
+                # content = io.BytesIO(self.file_upload.value)
+                # table = Table.read(content, format="ascii.ecsv")
                 # df = table.to_pandas()
 
                 # Prepare input data for API
@@ -1046,7 +1076,7 @@ class CompleteRunTab:
 
         try:
             root_logger.info("Running image search...")
-            result = self.controller.api_connection(input_data_image)
+            self.controller.api_connection(input_data_image)
             await gen.sleep(0.01)
         except Exception as e:
             root_logger.error(f"Image search failed: {str(e)}")

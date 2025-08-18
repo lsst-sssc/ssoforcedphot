@@ -42,7 +42,7 @@ def test_run_ephemeris_query_ecsv(mock_load, odc_instance):
         odc_instance.args.ephem_ecsv = "dummy.ecsv"
         mock_load.return_value = ["mock_data"]
         result = odc_instance.run_ephemeris_query()
-        assert result == QueryResult(target=None, start=None, end=None, ephemeris=["mock_data"])
+        assert result == QueryResult(target="UploadedECSV", start=None, end=None, ephemeris=["mock_data"])
         mock_load.assert_called_once_with("dummy.ecsv")
 
 
@@ -85,7 +85,10 @@ def test_run_image_query_with_ephem_ecsv(mock_load, odc_instance):
     assert result == ["img1", "img2"]
     mock_load.assert_called_once_with("dummy.ecsv")
     odc_instance.imphot_controller.configure_search.assert_called_once_with(
-        bands=set(odc_instance.args.filters), ephemeris_data=odc_instance.ephemeris_results
+        bands=odc_instance.args.filters,
+        ephemeris_data=odc_instance.ephemeris_results,
+        time_interval=5.0,
+        widening=1,
     )
 
 
@@ -101,9 +104,12 @@ def test_run_photometry(odc_instance):
         image_type=odc_instance.args.image_type,
         ephemeris_service=odc_instance.args.ephemeris_service,
         image_metadata=mock_images,
-        save_cutout=True,
+        save_diag_plots=False,
+        save_fits=False,
         cutout_size=odc_instance.args.min_cutout_size,
+        override_error=0,
         display=False,
+        output_folder='./output',
     )
 
 
@@ -111,7 +117,7 @@ def test_api_connection_ephemeris(odc_instance):
     """Test API connection handling ephemeris input."""
     input_data = {
         "ephemeris": {
-            "service": "Horizons",
+            "ephemeris_service": "Horizons",
             "target": "2023 XYZ",
             "target_type": "comet",
             "start": "2023-01-01",
@@ -156,4 +162,4 @@ def test_run_service_selection_all(odc_instance):
     odc_instance.run_photometry = MagicMock()
     odc_instance.run()
     odc_instance.run_ephemeris_query.assert_called_once()
-    odc_instance.run_photometry.assert_called_once_with(["img"])
+    odc_instance.run_photometry.assert_called_once_with(["img"], './output')

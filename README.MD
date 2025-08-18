@@ -217,15 +217,15 @@ controller = ObjectDetectionController()
 # Example for a complete end-to-end run via API
 input_data = {
     "ephemeris": {
-        "target": "65803",
+        "target": "2024 TN57",
         "target_type": "smallbody",
         "ephemeris_service": "Horizons",
-        "start": "2022-09-25 00:00:00",
-        "end": "2022-09-26 00:00:00",
-        "step": "1h",
+        "start": "2024-12-01 00:00:00",
+        "end": "2024-12-11 00:00:00",
+        "step": "10h",
         "observer_location": "X05",
         "save_ephem_data": True,
-        "output_folder": "./api_output"
+        "output_folder": "./output"
     },
     "image": {
         "filters": ["g", "r", "i"],
@@ -262,10 +262,11 @@ print(results)
 Query and display ephemeris data for a single target for one day.
 ```bash
 python odc.py --service-selection ephemeris \
-              --target 65803 \
+              --target 2024 TN57 \
               --target-type smallbody \
-              --start-time "2022-09-25 00:00:00" \
-              --day-range 1
+              --start-time "2024-12-01 00:00:00" \
+              --day-range 10
+              --step 10h
 ```
 
 ### 2. Multi-filter Image Search (CLI)
@@ -273,10 +274,11 @@ Find images in multiple filters for a target, assuming ephemeris data is either 
 ```bash
 python odc.py --service-selection image \
               --filters g r i \
-              --target 65803 \
+              --target 2024 TN57 \
               --target-type smallbody \
-              --start-time "2022-09-25 00:00:00" \
-              --day-range 1 \
+              --start-time "2024-12-1 00:00:00" \
+              --day-range 10 \
+              --step 10h \
               --image-search-method polygon \
               --time-interval 5.0 \
               --widening 2.0

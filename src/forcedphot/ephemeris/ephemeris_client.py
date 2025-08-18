@@ -1,5 +1,5 @@
 import logging
-from typing import Union, Optional
+from typing import Union
 
 import pandas as pd
 from astropy.time import Time
@@ -85,9 +85,13 @@ class EphemerisClient:
                 return None
 
             self.logger.info(f"Querying {service} for target: {target}")
-            
-            return interface.query_single_range(query=query, save_ephem_data=save_ephem_data, output_folder=output_folder)
-        
+
+            return interface.query_single_range(
+                query=query,
+                save_ephem_data=save_ephem_data,
+                output_folder=output_folder
+            )
+
         except Exception as e:
             self.logger.error(f"Error in query_single for target {target}: {str(e)}")
             return None
@@ -115,9 +119,9 @@ class EphemerisClient:
         """
         try:
             results = []
-            
+
             self.logger.info(f"Processing CSV file: {csv_file}")
-            
+
             df = pd.read_csv(csv_file)
 
             if df.empty:
@@ -129,7 +133,7 @@ class EphemerisClient:
                     if len(row) < 5:
                         self.logger.warning(f"Row {index} has insufficient columns, skipping")
                         continue
-                        
+
                     query = QueryInput(
                         target=str(row.iloc[0]),
                         target_type=str(row.iloc[1]),
@@ -139,7 +143,7 @@ class EphemerisClient:
                     )
 
                     self.logger.info(f"Processing row {index + 1}/{len(df)}: {query.target}")
-                    
+
                     query_result = self.query_single(
                         service,
                         query.target,
@@ -157,7 +161,7 @@ class EphemerisClient:
                         self.logger.info(f"Successfully processed {query.target}")
                     else:
                         self.logger.warning(f"Failed to process {query.target}")
-                        
+
                 except Exception as row_error:
                     self.logger.error(f"Error processing row {index}: {str(row_error)}")
                     continue

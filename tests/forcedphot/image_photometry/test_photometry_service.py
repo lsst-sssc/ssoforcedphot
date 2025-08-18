@@ -76,7 +76,7 @@ def test_prepare_image_cutout(photometry_service):
     mock_calexp.getWcs.return_value = mock_wcs
 
     target_img, bbox, offsets = photometry_service._prepare_image(
-        calexp=mock_calexp, ra_deg=150.0, dec_deg=-30.0, cutout_size=400
+        visit_image=mock_calexp, ra_deg=150.0, dec_deg=-30.0, cutout_size=400
     )
 
     assert bbox is not None

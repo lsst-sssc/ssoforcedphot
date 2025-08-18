@@ -1,10 +1,8 @@
 # polygon.py
-from astropy.coordinates import SkyCoord
-from astropy.time import Time
 import astropy.units as u
-import numpy as np
-
+from astropy.coordinates import SkyCoord
 from image_photometry.utils import EphemerisDataCompressed, QueryResult
+
 
 def calculate_polygons(ephemeris_data: list[EphemerisDataCompressed], time_interval: float, widening: float):
     """
@@ -36,7 +34,7 @@ def calculate_polygons(ephemeris_data: list[EphemerisDataCompressed], time_inter
                 ephemeris_rows = EphemerisDataCompressed.compress_ephemeris(ephemeris_data)
     else:
         ephemeris_rows = ephemeris_data
-        
+
     if not ephemeris_data or len(ephemeris_rows) < 2:
         raise ValueError("Ephemeris data must contain at least two points.")
 
@@ -70,24 +68,24 @@ def calculate_polygons(ephemeris_data: list[EphemerisDataCompressed], time_inter
 
 
         # --- 2b. Calculate Polygon for the current segment ---
-        A = SkyCoord(ra=start_point.ra_deg, dec=start_point.dec_deg, unit='deg', frame='icrs')
-        B = SkyCoord(ra=end_point.ra_deg, dec=end_point.dec_deg, unit='deg', frame='icrs')
+        a = SkyCoord(ra=start_point.ra_deg, dec=start_point.dec_deg, unit='deg', frame='icrs')
+        b = SkyCoord(ra=end_point.ra_deg, dec=end_point.dec_deg, unit='deg', frame='icrs')
 
-        separation_AB = A.separation(B)
-        pa_AB = A.position_angle(B) if separation_AB > 1e-10 * u.arcsec else 0.0 * u.deg
+        separation_ab = a.separation(b)
+        pa_ab = a.position_angle(b) if separation_ab > 1e-10 * u.arcsec else 0.0 * u.deg
 
         # Extend the path segment slightly at both ends
         extension = widening * u.arcsec
-        A_ext = A.directional_offset_by(pa_AB - 180 * u.deg, extension)
-        B_ext = B.directional_offset_by(pa_AB, extension)
+        a_ext = a.directional_offset_by(pa_ab - 180 * u.deg, extension)
+        b_ext = b.directional_offset_by(pa_ab, extension)
 
-        separation_ext = A_ext.separation(B_ext)
-        pa_rect = A_ext.position_angle(B_ext) if separation_ext > 1e-10 * u.arcsec else 0.0 * u.deg
+        separation_ext = a_ext.separation(b_ext)
+        pa_rect = a_ext.position_angle(b_ext) if separation_ext > 1e-10 * u.arcsec else 0.0 * u.deg
 
-        corner1 = A_ext.directional_offset_by(pa_rect + 90 * u.deg, extension)
-        corner2 = A_ext.directional_offset_by(pa_rect - 90 * u.deg, extension)
-        corner3 = B_ext.directional_offset_by(pa_rect - 90 * u.deg, extension)
-        corner4 = B_ext.directional_offset_by(pa_rect + 90 * u.deg, extension)
+        corner1 = a_ext.directional_offset_by(pa_rect + 90 * u.deg, extension)
+        corner2 = a_ext.directional_offset_by(pa_rect - 90 * u.deg, extension)
+        corner3 = b_ext.directional_offset_by(pa_rect - 90 * u.deg, extension)
+        corner4 = b_ext.directional_offset_by(pa_rect + 90 * u.deg, extension)
 
         polygon_corners = [
             (corner1.ra.deg, corner1.dec.deg),

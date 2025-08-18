@@ -13,12 +13,10 @@ Main Components:
     - End result Dataclass
 """
 
-from dataclasses import dataclass
 import csv
-import os
+from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Union
-from astropy.time import Time
+from typing import Union
 
 import astropy.units as u
 import lsst.geom as geom
@@ -291,7 +289,7 @@ class SearchParametersPolygon:
     time_interval: float
     widening: float
 
-    
+
 @dataclass
 class ImageMetadata:
     """
@@ -552,7 +550,7 @@ class EndResult:
     def to_csv_row(self) -> dict:
         """
         Convert EndResult instance to a flattened dictionary suitable for CSV export.
-        
+
         Returns
         -------
         dict
@@ -573,7 +571,7 @@ class EndResult:
             'cutout_size': self.cutout_size,
             'saved_image_name': self.saved_image_name,
         }
-        
+
         # Uncertainty data
         row.update({
             'uncertainty_rss': self.uncertainty.get('rss', None),
@@ -581,7 +579,7 @@ class EndResult:
             'uncertainty_smia': self.uncertainty.get('smia', None),
             'uncertainty_theta': self.uncertainty.get('theta', None),
         })
-        
+
         # Forced photometry on target
         if self.forced_phot_on_target:
             forced_phot = self.forced_phot_on_target
@@ -602,15 +600,15 @@ class EndResult:
                 'forced_phot_separation': forced_phot.separation,
                 'forced_phot_sigma': forced_phot.sigma,
             })
-            
+
             # Handle flags
             if forced_phot.flags:
                 for flag_name, flag_value in forced_phot.flags.items():
                     row[f'forced_phot_flag_{flag_name}'] = flag_value
-        
+
         # Sources within error ellipse (flatten to single best source or count)
         row['num_sources_in_ellipse'] = len(self.phot_within_error_ellipse)
-        
+
         # If there are sources in the ellipse, add the first/best one
         if self.phot_within_error_ellipse:
             best_source = self.phot_within_error_ellipse[0]  # Assuming first is best
@@ -631,29 +629,29 @@ class EndResult:
                 'ellipse_source_separation': best_source.separation,
                 'ellipse_source_sigma': best_source.sigma,
             })
-            
+
             # Handle flags for best source
             if best_source.flags:
                 for flag_name, flag_value in best_source.flags.items():
                     row[f'ellipse_source_flag_{flag_name}'] = flag_value
-        
+
         return row
-    
-    
+
+
     def save_results_to_csv(
-        results: Union[List['EndResult'], 'EndResult'], 
+        results: Union[list['EndResult'], 'EndResult'],
         output_file: Union[str, Path],
         include_all_ellipse_sources: bool = False
     ) -> None:
         """
         Save EndResult instances to CSV file.
-        
+
         Parameters
         ----------
         results : List[EndResult] or EndResult
             Single EndResult or list of EndResult instances to save
-        output_folder : str
-            Output folder path
+        output_file : str
+            Output file path
         include_all_ellipse_sources : bool, optional
             If True, create separate rows for each source within error ellipse.
             If False, only include the best source per result. Default is False.
@@ -661,21 +659,21 @@ class EndResult:
         # Ensure results is a list
         if not isinstance(results, list):
             results = [results]
-        
+
         if not results:
             raise ValueError("No results provided")
-        
-        output_file = Path(output_file)
-        
+
+        # output_file = Path(output_file)
+
         # Collect all rows
         all_rows = []
-        
+
         for result in results:
             if include_all_ellipse_sources and result.phot_within_error_ellipse:
                 # Create separate row for each source in ellipse
                 for i, source in enumerate(result.phot_within_error_ellipse):
                     row = result.to_csv_row()
-                    
+
                     # Override the ellipse_source fields with current source
                     row.update({
                         'ellipse_source_index': i,
@@ -695,21 +693,21 @@ class EndResult:
                         'ellipse_source_separation': source.separation,
                         'ellipse_source_sigma': source.sigma,
                     })
-                    
+
                     # Handle flags
                     if source.flags:
                         for flag_name, flag_value in source.flags.items():
                             row[f'ellipse_source_flag_{flag_name}'] = flag_value
-                    
+
                     all_rows.append(row)
             else:
                 # Standard mode - one row per result
                 all_rows.append(result.to_csv_row())
-        
+
         # Write to CSV
         if all_rows:
             fieldnames = all_rows[0].keys()
-            
+
             with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
