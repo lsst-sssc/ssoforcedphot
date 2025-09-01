@@ -27,6 +27,19 @@ from astropy.time import Time
 from ephemeris.data_model import QueryResult
 
 
+def target_name_maker(target_name):
+    """
+    Remove the unnecessary characters from the target name.
+
+    Parameters:
+    target_name: str
+        Target object name
+    """
+
+    corrected_name = target_name.replace(":", "-").replace(" ", "_").replace("/", "_")
+
+    return corrected_name
+
 def interpolate_coordinates(ra1, dec1, ra2, dec2, time1, time2, target_time):
     """
     Interpolate between two positions (RA, DEC) for a given time.
