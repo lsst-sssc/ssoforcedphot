@@ -583,7 +583,7 @@ class PhotometryTab:
 
         # Widgets for photometry parameters
         self.image_type = pn.widgets.Select(
-            name="Image type", options=["visit_image", "goodSeeingDiff_differenceExp"], value="visit_image"
+            name="Image type", options=["visit_image", "difference_image"], value="visit_image"
         )
         self.detection_threshold = pn.widgets.FloatInput(
             name="Detection Threshold", value=5.0, start=0, width=150
@@ -804,7 +804,7 @@ class CompleteRunTab:
 
         # Photometry Section Widgets
         self.image_type = pn.widgets.Select(
-            name="Image type", options=["visit_image", "goodSeeingDiff_differenceExp"], value="visit_image"
+            name="Image type", options=["visit_image", "difference_image"], value="visit_image"
         )
         self.detection_threshold = pn.widgets.FloatInput(
             name="Detection Threshold", value=5.0, start=0, width=150

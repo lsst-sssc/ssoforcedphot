@@ -1,5 +1,5 @@
 ## Panel application
-The ODC (Object Detection Controller) can also be controlled via a Panel-based web application, providing an interactive graphical user interface (GUI).
+The ODC (Object Detection Controller) can also be controlled via a Panel-based ([https://panel.holoviz.org/]) web application, providing an interactive graphical user interface (GUI).
 The application is divided into five main tabs, each handling a specific part of the detection and analysis process.
 
 ### Main Features

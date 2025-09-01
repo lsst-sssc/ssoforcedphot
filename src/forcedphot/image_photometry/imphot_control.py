@@ -242,7 +242,7 @@ class ImPhotController:
         target_type : str
             The classification of the target (e.g., "smallbody").
         image_type : str
-            The type of image to process: '"visit_image"' or '"goodSeeingDiff_differenceExp"'.
+            The type of image to process: '"visit_image"' or '"difference_image"'.
         ephemeris_service : str
             The name of the ephemeris service used to obtain the ephemeris data (e.g., "JPL Horizons").
         image_metadata : list[ImageMetadata]
@@ -451,7 +451,7 @@ if __name__ == "__main__":
     controller.process_images(
         target_name="Example Target",
         target_type="smallbody",
-        image_type="goodSeeingDiff_differenceExp",
+        image_type="difference_image",
         ephemeris_service="JPL Horizons",
         image_metadata=image_metadata,
         cutout_size=800,

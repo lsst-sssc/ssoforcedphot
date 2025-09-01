@@ -503,7 +503,7 @@ class EndResult:
     target_type : str
         Type of the target
     image_type : str
-        Type of the image (calexp, goodSeeingDiff_differenceExp)
+        Type of the image (visit_image, difference_image)
     ephemeris_service :str
         Name of the ephemeris service
     visit_id : int

@@ -155,9 +155,9 @@ class ObjectDetectionController:
 
         parser.add_argument(
             "--image-type",
-            choices=["visit_image", "goodSeeingDiff_differenceExp"],
+            choices=["visit_image", "difference_image"],
             default="visit_image",
-            help="Select the image type to process. visit_image or goodSeeingDiff_differenceExp",
+            help="Select the image type to process. visit_image or difference_image",
         )
 
         parser.add_argument(
@@ -504,7 +504,7 @@ class ObjectDetectionController:
                                     data is already available.
                                 - "photometry" (Optional[dict]): Parameters for photometry.
                                     Can include:
-                                        - "image_type" (str, "visit_image" or "goodSeeingDiff_differenceExp"),
+                                        - "image_type" (str, "visit_image" or "difference_image"),
                                             "threshold" (int), "save_diag_plots" (bool), "save_fits" (bool),
                                             "min_cutout_size" (int), "override_error" (float), "display",
                                             "save_json" (bool), "save_csv" (bool), "save_error_sources"

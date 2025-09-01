@@ -105,7 +105,7 @@ class PhotometryService:
             The classification of the target (e.g., "COMET", "ASTEROID").
         image_type : str
             The type of image to retrieve and process: "visit_image" for raw visit data
-            or "goodSeeingDiff_differenceExp" for difference images.
+            or "difference_image" for difference images.
         ephemeris_service : str
             The name of the ephemeris service used to obtain the ephemeris data
             (e.g., "Horizons", "Miriade").
@@ -152,9 +152,9 @@ class PhotometryService:
             raise ValueError("image_metadata is None")
 
         # Get the exposure
-        if image_type == "goodSeeingDiff_differenceExp":
+        if image_type == "difference_image":
             visit_image = self.butler.get(
-                "goodSeeingDiff_differenceExp",
+                "difference_image",
                 dataId={"visit": image_metadata.visit_id, "detector": image_metadata.detector_id},
             )
         else:
@@ -934,7 +934,7 @@ class PhotometryService:
         target_type : str
             The classification of the target (e.g., "COMET").
         image_type : str
-            The type of image processed ("visit_image" or "goodSeeingDiff_differenceExp").
+            The type of image processed ("visit_image" or "difference_image").
         ephemeris_service : str
             The name of the ephemeris service used (e.g., "Horizons").
         image_metadata : ImageMetadata
