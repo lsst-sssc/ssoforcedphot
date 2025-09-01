@@ -50,7 +50,7 @@ def interpolate_coordinates(ra1, dec1, ra2, dec2, time1, time2, target_time):
     # Calculate the fraction of the time interval
     fraction = (target_time - time1) / (time2 - time1)
 
-    # If inputs aren"t Quantities, assume they"re in degrees
+    # If inputs aren't Quantities, assume they're in degrees
     if not isinstance(ra1, u.Quantity):
         ra1 = ra1 * u.deg
     if not isinstance(dec1, u.Quantity):
@@ -117,7 +117,7 @@ class EphemerisDataCompressed:
             List[EphemerisDataCompressed]: List of parsed ephemeris data rows.
 
         Raises:
-            ValueError: If there"s an error loading or parsing the ephemeris file.
+            ValueError: If there's an error loading or parsing the ephemeris file.
         """
         try:
             data = Table.read(file_path, format="ascii.ecsv")
