@@ -25,6 +25,7 @@ from image_photometry.utils import (
     QueryResult,
     SearchParameters,
     SearchParametersPolygon,
+    target_name_maker,
 )
 
 
@@ -335,7 +336,8 @@ class ImPhotController:
             raise ValueError("No results to save. Run process_images() first.")
 
         json_data = [asdict(result) for result in self.results]
-        t_name = str(target_name).replace(":", "-").replace(" ", "_").replace("/", "_")
+        # t_name = str(target_name).replace(":", "-").replace(" ", "_").replace("/", "_")
+        t_name = target_name_maker(str(target_name))
         filename = t_name + "_photometry_results.json"
 
         output_path = os.path.join(output_folder, filename)

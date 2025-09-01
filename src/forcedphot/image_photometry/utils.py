@@ -40,6 +40,7 @@ def target_name_maker(target_name):
 
     return corrected_name
 
+
 def interpolate_coordinates(ra1, dec1, ra2, dec2, time1, time2, target_time):
     """
     Interpolate between two positions (RA, DEC) for a given time.
@@ -657,7 +658,6 @@ class EndResult:
         return row
 
     def save_results_to_csv(
-        self,
         results: Union[list["EndResult"], "EndResult"],
         output_file: Union[str, Path],
         include_all_ellipse_sources: bool = False,
