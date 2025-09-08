@@ -91,6 +91,7 @@ class ImPhotController:
         self.search_params_polygon: Optional[SearchParametersPolygon] = None
         self.polygon_data: Optional[list] = None
         self.image_metadata: Optional[list[ImageMetadata]] = None
+        self.result: EndResult
         self.results: list[EndResult] = []
         self.output_folder = output_folder
         # os.makedirs(self.output_folder, exist_ok=True)
@@ -391,7 +392,7 @@ class ImPhotController:
 
         output_path = os.path.join(output_folder, filename)
 
-        EndResult.save_results_to_csv(
+        EndResult.results_to_csv(
             results=self.results,
             output_file=output_path,
             include_all_ellipse_sources=all_ellipse_sources,
