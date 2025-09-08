@@ -22,7 +22,13 @@ import lsst.daf.base as dafbase
 import lsst.geom as geom
 import numpy as np
 from astropy.coordinates import SkyCoord
-from image_photometry.utils import EndResult, ErrorEllipse, ImageMetadata, PhotometryResult
+from image_photometry.utils import (
+    EndResult,
+    ErrorEllipse,
+    ImageMetadata,
+    PhotometryResult,
+    target_name_maker,
+)
 
 # from image_photometry.utils_json import save_results_to_json
 from image_photometry.visualization import create_diagnostic_plot
@@ -198,7 +204,8 @@ class PhotometryService:
         # Create base image name if saving output
         base_image_name = ""
         if (save_diag_plots or save_fits) and output_folder:
-            target_name_modified = target_name.replace(":", "-").replace(" ", "_").replace("/", "_")
+            # target_name_modified = target_name.replace(":", "-").replace(" ", "_").replace("/", "_")
+            target_name_modified = target_name_maker(target_name)
 
             base_image_name = (
                 f"{target_name_modified}_visit{image_metadata.visit_id}_"

@@ -280,6 +280,8 @@ class ImPhotController:
         if image_metadata is None:
             raise ValueError("No images found. Run search_images() first.")
 
+        self.phot_service.detection_threshold = self.detection_threshold
+
         self.results.clear()
         for metadata in image_metadata:
             result = self.phot_service.process_image(
