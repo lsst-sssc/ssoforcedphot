@@ -59,7 +59,11 @@ class PhotometryService:
         logger (logging.Logger): Logger for reporting status and errors specific to this service.
     """
 
-    def __init__(self, detection_threshold: float = 5):
+    def __init__(
+        self, detection_threshold: float = 5,
+        dr: str = "dp1",
+        collection: str = "LSSTComCam/DP1",
+    ):
         """
         Initialize the PhotometryService.
 
@@ -67,11 +71,17 @@ class PhotometryService:
         ----------
         detection_threshold : float, optional
             Threshold value for source detection (default: 5)
+        dr : str, optional
+            Parameter for the 'PhotometryService' and 'ImageServiceButler'
+            Select the data release, later can be changed
+        collection : str, optional
+            Parameter for the 'PhotometryService' and 'ImageServiceButler'
+            Select the collection later can be changed
         """
         self.logger = logging.getLogger("photometry_service")
         self.display = None
         self.detection_threshold = detection_threshold
-        self.butler = Butler("dp1", collections="LSSTComCam/DP1")
+        self.butler = Butler(dr, collections=collection)
 
     def process_image(
         self,

@@ -16,8 +16,8 @@ class ImageServiceButler:
     Interfaces DP1 through Butler.
     """
 
-    def __init__(self):
-        self.butler = Butler("dp1", collections="LSSTComCam/DP1")
+    def __init__(self, dr: str = "dp1", collection: str = "LSSTComCam/DP1"):
+        self.butler = Butler(dr, collections=collection)
         self.logger = logging.getLogger("ImageServiceButler")
 
     def search_images_polygon(
