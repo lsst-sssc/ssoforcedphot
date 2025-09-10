@@ -60,7 +60,8 @@ class PhotometryService:
     """
 
     def __init__(
-        self, detection_threshold: float = 5,
+        self,
+        detection_threshold: float = 5,
         dr: str = "dp1",
         collection: str = "LSSTComCam/DP1",
     ):
