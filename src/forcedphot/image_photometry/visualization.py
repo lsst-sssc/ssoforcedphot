@@ -1,10 +1,8 @@
+import lsst.geom as geom
 import matplotlib.pyplot as plt
 from astropy.visualization import ImageNormalize, ZScaleInterval
 from astropy.wcs import WCS
-from astropy import units as u
-from astropy.coordinates import Angle
-import numpy as np
-import lsst.geom as geom
+
 
 def create_diagnostic_plot(
     image_exposure,
@@ -67,7 +65,9 @@ def create_diagnostic_plot(
         ax.grid(color="black", linestyle="dotted", linewidth=0.5)
 
         # Plot target - convert using LSST WCS then to display coordinates
-        target_sky_point = geom.SpherePoint(target_skycoord.ra.deg * geom.degrees, target_skycoord.dec.deg * geom.degrees)
+        target_sky_point = geom.SpherePoint(
+            target_skycoord.ra.deg * geom.degrees, target_skycoord.dec.deg * geom.degrees
+        )
         target_pixel_pos = wcs.skyToPixel(target_sky_point)
         target_display_x = target_pixel_pos.getX() - xy0.getX()
         target_display_y = target_pixel_pos.getY() - xy0.getY()
@@ -108,7 +108,9 @@ def create_diagnostic_plot(
         nearby_pixel_x = []
         nearby_pixel_y = []
         for nearby_coord in nearby_skycoords:
-            sky_point = geom.SpherePoint(nearby_coord.ra.deg * geom.degrees, nearby_coord.dec.deg * geom.degrees)
+            sky_point = geom.SpherePoint(
+                nearby_coord.ra.deg * geom.degrees, nearby_coord.dec.deg * geom.degrees
+            )
             pixel_pos = wcs.skyToPixel(sky_point)
             # Adjust pixel position to display coordinates
             display_x = pixel_pos.getX() - xy0.getX()
