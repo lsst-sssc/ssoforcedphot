@@ -156,7 +156,6 @@ class ImageServiceButler:
                                 t_mid={Time(t_mid_mjd, format="mjd", scale="tai").isot}"""
                             )
 
-                            # Ephemeris data from JPL Horizons is in UTC, but image times (t_mid_mjd) are in TAI
                             p_start_tai = p_start.datetime.tai.mjd
                             p_end_tai = p_end.datetime.tai.mjd
 
