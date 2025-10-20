@@ -10,7 +10,6 @@ detection and photometry pipeline.
 import json
 import logging
 import os
-import time
 from dataclasses import asdict
 from typing import Any, Optional
 
