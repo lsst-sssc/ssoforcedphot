@@ -113,6 +113,10 @@ class ImageServiceButler:
                 visit_info = self.butler.get("visit_image.visitInfo", visit=visit_id, detector=detector_id)
 
                 t_min = visit_info.date.toAstropy()
+                # Ensure TAI scale (LSST convention) - convert if needed
+                if t_min.scale != "tai":
+                    t_min = t_min.tai
+
                 exp_time = visit_info.exposureTime
                 t_max = t_min + TimeDelta(exp_time, format="sec")
                 central_ra = visit_info.boresightRaDec.getRa().asDegrees()
@@ -152,13 +156,17 @@ class ImageServiceButler:
                                 t_mid={Time(t_mid_mjd, format="mjd", scale="tai").isot}"""
                             )
 
+                            # Ephemeris data from JPL Horizons is in UTC, but image times (t_mid_mjd) are in TAI
+                            p_start_tai = p_start.datetime.tai.mjd
+                            p_end_tai = p_end.datetime.tai.mjd
+
                             interp_ra, interp_dec, _ = interpolate_coordinates(
                                 p_start.ra_deg,
                                 p_start.dec_deg,
                                 p_end.ra_deg,
                                 p_end.dec_deg,
-                                p_start.datetime.mjd,
-                                p_end.datetime.mjd,
+                                p_start_tai,
+                                p_end_tai,
                                 t_mid_mjd,
                             )
 

@@ -176,7 +176,7 @@ class ObjectDetectionController:
             "--time-interval",
             type=float,
             default=5.0,
-            help="Time interval in days for polygon search method (default: 1.0 day)",
+            help="Time interval in days for polygon search method (default: 5.0 day)",
         )
 
         parser.add_argument(
@@ -187,7 +187,7 @@ class ObjectDetectionController:
         )
 
         parser.add_argument(
-            "--threshold", type=int, default=3, help="Threshold SNR for forced photometry (defaullt: 3)"
+            "--threshold", type=int, default=3, help="Threshold SNR for forced photometry (default: 3)"
         )
 
         parser.add_argument(
@@ -576,7 +576,7 @@ class ObjectDetectionController:
                             )
                         except Exception as e:
                             self.logger.error(f"Ephemeris query failed: {e}")
-                            self.result_pane.object = {"error": str(e)}
+                            return {"error": str(e)}
                 else:
                     raise ValueError("Invalid ephemeris query parameters")
 

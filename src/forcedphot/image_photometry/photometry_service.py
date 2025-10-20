@@ -658,7 +658,7 @@ class PhotometryService:
             - bbox (lsst.geom.Box2I or None): The bounding box of the cutout within
               the original image coordinates, or None if the full image is used or
               cutout creation fails.
-            - offsets (tuple[int, int]): A tuple `(x_offset, y_offset)` representing
+            - offsets (tuple[float, float]): A tuple `(x_offset, y_offset)` representing
               the minimum X and Y pixel coordinates of the cutout's origin relative
               to the original `visit_image`. Returns `(0, 0)` if no cutout is made.
         """
@@ -695,11 +695,12 @@ class PhotometryService:
 
         # Create bounding box for cutout
         bbox = geom.Box2I()
-        bbox.include(geom.Point2I(int(x_center - half_size), int(y_center - half_size)))
-        bbox.include(geom.Point2I(int(x_center + half_size), int(y_center + half_size)))
+        bbox.include(geom.Point2I(float(x_center - half_size), float(y_center - half_size)))
+        bbox.include(geom.Point2I(float(x_center + half_size), float(y_center + half_size)))
 
-        # Create cutout
-        target_img = visit_image.Factory(visit_image, bbox, origin=afwimage.LOCAL, deep=False)
+        # Create cutout with PARENT origin to preserve WCS
+        # Using PARENT keeps the original pixel coordinate system and WCS intact
+        target_img = visit_image.Factory(visit_image, bbox, origin=afwimage.PARENT, deep=False)
 
         return target_img, bbox, (bbox.getMinX(), bbox.getMinY())
 

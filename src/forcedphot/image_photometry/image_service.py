@@ -144,8 +144,8 @@ class ImageService:
         coordinate_conditions = []
         for time_before, time_after, ra, dec in time_windows:
             condition = f"""
-                (t_min >= {time_before.mjd}
-                AND t_max <= {time_after.mjd}
+                (t_min >= {time_before.tai.mjd}
+                AND t_max <= {time_after.tai.mjd}
                 AND CONTAINS(POINT('ICRS', {ra}, {dec}), s_region) = 1)
             """
             coordinate_conditions.append(condition)
@@ -165,8 +165,8 @@ class ImageService:
         FROM ivoa.ObsCore
         WHERE calib_level = 2
         AND ({bands_clause})
-        AND t_max >= {start_time.mjd}
-        AND t_min <= {end_time.mjd}
+        AND t_max >= {start_time.tai.mjd}
+        AND t_min <= {end_time.tai.mjd}
         AND ({coordinate_clause})
         """
         return query
@@ -191,9 +191,9 @@ class ImageService:
         metadata_list = []
 
         for _, row in results.iterrows():
-            t_min = Time(row["t_min"], format="mjd")
-            t_max = Time(row["t_max"], format="mjd")
-            t_mid = (t_min.mjd + t_max.mjd) / 2
+            t_min = Time(row["t_min"], format="mjd", scale="tai")
+            t_max = Time(row["t_max"], format="mjd", scale="tai")
+            t_mid = (t_min.tai.mjd + t_max.tai.mjd) / 2
 
             # Get relevant ephemeris rows for this image
             relevant_ephemeris = EphemerisDataCompressed.get_relevant_rows(ephemeris_rows, t_min, t_max)
@@ -202,13 +202,13 @@ class ImageService:
                 relevant_ephemeris[0].dec_deg,
                 relevant_ephemeris[-1].ra_deg,
                 relevant_ephemeris[-1].dec_deg,
-                relevant_ephemeris[0].datetime.mjd,
-                relevant_ephemeris[-1].datetime.mjd,
+                relevant_ephemeris[0].datetime.tai.mjd,
+                relevant_ephemeris[-1].datetime.tai.mjd,
                 t_mid,
             )
 
             interpolated_row = EphemerisDataCompressed(
-                datetime=Time(t_mid, format="mjd"),
+                datetime=Time(t_mid, format="mjd", scale="tai"),
                 ra_deg=interpolated_ra,
                 dec_deg=interpolated_dec,
                 ra_rate=relevant_ephemeris[1].ra_rate,
