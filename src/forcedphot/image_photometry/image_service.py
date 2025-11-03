@@ -14,7 +14,7 @@ import logging
 import time
 from typing import Optional
 
-from astropy.time import Time, TimeDelta
+from astropy.time import Time
 from ephemeris.data_model import QueryResult
 from image_photometry.utils import (
     EphemerisDataCompressed,
@@ -193,7 +193,6 @@ class ImageService:
         metadata_list = []
 
         for _, row in results.iterrows():
-
             visit_info = self.butler.get(
                 "visit_image.visitInfo", visit=row["lsst_visit"], detector=row["lsst_detector"]
             )
