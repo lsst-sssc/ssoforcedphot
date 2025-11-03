@@ -21,8 +21,8 @@ from image_photometry.utils import (
     ImageMetadata,
     interpolate_coordinates,
 )
-from lsst.rsp import get_tap_service
 from lsst.daf.butler import Butler
+from lsst.rsp import get_tap_service
 
 
 class ImageService:
@@ -194,13 +194,15 @@ class ImageService:
 
         for _, row in results.iterrows():
 
-            visit_info = self.butler.get("visit_image.visitInfo", visit=row["lsst_visit"], detector=row["lsst_detector"])
+            visit_info = self.butler.get(
+                "visit_image.visitInfo", visit=row["lsst_visit"], detector=row["lsst_detector"]
+            )
 
             t_butler = visit_info.date.toAstropy()
             # Ensure TAI scale (LSST convention) - convert if needed
             if t_butler.scale != "tai":
                 t_butler = t_butler.tai
-                
+
             t_min = Time(row["t_min"], format="mjd", scale="tai")
             t_max = Time(row["t_max"], format="mjd", scale="tai")
             t_mid = (t_min.value + t_max.value) / 2
@@ -236,7 +238,7 @@ class ImageService:
                 detector_id=int(row["lsst_detector"]),
                 band=row["lsst_band"],
                 coordinates_central=(float(row["s_ra"]), float(row["s_dec"])),
-                t_min=t_butler, # t_butler instead of t_min, because consistency
+                t_min=t_butler,  # t_butler instead of t_min, because consistency
                 t_max=t_max,
                 ephemeris_data=relevant_ephemeris,
                 exact_ephemeris=interpolated_row,
@@ -246,7 +248,7 @@ class ImageService:
         # metadata_unique = list({item.visit_id: item for item in metadata_list}.values())
         unique_metadata_dict = {(item.visit_id, item.detector_id): item for item in metadata_list}
         unique_metadata_list = list(unique_metadata_dict.values())
-        
+
         self.logger.info(
             f"""Returning {len(unique_metadata_list)} unique ImageMetadata objects after
             (visit_id, detector_id) deduplication."""
