@@ -112,13 +112,14 @@ class ImageServiceButler:
 
                 visit_info = self.butler.get("visit_image.visitInfo", visit=visit_id, detector=detector_id)
 
-                t_min = visit_info.date.toAstropy()
+                t_mid = visit_info.date.toAstropy()
                 # Ensure TAI scale (LSST convention) - convert if needed
-                if t_min.scale != "tai":
-                    t_min = t_min.tai
+                if t_mid.scale != "tai":
+                    t_mid = t_mid.tai
 
                 exp_time = visit_info.exposureTime
-                t_max = t_min + TimeDelta(exp_time, format="sec")
+                t_min = t_mid - (TimeDelta(exp_time, format="sec") / 2)
+                t_max = t_mid + (TimeDelta(exp_time, format="sec") / 2)
                 central_ra = visit_info.boresightRaDec.getRa().asDegrees()
                 central_dec = visit_info.boresightRaDec.getDec().asDegrees()
 
@@ -205,7 +206,7 @@ class ImageServiceButler:
                     detector_id=detector_id,
                     band=band_name,
                     coordinates_central=(central_ra, central_dec),
-                    t_min=t_min,
+                    t_min=t_mid,
                     t_max=t_max,
                     ephemeris_data=relevant_eph_for_image,
                     exact_ephemeris=exact_eph_for_image,

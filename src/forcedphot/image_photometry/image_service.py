@@ -14,7 +14,7 @@ import logging
 import time
 from typing import Optional
 
-from astropy.time import Time
+from astropy.time import Time, TimeDelta
 from ephemeris.data_model import QueryResult
 from image_photometry.utils import (
     EphemerisDataCompressed,
@@ -22,6 +22,7 @@ from image_photometry.utils import (
     interpolate_coordinates,
 )
 from lsst.rsp import get_tap_service
+from lsst.daf.butler import Butler
 
 
 class ImageService:
@@ -30,10 +31,11 @@ class ImageService:
     Interfaces with the ObsCore catalog through TAP service.
     """
 
-    def __init__(self):
+    def __init__(self, dr: str = "dp1", collection: str = "LSSTComCam/DP1"):
         """Initializes the ImageService with logging configuration and TAP service connection."""
         self.logger = logging.getLogger("image_service")
         self.service = get_tap_service("tap")
+        self.butler = Butler(dr, collections=collection)
 
     def search_images(self, bands, ephemeris_data):
         """
@@ -191,9 +193,17 @@ class ImageService:
         metadata_list = []
 
         for _, row in results.iterrows():
+
+            visit_info = self.butler.get("visit_image.visitInfo", visit=row["lsst_visit"], detector=row["lsst_detector"])
+
+            t_butler = visit_info.date.toAstropy()
+            # Ensure TAI scale (LSST convention) - convert if needed
+            if t_butler.scale != "tai":
+                t_butler = t_butler.tai
+                
             t_min = Time(row["t_min"], format="mjd", scale="tai")
             t_max = Time(row["t_max"], format="mjd", scale="tai")
-            t_mid = (t_min.tai.mjd + t_max.tai.mjd) / 2
+            t_mid = (t_min.value + t_max.value) / 2
 
             # Get relevant ephemeris rows for this image
             relevant_ephemeris = EphemerisDataCompressed.get_relevant_rows(ephemeris_rows, t_min, t_max)
@@ -226,14 +236,20 @@ class ImageService:
                 detector_id=int(row["lsst_detector"]),
                 band=row["lsst_band"],
                 coordinates_central=(float(row["s_ra"]), float(row["s_dec"])),
-                t_min=t_min,
+                t_min=t_butler, # t_butler instead of t_min, because consistency
                 t_max=t_max,
                 ephemeris_data=relevant_ephemeris,
                 exact_ephemeris=interpolated_row,
             )
             metadata_list.append(metadata)
 
-        metadata_unique = list({item.visit_id: item for item in metadata_list}.values())
-        self.logger.info(f"Found {len(metadata_unique)} image(s) ")
+        # metadata_unique = list({item.visit_id: item for item in metadata_list}.values())
+        unique_metadata_dict = {(item.visit_id, item.detector_id): item for item in metadata_list}
+        unique_metadata_list = list(unique_metadata_dict.values())
+        
+        self.logger.info(
+            f"""Returning {len(unique_metadata_list)} unique ImageMetadata objects after
+            (visit_id, detector_id) deduplication."""
+        )
 
-        return metadata_unique
+        return unique_metadata_list
