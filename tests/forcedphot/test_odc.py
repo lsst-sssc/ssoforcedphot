@@ -3,9 +3,9 @@ from unittest.mock import MagicMock, patch
 import astropy.units as u
 import pytest
 from astropy.time import Time
-from ephemeris.data_model import QueryResult
-from image_photometry.utils import ImageMetadata
-from odc import ObjectDetectionController
+from forcedphot.ephemeris.data_model import QueryResult
+from forcedphot.image_photometry.utils import ImageMetadata
+from forcedphot.odc import ObjectDetectionController
 
 
 @pytest.fixture
