@@ -371,7 +371,6 @@ class ObjectDetectionController:
                 self.args.target, self.args.start_time, self.args.end_time, ephemeris_data_temp
             )
         elif ephemeris_results:
-            # self.logger.info("Loading ephemeris data.")
             self.ephemeris_results = ephemeris_results
         else:
             if not self.ephemeris_results:
@@ -586,7 +585,6 @@ class ObjectDetectionController:
 
             if process_image:
                 # Configure image parameters from input_data
-                # self.logger.info("Running Image search")
                 image_params = input_data.get("image", {})
                 self.args.filters = image_params.get("filters", ["r"])
                 self.args.ephem_ecsv = image_params.get("ephemeris_file")

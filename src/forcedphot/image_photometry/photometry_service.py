@@ -21,6 +21,7 @@ import lsst.afw.table as afwtable
 import lsst.daf.base as dafbase
 import lsst.geom as geom
 import numpy as np
+import astropy.units as u
 from astropy.coordinates import SkyCoord
 from image_photometry.utils import (
     EndResult,
@@ -828,7 +829,8 @@ class PhotometryService:
                 else 0
             ),
             mag=(
-                -2.5 * np.log10(forced_meas_cat[0].get("base_PsfFlux_instFlux")) + 31.4
+                # -2.5 * np.log10(forced_meas_cat[0].get("base_PsfFlux_instFlux")) + 31.4
+                (forced_meas_cat[0].get("base_PsfFlux_instFlux") * u.nJy).to(u.ABmag).value
                 if (
                     forced_meas_cat
                     and len(forced_meas_cat) > 0
@@ -899,7 +901,8 @@ class PhotometryService:
                             else 0
                         ),
                         mag=(
-                            -2.5 * np.log10(meas_record.get("base_PsfFlux_instFlux")) + 31.4
+                            # -2.5 * np.log10(meas_record.get("base_PsfFlux_instFlux")) + 31.4
+                            (meas_record.get("base_PsfFlux_instFlux") * u.nJy).to(u.ABmag).value
                             if meas_record.get("base_PsfFlux_instFlux") > 0
                             else 0
                         ),

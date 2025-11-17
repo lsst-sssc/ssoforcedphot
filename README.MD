@@ -14,6 +14,33 @@ The Faint Solar System Object Detection Service is a Python tool designed for mo
 - Flexible input options: single query for a target, or batch processing via CSV files.
 - Multiple output options: JSON and CSV files for results, diagnostic plots (PNG), and FITS image cutouts.
 
+
+## Important Note: Ephemeris Interpolation Accuracy
+
+This tool relies on interpolating ephemeris data to determine target positions at exact observation times. The accuracy of this interpolation is highly dependent on the **step size** (time interval between ephemeris points) used in your query.
+
+**Potential Issue**: If ephemeris time steps are too large, linear interpolation may not be precise enough, causing:
+- Forced photometry to be performed slightly off-target, resulting in inaccurate brightness measurements
+- The true object position to fall outside the small error ellipse, causing the tool to miss the object entirely
+
+**Solution**: Use the `--override-error` option to manually set a larger, more sensible error radius (in arcseconds). This increases the search area and makes it more likely to detect the actual target as a nearby source.
+
+Example:
+```bash
+python odc.py ... --override-error 5.0
+```
+
+We recommend starting with 3-5 arcseconds and adjusting based on your object's characteristics and ephemeris data quality.
+
+
+## References and Documentation
+
+For more information about the underlying photometry methods and pipeline:
+
+- **PSF Photometry**: The photometry implementation is based on methods described in ["The Hyper Suprime-Cam Software Pipeline"](https://arxiv.org/pdf/1705.06766)
+- **LSST Science Pipeline**: For details about the LSST data processing pipeline, see [The LSST Science Pipelines Software: Optical Survey Pipeline Reduction and Analysis Environment](https://pstn-019.lsst.io/)
+
+
 ## Installation Requirements
 
 - Python 3.9 or higher
