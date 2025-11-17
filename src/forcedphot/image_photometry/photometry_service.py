@@ -15,13 +15,13 @@ import logging
 import os
 from typing import Optional
 
+import astropy.units as u
 import lsst.afw.display as afwdisplay
 import lsst.afw.image as afwimage
 import lsst.afw.table as afwtable
 import lsst.daf.base as dafbase
 import lsst.geom as geom
 import numpy as np
-import astropy.units as u
 from astropy.coordinates import SkyCoord
 from image_photometry.utils import (
     EndResult,
