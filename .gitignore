@@ -139,6 +139,11 @@ dask-worker-space/
 # tmp directory
 tmp/
 
+#output folders
+src/forcedphot/out/
+src/forcedphot/out2/
+src/forcedphot/output/
+
 # Mac OS
 .DS_Store
 

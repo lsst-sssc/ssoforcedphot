@@ -1,21 +1,30 @@
 """
-Control module for image search (based on ephemeris data) on ObsCore database
-and photometry on the found images.
+Control module for orchestrating image search operations on the ObsCore database
+(based on ephemeris data) and subsequent photometry on the retrieved images.
+
+This module acts as an intermediary, coordinating tasks between the 'ImageService',
+'ImageServiceButler', and 'PhotometryService' to perform a complete object
+detection and photometry pipeline.
 """
 
 import json
 import logging
 import os
-import time
 from dataclasses import asdict
-from typing import Optional
+from typing import Any, Optional
 
 from image_photometry.image_service import ImageService
+from image_photometry.image_service_butler import ImageServiceButler
 from image_photometry.photometry_service import PhotometryService
+from image_photometry.polygon import calculate_polygons
 from image_photometry.utils import (
     EndResult,
+    EphemerisDataCompressed,
     ImageMetadata,
+    QueryResult,
     SearchParameters,
+    SearchParametersPolygon,
+    target_name_maker,
 )
 
 
@@ -23,57 +32,203 @@ class ImPhotController:
     """
     A controller class to manage the image service and photometry service modules.
 
-    Handles image search, photometry processing, result aggregation, and output.
+    This class provides the overarching control flow for:
+    - Configuring and executing image searches based on ephemeris data, supporting
+      both point-based and polygon-based search methods.
+    - Processing the found images to perform forced photometry on the target
+      and detect additional sources within its error ellipse.
+    - Aggregating and saving the photometry results to JSON and CSV files.
+    - Printing a consolidated summary of the photometry results.
 
     Attributes:
-        image_service (ImageService): Service for image search operations.
-        phot_service (PhotometryService): Service for photometry measurements.
-        search_params (SearchParameters): Configuration for image search.
-        image_metadata (list[ImageMetadata]): Results from image search.
-        results (list[EndResult]): Aggregated photometry results.
-        output_dir (str): Directory for saving outputs.
+        image_service (ImageService): An instance of 'ImageService' for
+            ObsCore-based image search operations.
+        image_service_butler (ImageServiceButler): An instance of 'ImageServiceButler'
+            for Butler-based image search (e.g., polygon search).
+        phot_service (PhotometryService): An instance of 'PhotometryService' for
+            performing photometry measurements.
+        search_params (Optional[SearchParameters]): Stores configuration for point-based image search.
+            Initialized to None and set by 'configure_search'.
+        search_params_polygon (Optional[SearchParametersPolygon]): Stores configuration for polygon-based
+            image search. Initialized to None and set by 'configure_search'.
+        polygon_data (Optional[list]): Stores the list of calculated polygon corners and time boundaries
+            if a polygon-based search is performed.
+        image_metadata (Optional[list[ImageMetadata]]): Stores the list of 'ImageMetadata' objects
+            retrieved from the image search.
+        results (list[EndResult]): A list of 'EndResult' objects, each containing the
+            aggregated photometry results for a processed image.
+        output_folder (str): The directory path where output files (JSON, CSV, diagnostic plots, FITS)
+            will be saved.
+        detection_threshold (float): The Signal-to-Noise Ratio (SNR) threshold used for source detection
+            within the 'PhotometryService'.
     """
 
-    def __init__(self, detection_threshold: float = 5, output_dir: str = "./output"):
+    def __init__(
+        self,
+        detection_threshold: float = 5,
+        dr: str = "dp1",
+        collection: str = "LSSTComCam/DP1",
+        output_folder: str = "./output",
+    ):
         """
-        Initialize the controller with services and default settings.
+        Initialize the ImPhotController with service instances and default settings.
 
-        Args:
-            detection_threshold: SNR threshold for source detection (default: 5).
-            output_dir: Directory to save results (default: "./output").
+        Initializes the 'ImageService', 'ImageServiceButler', and 'PhotometryService' instances.
+        Sets up internal attributes for storing search parameters, polygon data,
+        image metadata, and final photometry results. Also ensures the output
+        folder exists.
+
+        Parameters
+        ----------
+        detection_threshold : float, optional
+            The Signal-to-Noise Ratio (SNR) threshold to be used by the
+            'PhotometryService' for source detection. Defaults to 5.
+        dr : str, optional
+            Parameter for the 'PhotometryService' and 'ImageServiceButler'
+            Select the data release, later can be changed
+        collection : str, optional
+            Parameter for the 'PhotometryService' and 'ImageServiceButler'
+            Select the collection later can be changed
+        output_folder : str, optional
+            The base directory path where all output files generated by the
+            controller (e.g., photometry results, diagnostic plots) will be saved.
+            Defaults to "./output".
         """
         self.logger = logging.getLogger("im_phot_controller")
         self.image_service = ImageService()
-        self.phot_service = PhotometryService(detection_threshold=detection_threshold)
+        self.image_service_butler = ImageServiceButler(
+            dr=dr,
+            collection=collection,
+        )
+        self.phot_service = PhotometryService(
+            detection_threshold=detection_threshold,
+            dr=dr,
+            collection=collection,
+        )
         self.search_params: Optional[SearchParameters] = None
+        self.search_params_polygon: Optional[SearchParametersPolygon] = None
+        self.polygon_data: Optional[list] = None
         self.image_metadata: Optional[list[ImageMetadata]] = None
+        self.result: EndResult
         self.results: list[EndResult] = []
-        self.output_dir = output_dir
-        os.makedirs(self.output_dir, exist_ok=True)
+        self.output_folder = output_folder
+        # os.makedirs(self.output_folder, exist_ok=True)
 
-    def configure_search(self, bands: set[str], ephemeris_data) -> None:
+    def configure_search(
+        self,
+        bands: set[str],
+        ephemeris_data: Any,
+        time_interval: Optional[float] = 5,
+        widening: Optional[float] = 1,
+    ) -> None:
         """
-        Set up search parameters for image retrieval.
+        Set up the search parameters for image retrieval, supporting both
+        point-based and polygon-based search methods.
 
-        Args:
-            bands: Set of photometric bands to search (e.g., {"g", "r"}).
-            ephemeris_data: Path to the ephemeris data file or EphemerisData dataclass object.
+        This method initializes both 'self.search_params' (for point-based)
+        and 'self.search_params_polygon' (for polygon-based) so that the
+        appropriate search method can be called subsequently.
+
+        Parameters
+        ----------
+        bands : set[str]
+            A set of photometric bands (e.g., '{"g", "r"}') to search for.
+        ephemeris_data : Any
+            The ephemeris data to use for the image search. This can be either:
+            - A path to an ECSV file containing ephemeris data (str).
+            - A 'QueryResult' dataclass object containing 'EphemerisData'.
+            - An 'EphemerisDataCompressed' dataclass object.
+        time_interval : Optional[float], optional
+            For polygon-based search: The maximum duration in days for each
+            segment used to calculate the polygon corners. Defaults to 5.0 days.
+        widening : Optional[float], optional
+            For polygon-based search: The desired width in arcseconds on either
+            side of the ephemeris path, used to define the polygon. Defaults to 1.0 arcsec.
         """
         self.search_params = SearchParameters(bands=bands, ephemeris_file=ephemeris_data)
+        self.search_params_polygon = SearchParametersPolygon(
+            bands=bands, ephemeris_file=ephemeris_data, time_interval=time_interval, widening=widening
+        )
 
-    def search_images(self):
+    def search_images(self) -> list[ImageMetadata]:
         """
-        Execute the image search using configured parameters.
+        Executes a point-based image search using the parameters configured in 'self.search_params'.
 
-        Returns:
-            True if images were found, False otherwise.
+        This method queries the ObsCore database to find images that spatially
+        and temporally overlap with individual points of the provided ephemeris data.
+
+        Returns
+        -------
+        list[ImageMetadata]
+            A list of 'ImageMetadata' objects, each representing a discovered image
+            that matches the search criteria.
+
+        Raises
+        ------
+        ValueError
+            If 'configure_search()' has not been called prior to invoking this method.
         """
         if self.search_params is None:
             raise ValueError("Search parameters not configured. Call configure_search() first.")
 
+        # self.logger.info("Starting point-based image search.")
         self.image_metadata = self.image_service.search_images(
             self.search_params.bands, self.search_params.ephemeris_file
         )
+        return self.image_metadata
+
+    def search_images_polygon(self) -> list[ImageMetadata]:
+        """
+        Executes a polygon-based image search using the parameters configured in 'self.search_params_polygon'.
+
+        This method first calculates a series of polygons that encompass the
+        ephemeris path over specified time intervals, and then queries the
+        Butler to find images that overlap with these polygons.
+
+        Returns
+        -------
+        list[ImageMetadata]
+            A list of 'ImageMetadata' objects, each representing a discovered image
+            that matches the search criteria.
+
+        Raises
+        ------
+        ValueError
+            If 'configure_search()' has not been called prior to invoking this method.
+        """
+        if self.search_params_polygon is None:
+            raise ValueError("Search parameters not configured. Call configure_search() first.")
+
+        # Calculate the polygon corners and time boundaries
+        self.logger.info(
+            f"Calculating polygon with time interval: {self.search_params_polygon.time_interval} days "
+            f"and widening: {self.search_params_polygon.widening} arcsec"
+        )
+        if isinstance(self.search_params_polygon.ephemeris_file, QueryResult):
+            ephemeris_compressed = EphemerisDataCompressed.compress_ephemeris(
+                self.search_params_polygon.ephemeris_file
+            )
+        else:
+            ephemeris_compressed = self.search_params_polygon.ephemeris_file
+
+        self.polygon_data = calculate_polygons(
+            ephemeris_data=ephemeris_compressed,
+            time_interval=self.search_params_polygon.time_interval,
+            widening=self.search_params_polygon.widening,
+        )
+
+        if not self.polygon_data:
+            self.logger.warning("Polygon calculation resulted in no data. Aborting search.")
+            return []
+
+        # Search images based on the polygons
+        self.logger.info(f"Searching for images intersecting with {len(self.polygon_data)} polygons.")
+        self.image_metadata = self.image_service_butler.search_images_polygon(
+            polygons=self.polygon_data,
+            bands=self.search_params_polygon.bands,
+            ephemeris=ephemeris_compressed,
+        )
+
         return self.image_metadata
 
     def process_images(
@@ -84,24 +239,66 @@ class ImPhotController:
         ephemeris_service: str,
         image_metadata: list[ImageMetadata],
         cutout_size: int = 800,
-        save_cutout: bool = False,
+        override_error: float = 0,
+        save_diag_plots: bool = False,
+        save_fits: bool = False,
         display: bool = True,
+        output_folder: str = "./output",
+        save_json: bool = False,
+        save_csv: bool = False,
     ) -> None:
         """
-        Perform photometry on all retrieved images.
+        Performs photometry on all retrieved images.
 
-        Args:
-            target_name: Name of the target (e.g., "Example Target").
-            target_type: Classification of the target (e.g., "smallbody").
-            image_type: Type of the image (calexp, goodSeeingDiff_differenceExp).
-            ephemeris_service: Source of ephemeris data (e.g., "JPL Horizons").
-            image_metadata: Metadata for the images.
-            cutout_size: Size of image cutout in pixels (default: 800).
-            save_cutout: Whether to save cutout images (default: False).
-            display: Whether to display results (default: True).
+        For each image in 'image_metadata', this method calls the 'PhotometryService'
+        to perform forced photometry on the target's ephemeris coordinates and to
+        detect other sources within its error ellipse. Images where the target is
+        too close to the edge or outside boundaries are skipped.
+
+        Parameters
+        ----------
+        target_name : str
+            The name of the astronomical target (e.g., "Example Target").
+        target_type : str
+            The classification of the target (e.g., "smallbody").
+        image_type : str
+            The type of image to process: '"visit_image"' or '"difference_image"'.
+        ephemeris_service : str
+            The name of the ephemeris service used to obtain the ephemeris data (e.g., "JPL Horizons").
+        image_metadata : list[ImageMetadata]
+            A list of 'ImageMetadata' objects for the images on which to perform photometry.
+        cutout_size : int, optional
+            The desired size in pixels for the square image cutout centered on the target.
+            Defaults to 800.
+        override_error : float, optional
+            If greater than 0, this value in arcseconds will be used as the radius
+            for a circular error ellipse, overriding the ephemeris's reported uncertainty.
+            Defaults to 0 (no override).
+        save_diag_plots : bool, optional
+            If 'True', a diagnostic PNG plot showing the image, target, and detected sources
+            within the error ellipse will be saved. Defaults to 'False'.
+        save_fits : bool, optional
+            If 'True', the FITS cutout of the image will be saved. Defaults to 'False'.
+        display : bool, optional
+            If 'True', attempts to display the image and photometry results in Firefly
+            for real-time visualization. Defaults to 'True'.
+        output_folder : str, optional
+            The path to the directory where diagnostic plots and FITS cutouts will be saved.
+            Defaults to "./output".
+        save_json : bool, optional
+            Save the final photometry results as JSON (default: False)
+        save_csv : bool, optional
+            Save the final photometry results as csv (default: False)
+
+        Raises
+        ------
+        ValueError
+            If 'image_metadata' is 'None' or empty, indicating no images were found.
         """
         if image_metadata is None:
             raise ValueError("No images found. Run search_images() first.")
+
+        self.phot_service.detection_threshold = self.detection_threshold
 
         self.results.clear()
         for metadata in image_metadata:
@@ -112,10 +309,13 @@ class ImPhotController:
                 image_type=image_type,
                 ephemeris_service=ephemeris_service,
                 cutout_size=cutout_size,
-                save_cutout=save_cutout,
+                override_error=override_error,
+                save_diag_plots=save_diag_plots,
+                save_fits=save_fits,
                 display=display,
-                output_dir=self.output_dir,
-                save_json=False,  # Handled separately by save_results()
+                output_folder=output_folder,
+                save_json=save_json,
+                save_csv=save_csv,
             )
             # Skip results where target photometry is None (edge proximity)
             if result.forced_phot_on_target is not None:
@@ -123,30 +323,44 @@ class ImPhotController:
             else:
                 self.logger.warning(
                     f"Skipping image (Visit ID: {metadata.visit_id}, Detector: {metadata.detector_id}) "
-                    "due to target proximity to edge."
+                    "due to target proximity to edge or outside of the image boundaries."
                 )
 
-    def save_results(
-        self, filename: str = "photometry_results.json", target_name: Optional[str] = "target"
+    def save_results_to_json(
+        self, target_name: Optional[str] = "target", output_folder: str = "./output"
     ) -> str:
         """
-        Save all photometry results to a JSON file.
+        Saves all accumulated photometry results ('self.results') to a JSON file.
 
-        Args:
-            filename: Name of the output file (default: "photometry_results.json").
-            target_name: Optional. Name of the target.
+        The results are converted from a list of 'EndResult' dataclass instances
+        into a JSON-serializable list of dictionaries.
 
-        Returns:
-            Path to the saved file.
+        Parameters
+        ----------
+        target_name : Optional[str], optional
+            The name of the target, used to form part of the output filename.
+            Defaults to "target". Special characters are replaced for valid filenames.
+        output_folder : str, optional
+            The directory path where the JSON file will be saved. Defaults to "./output".
+
+        Returns
+        -------
+        str
+            The full path to the saved JSON file.
+
+        Raises
+        ------
+        ValueError
+            If there are no results ('self.results' is empty) to save.
         """
         if not self.results:
             raise ValueError("No results to save. Run process_images() first.")
 
         json_data = [asdict(result) for result in self.results]
-        t_name = target_name.replace(":", "-").replace(" ", "_").replace("/", "_")
+        t_name = target_name_maker(str(target_name))
         filename = t_name + "_photometry_results.json"
 
-        output_path = os.path.join(self.output_dir, filename)
+        output_path = os.path.join(output_folder, filename)
 
         with open(output_path, "w") as f:
             json.dump(json_data, f, indent=2, default=str)
@@ -154,8 +368,66 @@ class ImPhotController:
         print(f"Results saved to {output_path}")
         return output_path
 
+    def save_results_to_csv(
+        self,
+        target_name: Optional[str] = "target",
+        output_folder: str = "./output",
+        all_ellipse_sources: bool = False,
+    ) -> str:
+        """
+        Saves all accumulated photometry results ('self.results') to a CSV file.
+
+        This method leverages the 'EndResult.save_results_to_csv' utility function
+        to flatten the structured photometry data into a tabular CSV format.
+
+        Parameters
+        ----------
+        target_name : Optional[str], optional
+            The name of the target, used to form part of the output filename.
+            Defaults to "target". Special characters are replaced for valid filenames.
+        output_folder : str, optional
+            The directory path where the CSV file will be saved. Defaults to "./output".
+        all_ellipse_sources : bool, optional
+            If 'True', the CSV will include separate rows for each source detected
+            within the error ellipse for each image. If 'False', only the best
+            (closest) source per result will be included (along with the forced
+            photometry on the target). Defaults to 'False'.
+
+        Returns
+        -------
+        str
+            The full path to the saved CSV file.
+
+        Raises
+        ------
+        ValueError
+            If there are no results ('self.results' is empty) to save.
+        """
+        if not self.results:
+            raise ValueError("No results to save. Run process_images() first.")
+
+        t_name = target_name_maker(str(target_name))
+        filename = t_name + "_photometry_results.csv"
+
+        output_path = os.path.join(output_folder, filename)
+
+        EndResult.results_to_csv(
+            results=self.results,
+            output_file=output_path,
+            include_all_ellipse_sources=all_ellipse_sources,
+        )
+
+        print(f"Results saved to {output_path}")
+        return output_path
+
     def print_summary(self) -> None:
-        """Print a consolidated summary of all photometry results."""
+        """
+        Prints a consolidated, human-readable summary of all processed photometry results.
+
+        Iterates through 'self.results' and displays key information for each image,
+        including visit/detector/band, forced photometry on the target, and details
+        about any nearby sources detected within the error ellipse.
+        """
         for i, result in enumerate(self.results):
             print(f"\n{'=' * 30} Result {i + 1} {'=' * 30}")
             print(f"Visit ID: {result.visit_id} | Detector: {result.detector_id} | Band: {result.band}")
@@ -174,33 +446,3 @@ class ImPhotController:
                     print(f"  Source {j}: Separation = {source.separation:.2f} arcsec")
                     print(f"    Flux: {source.flux:.2f} ± {source.flux_err:.2f} nJy")
                     print(f"    Sigma: {source.sigma:.2f}σ")
-
-
-# Example usage
-if __name__ == "__main__":
-    start_time = time.time()
-    controller = ImPhotController(detection_threshold=5, output_dir="./output")
-
-    # Configure and execute search
-    controller.configure_search(bands={"g", "r", "i"}, ephemeris_data="./test_ephem.ecsv")
-
-    image_metadata = controller.search_images()
-
-    if not image_metadata:
-        print("No images found!")
-        exit()
-
-    # Process images and save results
-    controller.process_images(
-        target_name="Example Target",
-        target_type="smallbody",
-        image_type="goodSeeingDiff_differenceExp",
-        ephemeris_service="JPL Horizons",
-        image_metadata=image_metadata,
-        cutout_size=800,
-        display=False,
-    )
-
-    # controller.save_results()
-    controller.print_summary()
-    print(f"The process took {(time.time()-start_time)/60} minutes.")

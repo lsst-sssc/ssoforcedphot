@@ -21,6 +21,7 @@ from image_photometry.utils import (
     ImageMetadata,
     interpolate_coordinates,
 )
+from lsst.daf.butler import Butler
 from lsst.rsp import get_tap_service
 
 
@@ -30,10 +31,11 @@ class ImageService:
     Interfaces with the ObsCore catalog through TAP service.
     """
 
-    def __init__(self):
+    def __init__(self, dr: str = "dp1", collection: str = "LSSTComCam/DP1"):
         """Initializes the ImageService with logging configuration and TAP service connection."""
         self.logger = logging.getLogger("image_service")
         self.service = get_tap_service("tap")
+        self.butler = Butler(dr, collections=collection)
 
     def search_images(self, bands, ephemeris_data):
         """
@@ -43,7 +45,7 @@ class ImageService:
         ----------
         bands : list[str]
             list of photometric bands to search for in the image
-        ephemeris_data : EphemerisDataCompressed or ephemeris file path
+        ephemeris_data : QueryResult or ephemeris file path
             Ephemeris data to search for in the image
 
         Returns
@@ -52,7 +54,7 @@ class ImageService:
             list of matching image metadata or None if no results found
         """
         print("Begin the image search based on ephemeris data.")
-        # Check if ephemeris data is a string or a list of EphemerisDataCompressed objects
+        # Check if ephemeris data is a string or QueryResult objects
         try:
             time_start = time.time()
             # Load ephemeris data if it's a string path
@@ -62,9 +64,7 @@ class ImageService:
             elif isinstance(ephemeris_data, QueryResult):
                 ephemeris_rows = EphemerisDataCompressed.compress_ephemeris(ephemeris_data)
             else:
-                raise ValueError(
-                    "Ephemeris_data must be a string or a list of EphemerisDataCompressed objects"
-                )
+                raise ValueError("Ephemeris_data must be a string or a QueryResult objects")
 
             if not ephemeris_rows:
                 self.logger.error("No ephemeris data found")
@@ -146,8 +146,8 @@ class ImageService:
         coordinate_conditions = []
         for time_before, time_after, ra, dec in time_windows:
             condition = f"""
-                (t_min >= {time_before.mjd}
-                AND t_max <= {time_after.mjd}
+                (t_min >= {time_before.tai.mjd}
+                AND t_max <= {time_after.tai.mjd}
                 AND CONTAINS(POINT('ICRS', {ra}, {dec}), s_region) = 1)
             """
             coordinate_conditions.append(condition)
@@ -158,7 +158,6 @@ class ImageService:
         SELECT
             lsst_visit,
             lsst_detector,
-            lsst_ccdvisitid,
             lsst_band,
             s_ra,
             s_dec,
@@ -168,8 +167,8 @@ class ImageService:
         FROM ivoa.ObsCore
         WHERE calib_level = 2
         AND ({bands_clause})
-        AND t_max >= {start_time.mjd}
-        AND t_min <= {end_time.mjd}
+        AND t_max >= {start_time.tai.mjd}
+        AND t_min <= {end_time.tai.mjd}
         AND ({coordinate_clause})
         """
         return query
@@ -194,9 +193,18 @@ class ImageService:
         metadata_list = []
 
         for _, row in results.iterrows():
-            t_min = Time(row["t_min"], format="mjd")
-            t_max = Time(row["t_max"], format="mjd")
-            t_mid = (t_min.mjd + t_max.mjd) / 2
+            visit_info = self.butler.get(
+                "visit_image.visitInfo", visit=row["lsst_visit"], detector=row["lsst_detector"]
+            )
+
+            t_butler = visit_info.date.toAstropy()
+            # Ensure TAI scale (LSST convention) - convert if needed
+            if t_butler.scale != "tai":
+                t_butler = t_butler.tai
+
+            t_min = Time(row["t_min"], format="mjd", scale="tai")
+            t_max = Time(row["t_max"], format="mjd", scale="tai")
+            t_mid = (t_min.value + t_max.value) / 2
 
             # Get relevant ephemeris rows for this image
             relevant_ephemeris = EphemerisDataCompressed.get_relevant_rows(ephemeris_rows, t_min, t_max)
@@ -205,13 +213,13 @@ class ImageService:
                 relevant_ephemeris[0].dec_deg,
                 relevant_ephemeris[-1].ra_deg,
                 relevant_ephemeris[-1].dec_deg,
-                relevant_ephemeris[0].datetime.mjd,
-                relevant_ephemeris[-1].datetime.mjd,
+                relevant_ephemeris[0].datetime.tai.mjd,
+                relevant_ephemeris[-1].datetime.tai.mjd,
                 t_mid,
             )
 
             interpolated_row = EphemerisDataCompressed(
-                datetime=Time(t_mid, format="mjd"),
+                datetime=Time(t_mid, format="mjd", scale="tai"),
                 ra_deg=interpolated_ra,
                 dec_deg=interpolated_dec,
                 ra_rate=relevant_ephemeris[1].ra_rate,
@@ -227,21 +235,22 @@ class ImageService:
             metadata = ImageMetadata(
                 visit_id=int(row["lsst_visit"]),
                 detector_id=int(row["lsst_detector"]),
-                ccdvisit=int(row["lsst_ccdvisitid"]),
                 band=row["lsst_band"],
                 coordinates_central=(float(row["s_ra"]), float(row["s_dec"])),
-                t_min=t_min,
+                t_min=t_butler,  # t_butler instead of t_min, because consistency
                 t_max=t_max,
                 ephemeris_data=relevant_ephemeris,
                 exact_ephemeris=interpolated_row,
             )
             metadata_list.append(metadata)
 
-        metadata_unique = list({item.ccdvisit: item for item in metadata_list}.values())
-        self.logger.info(f"Found {len(metadata_unique)} image(s) ")
+        # metadata_unique = list({item.visit_id: item for item in metadata_list}.values())
+        unique_metadata_dict = {(item.visit_id, item.detector_id): item for item in metadata_list}
+        unique_metadata_list = list(unique_metadata_dict.values())
 
-        print("-" * 40)
-        print("Image Service is done.")
-        print("-" * 40)
+        self.logger.info(
+            f"""Returning {len(unique_metadata_list)} unique ImageMetadata objects after
+            (visit_id, detector_id) deduplication."""
+        )
 
-        return metadata_unique
+        return unique_metadata_list

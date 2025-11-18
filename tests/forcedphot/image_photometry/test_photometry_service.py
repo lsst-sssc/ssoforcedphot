@@ -18,11 +18,11 @@ from lsst.daf.butler import Butler
 def mock_butler():
     """Create a mock Butler instance."""
     butler = Mock(spec=Butler)
-    mock_calexp = Mock(spec=afwimage.ExposureF)
-    mock_calexp.getWcs.return_value = Mock()
-    mock_calexp.getWidth.return_value = 1000
-    mock_calexp.getHeight.return_value = 1000
-    butler.get.return_value = mock_calexp
+    mock_image = Mock(spec=afwimage.ExposureF)
+    mock_image.getWcs.return_value = Mock()
+    mock_image.getWidth.return_value = 1000
+    mock_image.getHeight.return_value = 1000
+    butler.get.return_value = mock_image
     return butler
 
 
@@ -68,15 +68,15 @@ def test_init(photometry_service):
 
 def test_prepare_image_cutout(photometry_service):
     """Test image cutout preparation."""
-    mock_calexp = Mock(spec=afwimage.ExposureF)
-    mock_calexp.getWidth.return_value = 1000
-    mock_calexp.getHeight.return_value = 1000
+    mock_image = Mock(spec=afwimage.ExposureF)
+    mock_image.getWidth.return_value = 1000
+    mock_image.getHeight.return_value = 1000
     mock_wcs = Mock()
     mock_wcs.skyToPixel.return_value = geom.Point2D(500, 500)
-    mock_calexp.getWcs.return_value = mock_wcs
+    mock_image.getWcs.return_value = mock_wcs
 
     target_img, bbox, offsets = photometry_service._prepare_image(
-        calexp=mock_calexp, ra_deg=150.0, dec_deg=-30.0, cutout_size=400
+        visit_image=mock_image, ra_deg=150.0, dec_deg=-30.0, cutout_size=400
     )
 
     assert bbox is not None
@@ -91,7 +91,7 @@ def test_prepare_image_cutout(photometry_service):
 #         target_name='Test Target',
 #         target_type='asteroid',
 #         ephemeris_service='test_service',
-#         image_type='calexp'
+#         image_type='visit_image'
 #     )
 
 #     assert result is None

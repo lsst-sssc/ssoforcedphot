@@ -1,112 +1,112 @@
 ## Panel application
-The ODC can also be controlled via a Panel application. 
-The application is divided into four main tabs, each handling a specific part of the detection and analysis process.
+The ODC (Object Detection Controller) can also be controlled via a Panel-based ([https://panel.holoviz.org/]) web application, providing an interactive graphical user interface (GUI).
+The application is divided into five main tabs, each handling a specific part of the detection and analysis process.
 
 ### Main Features
-- Ephemeris generation and management
-- Image search and filtering
-- Photometric analysis
-- Complete pipeline execution
+- Ephemeris data generation and management.
+- Image search and filtering based on ephemeris.
+- Photometric analysis on retrieved images.
+- Complete end-to-end pipeline execution combining all steps.
+- Real-time logging output directly within the application (with a note on potential display delays).
 
 ### Tab Descriptions
 
-#### 1. Ephemeris Tab
-This tab handles the generation and management of ephemeris data.
+#### 1. Ephemeris Query Tab
+This tab handles the generation and management of ephemeris data for your target object.
 
 ##### Key Parameters:
-- **Ephemeris Source**: Choose between using existing data or uploading an ECSV file
-- **Service**: Select between Horizons and Miriade services
-- **Target Name**: Enter the name of the target
-- **Target Type**: Choose between 'smallbody' or 'comet_name'
+- **Ephemeris Source**: Choose between "Use Generated Data" (to perform a live query) or "Upload ECSV" (to use pre-computed ephemeris from a file).
+- **Service**: Select the ephemeris service for live queries (Horizons or Miriade).
+- **Target Name**: Enter the name of the astronomical target (e.g., "C/2020 F3 (NEOWISE)").
+- **Target Type**: Choose the classification of your target (e.g., `smallbody`, `asteroid_name`, `comet_name`, `designation`).
 - **Time Parameters**:
-  - Start Time: Set the beginning of the observation period
-  - Time Specification: Choose between End Time or Day Range
-  - Step Value and Unit: Define the time resolution of the ephemeris
+  - `Start Time`: Set the beginning of the observation period.
+  - `Time Specification`: Choose between defining an `End Time` or a `Day Range` (number of days forward from the start time).
+  - `Step Value` and `Unit`: Define the time resolution for the ephemeris data points (e.g., `1` `h` for hourly steps).
+- **Save Ephemeris Data**: Check this box to save the queried ephemeris data to the specified `Output Folder`.
 
 ##### Output:
-Displays a table with detailed ephemeris data including:
-- DateTime
-- RA/Dec coordinates (degrees)
-- Motion rates
-- Azimuth/Elevation
-- Distance measurements
-- Magnitude and uncertainty information
+Displays a table with detailed ephemeris data, including:
+- `Time (ISO)`: Observation time in ISO format.
+- `RA (deg)`, `Dec (deg)`: Right Ascension and Declination coordinates in degrees.
+- `RA Rate (arcsec/h)`, `Dec Rate (arcsec/h)`: Rates of change in RA and Dec in arcseconds per hour.
+- `AZ (deg)`, `EL (deg)`: Azimuth and Elevation angles in degrees.
+- `r (au)`: Heliocentric distance in Astronomical Units.
+- `Delta (au)`: Geocentric distance in Astronomical Units.
+- `V mag`: Visual magnitude.
+- `Alpha (deg)`: Phase angle in degrees.
+- `RSS 3σ (arcsec)`, `SMAA 3σ (arcsec)`, `SMIA 3σ (arcsec)`, `Theta 3σ (deg)`: 3-sigma uncertainty information including Root Sum Square, semi-major/minor axes, and position angle of the error ellipse.
 
-#### 2. Image Tab
-Handles image search operations based on ephemeris data.
-
-##### Key Features:
-- Filter selection (u, g, r, i, z, y bands)
-- Integration with ephemeris data
-- Tabulated results showing:
-  - Visit ID
-  - Detector ID
-  - Filter band
-  - Time range (min/max)
-
-#### 3. Photometry Tab
-Configures and executes photometric analysis.
+#### 2. Image Search Tab
+This tab handles searching for LSST images based on the ephemeris data.
 
 ##### Key Parameters:
-- **Image Type**: Choose between 'calexp' and 'goodSeeingDiff_differenceExp'
-- **Detection Threshold**: Set sensitivity for detection
-- **Cutout Size**: Define the analysis window in pixels
+- **Image Search Method**:
+  - `Point`: Searches for images that overlap with individual ephemeris data points (can be slower for long ephemeris).
+  - `Polygon`: Creates a polygon based on the ephemeris track and searches for images overlapping this area (generally faster for longer ephemeris data).
+- **Filters (Bands)**: Select one or more photometric bands (`u`, `g`, `r`, `i`, `z`, `y`) for the image search.
+- **Polygon Search Options** (visible only if "Polygon" method is selected):
+  - `Widening (arcsec)`: Expands the polygon search area around the ephemeris track by this amount in arcseconds.
+  - `Time Interval (days)`: Groups ephemeris points into segments for polygon creation within this time interval.
+
+##### Output:
+Displays a table summarizing the metadata of the found images:
+- `Visit ID`: Unique identifier for the observation visit.
+- `Detector ID`: Identifier for the specific detector used.
+- `Filter`: The photometric band of the image.
+- `Obs Start (MJD)`, `Obs End (MJD)`: The start and end times of the observation in Modified Julian Date (MJD), converted to ISO format for display.
+
+#### 3. Photometry Analysis Tab
+This tab configures and executes the photometric analysis on the images found by the "Image Search" tab.
+
+##### Key Parameters:
+- **Image Type**: Choose the type of image to process: `"visit_image"` (calibrated raw image) or `"goodSeeingDiff_differenceExp"` (difference image).
+- **Detection Threshold (SNR)**: Set the Signal-to-Noise Ratio (SNR) threshold for detecting sources.
+- **Cutout Size (pixels)**: Define the square size of the image cutout in pixels (e.g., `800` for 800x800). Set to `0` to use the entire image.
+- **Override Error Ellipse (arcsec)**: If a value greater than `0` is provided, the ephemeris-derived error ellipse will be overridden by a circular error region of this radius (in arcseconds) for source extraction.
 - **Output Options**:
-  - Save Cutouts
-  - Display Results
-  - Save to JSON
+  - `Save Diagnostic Plots (PNG)`: Check to save PNG images marked with detected sources and the error ellipse.
+  - `Save FITS Cutouts`: Check to save the FITS image cutouts used for photometry.
+  - `Display Results in Firefly`: Check to attempt displaying the images and photometry results in a Firefly viewer.
+  - `Save Results to JSON`: Check to save the final photometry results in JSON format.
+  - `Save Results to CSV`: Check to save the final photometry results in CSV format.
+  - `Include All Sources within Error Ellipse in CSV` (visible only if `Save Results to CSV` is checked): If `True`, creates separate rows in the CSV for each source detected within the error ellipse; otherwise, only includes the best source.
 
 ##### Results Display:
-- Visit and Detector IDs
-- Band information
-- Flux measurements (nJy)
-- Magnitude measurements (AB)
-- Signal-to-Noise Ratio (SNR)
-- Nearby source counts
+The table summarizes photometry measurements for the target object in each processed image:
+- `Visit ID`, `Detector ID`, `Band`: Identifiers for the image.
+- `Flux (nJy)`, `Flux Error`: Measured flux and its uncertainty in nanoJansky.
+- `Magnitude`, `Mag Error`: Measured AB magnitude and its uncertainty.
+- `SNR`: Signal-to-Noise Ratio of the target detection.
+- `Nearby Sources`: Count of additional sources detected within the error ellipse.
 
 #### 4. Complete Run Tab
-Executes the full detection pipeline from ephemeris to photometry.
+This tab allows you to execute the entire object detection pipeline from ephemeris query to photometry in a single, integrated workflow.
 
 ##### Features:
-- Combines all parameters from previous tabs
-- Single-click execution of the entire workflow
-- Collapsible parameter cards for better organization
+- Combines all parameters from the "Ephemeris Query", "Image Search", and "Photometry Analysis" tabs into one interface.
+- Provides collapsible parameter cards (`1. Ephemeris Settings`, `2. Image Search Settings`, `3. Photometry Settings`, `4. Output Destination`) for better organization.
+- Offers single-click execution of the entire end-to-end workflow using the "Run All Services" button.
 
 ### Using the Application
 
 #### Basic Workflow:
-1. **Generate Ephemeris**:
-   - Select the appropriate service
-   - Enter target information
-   - Define time parameters
-   - Run the ephemeris query
-
-2. **Search for Images**:
-   - Select desired filters
-   - Use generated ephemeris or uploaded ECSV
-   - Execute image search
-
-3. **Perform Photometry**:
-   - Configure detection parameters
-   - Set output preferences
-   - Run photometric analysis
-
-4. **Complete Pipeline**:
-   - Use the Complete Run tab for end-to-end processing
-   - Configure all parameters in one place
-   - Execute with single button press
+1.  **Generate Ephemeris**: Navigate to the "Ephemeris Query" tab. Select your ephemeris source (live query or ECSV upload), enter target details, and define time parameters. Click "Run Ephemeris Query". The results will populate the table.
+2.  **Search for Images**: Go to the "Image Search" tab. Select desired filters and the image search method. Click "Run Image Search". This step will automatically use the ephemeris data obtained in the previous step (or from the uploaded ECSV). Image metadata will appear in the table.
+3.  **Perform Photometry**: Switch to the "Photometry Analysis" tab. Configure detection parameters, cutout size, and output preferences. Click "Run Photometry Analysis". This step will process the image metadata obtained in the previous "Image Search" step. Photometry results will be displayed.
+4.  **Complete Pipeline**: For an integrated, hands-off workflow, use the "Complete Run" tab. Configure all parameters for ephemeris, image search, and photometry in one place. Then, execute the entire pipeline with a single click on "Run All Services". The final photometry results will be shown in the table at the bottom of this tab.
 
 #### Additional Features:
-- **Terminal Output**: View real-time (not really) logging and system messages
-- **Test Functions**: Verify system functionality
-- **Clear Terminal**: Reset the terminal display
-- **Table Views**: Interactive data tables with sorting and filtering capabilities
+-   **Terminal Output**: View application logs, progress messages, and system output in the terminal widget at the bottom of the application. Note that output in the web browser might be slightly delayed compared to immediate command-line execution.
+-   **Test Functions**: Use the "Test Logging" and "Test Terminal" buttons to verify that the logging and terminal display functionality is working correctly.
+-   **Clear Terminal**: Use the "Clear Terminal" button to clear the contents of the terminal display.
+-   **Table Views**: All data output in tables (`pn.widgets.Tabulator`) are interactive, allowing for sorting columns and filtering data.
 
 ## Troubleshooting
-- If ephemeris query fails, verify target ID and type
-- Check time format if getting time-related errors
-- Ensure output directory exists and is writable
-- For large queries, consider using larger time steps
-- If the ephemeris data is too large, the image search can be slow or fail
-- If the code is running in the Panel application, the terminal output will be delayed, be patient.
-- Check the terminal output with the Test Terminal button. If the code is running in the background, the button will not work.
+-   If an ephemeris query fails, verify the target ID/name, target type, and ensure that the start/end times or day range are correctly specified and within reasonable limits.
+-   Check the time format (should be `"YYYY-MM-DD HH:MM:SS"`) if you encounter time-related errors.
+-   Ensure that the `Output Folder` exists and has write permissions if you are saving any output files.
+-   For queries covering very large time ranges or requiring high time resolution, consider using larger `Step Value`s to reduce the amount of ephemeris data generated.
+-   If the generated or loaded ephemeris data is excessively large, the subsequent image search step might become slow or fail due to memory constraints.
+-   When running services within the Panel application, the terminal output may appear with a slight delay. Please be patient for messages to propagate to the browser.
+-   If the "Test Terminal" button does not produce output, it might indicate that a long-running process is currently occupying the backend, preventing immediate updates. Wait for the ongoing process to complete.
