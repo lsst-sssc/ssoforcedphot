@@ -1,5 +1,6 @@
 import argparse
 import logging
+import os
 import time
 from dataclasses import asdict
 from typing import Any, Optional
@@ -82,11 +83,12 @@ class ObjectDetectionController:
         # Selection of services
         parser.add_argument(
             "--service-selection",
-            choices=["all", "ephemeris", "catalog", "image", "photometry"],
+            choices=["all", "ephemeris", "catalog", "image", "photometry", "photometry-only"],
             default="ephemeris",
             help=(
                 "Select which services to use (default: ephemeris) 'all'"
-                "runs ephemeris, image, and photometry sequentially."
+                "runs ephemeris, image, and photometry sequentially. 'photometry-only' "
+                "performs standalone photometry at user-specified coordinates without ephemeris."
             ),
         )
 
@@ -250,6 +252,63 @@ class ObjectDetectionController:
             "--save-fits",
             action="store_true",
             help="Save the FITS image cutouts used for photometry in the output folder. Default: False.",
+        )
+
+        # Standalone Photometry Options
+        standalone_group = parser.add_argument_group("Standalone Photometry Options")
+
+        standalone_group.add_argument(
+            "--photometry-csv",
+            help="CSV file with coordinates for standalone photometry",
+        )
+
+        standalone_group.add_argument(
+            "--ra",
+            type=float,
+            help="Right Ascension (degrees) for single measurement",
+        )
+
+        standalone_group.add_argument(
+            "--dec",
+            type=float,
+            help="Declination (degrees) for single measurement",
+        )
+
+        standalone_group.add_argument(
+            "--visit-id",
+            type=int,
+            help="Visit ID for standalone photometry",
+        )
+
+        standalone_group.add_argument(
+            "--detector",
+            type=int,
+            help="Detector ID for standalone photometry",
+        )
+
+        standalone_group.add_argument(
+            "--coords-file",
+            help="File with multiple RA,Dec coordinates (one per line)",
+        )
+
+        standalone_group.add_argument(
+            "--aperture-radii",
+            nargs="+",
+            type=float,
+            help="Aperture radii in arcseconds (e.g., --aperture-radii 3.0 5.0 7.0)",
+        )
+
+        standalone_group.add_argument(
+            "--parallel",
+            action="store_true",
+            help="Enable parallel processing for batch photometry",
+        )
+
+        standalone_group.add_argument(
+            "--max-workers",
+            type=int,
+            default=4,
+            help="Number of parallel workers (default: 4)",
         )
 
         return parser
@@ -482,6 +541,119 @@ class ObjectDetectionController:
 
         return self.imphot_controller.results
 
+    def run_standalone_photometry(self):
+        """
+        Execute standalone photometry without ephemeris.
+
+        Supports three input modes:
+        1. CSV file with multiple requests (--photometry-csv)
+        2. Single coordinate (--ra, --dec, --visit-id, --detector, --filters)
+        3. Multiple coordinates in same image (--coords-file, --visit-id, --detector, --filters)
+
+        Returns:
+            EndResult or pd.DataFrame or dict: Results depending on input mode
+        """
+        from photometry_api import PhotometryRequest, StandalonePhotometryService
+
+        print("-" * 40)
+        print("Standalone photometry service initiated.")
+        print("-" * 40)
+
+        service = StandalonePhotometryService(
+            output_folder=self.args.output_folder, detection_threshold=self.args.threshold
+        )
+
+        # Mode 1: CSV batch processing
+        if self.args.photometry_csv:
+            results_df = service.measure_from_csv(
+                csv_path=self.args.photometry_csv,
+                parallel=self.args.parallel,
+                max_workers=self.args.max_workers,
+                save_diag_plots=self.args.save_diag_plots,
+                save_fits=self.args.save_fits,
+                output_folder=self.args.output_folder,
+                output_csv=(
+                    os.path.join(self.args.output_folder, "standalone_results.csv")
+                    if self.args.save_csv
+                    else None
+                ),
+            )
+            print(f"\nProcessed {len(results_df)} measurements")
+            print(f"Success rate: {results_df['success'].sum()}/{len(results_df)}")
+            return results_df
+
+        # Mode 2: Single coordinate
+        elif all(
+            [
+                self.args.ra is not None,
+                self.args.dec is not None,
+                self.args.visit_id,
+                self.args.detector,
+            ]
+        ):
+            request = PhotometryRequest(
+                visit_id=self.args.visit_id,
+                detector=self.args.detector,
+                band=self.args.filters[0],  # Use first filter
+                ra=self.args.ra,
+                dec=self.args.dec,
+                error_radius=self.args.override_error or 3.0,
+                detection_threshold=self.args.threshold,
+                image_type=self.args.image_type,
+                aperture_radii=self.args.aperture_radii,
+            )
+
+            result = service.measure_single(
+                request=request,
+                save_diag_plots=self.args.save_diag_plots,
+                save_fits=self.args.save_fits,
+                output_folder=self.args.output_folder,
+            )
+
+            print("\nPhotometry Result:")
+            if result.forced_phot_on_target:
+                phot = result.forced_phot_on_target
+                print(f"RA: {phot.ra:.5f}°, Dec: {phot.dec:.5f}°")
+                print(f"Flux: {phot.flux:.2f} ± {phot.flux_err:.2f} nJy")
+                print(f"Magnitude: {phot.mag:.2f} ± {phot.mag_err:.2f} (AB)")
+                print(f"SNR: {phot.snr:.1f}")
+
+            return result
+
+        # Mode 3: Multiple coordinates in same image
+        elif self.args.coords_file:
+            # Read coordinates from file
+            coords = []
+            with open(self.args.coords_file) as f:
+                for line in f:
+                    if line.strip() and not line.startswith("#"):
+                        ra, dec = map(float, line.strip().split(","))
+                        coords.append((ra, dec))
+
+            results = service.measure_multi_targets_in_image(
+                visit_id=self.args.visit_id,
+                detector=self.args.detector,
+                band=self.args.filters[0],
+                coordinates=coords,
+                error_radius=self.args.override_error or 3.0,
+                image_type=self.args.image_type,
+                aperture_radii=self.args.aperture_radii,
+                save_diag_plots=self.args.save_diag_plots,
+                save_fits=self.args.save_fits,
+                output_folder=self.args.output_folder,
+            )
+
+            print(f"\nProcessed {len(results)} targets")
+            return results
+
+        else:
+            self.parser.error(
+                "Standalone photometry requires either:\n"
+                "  - CSV file (--photometry-csv)\n"
+                "  - Single coordinate (--ra, --dec, --visit-id, --detector)\n"
+                "  - Multiple coordinates (--coords-file, --visit-id, --detector)"
+            )
+
     def api_connection(self, input_data: dict[str, Any]) -> dict[str, Any]:
         """
         Handle API connections and execute the object detection process based on input data.
@@ -675,6 +847,9 @@ class ObjectDetectionController:
             if self.image_results:
                 self.run_photometry(self.image_results, self.args.output_folder)
                 # print(photometry_results)
+
+        if self.args.service_selection == "photometry-only":
+            return self.run_standalone_photometry()
 
         print(f"The total duration of the process was {(time.time()-start_time)/60:.2f} minutes.")
 
