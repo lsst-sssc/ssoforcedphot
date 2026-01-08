@@ -311,6 +311,16 @@ class ObjectDetectionController:
             help="Number of parallel workers (default: 4)",
         )
 
+        standalone_group.add_argument(
+            "--all-ellipse-sources",
+            action="store_true",
+            help=(
+                "If True and saving to CSV, creates separate rows for each "
+                "source detected within the error ellipse. If False, only includes "
+                "the forced photometry result. Default: False."
+            ),
+        )
+
         return parser
 
     def parse_args(self, args=None):
@@ -577,6 +587,7 @@ class ObjectDetectionController:
                     if self.args.save_csv
                     else None
                 ),
+                all_ellipse_sources=self.args.all_ellipse_sources,
             )
             print(f"\nProcessed {len(results_df)} measurements")
             print(f"Success rate: {results_df['success'].sum()}/{len(results_df)}")
@@ -620,7 +631,9 @@ class ObjectDetectionController:
 
             # Save CSV if requested
             if self.args.save_csv:
-                results_df = service._results_to_dataframe([result], [request])
+                results_df = service._results_to_dataframe(
+                    [result], [request], include_all_ellipse_sources=self.args.all_ellipse_sources
+                )
                 csv_path = os.path.join(self.args.output_folder, "standalone_results.csv")
                 os.makedirs(self.args.output_folder, exist_ok=True)
                 results_df.to_csv(csv_path, index=False)
@@ -667,7 +680,9 @@ class ObjectDetectionController:
                     )
                     for (ra, dec), name in zip(coords, results.keys())
                 ]
-                results_df = service._results_to_dataframe(results_list, requests_list)
+                results_df = service._results_to_dataframe(
+                    results_list, requests_list, include_all_ellipse_sources=self.args.all_ellipse_sources
+                )
                 csv_path = os.path.join(self.args.output_folder, "standalone_results.csv")
                 os.makedirs(self.args.output_folder, exist_ok=True)
                 results_df.to_csv(csv_path, index=False)

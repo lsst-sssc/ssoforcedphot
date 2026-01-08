@@ -1,6 +1,7 @@
 import datetime
 import io
 import logging
+import os
 import sys
 
 import astropy.units as u
@@ -1206,6 +1207,9 @@ class StandalonePhotometryTab:
         self.save_diag_plots = pn.widgets.Checkbox(name="Save Diagnostic Plots", value=False)
         self.save_fits = pn.widgets.Checkbox(name="Save FITS Cutouts", value=False)
         self.save_csv = pn.widgets.Checkbox(name="Save Results CSV", value=False)
+        self.all_ellipse_sources = pn.widgets.Checkbox(
+            name="Save all sources within error ellipse", value=False
+        )
         self.output_folder = pn.widgets.TextInput(name="Output Folder", value="./output")
 
         # Run button
@@ -1234,6 +1238,11 @@ class StandalonePhotometryTab:
         self.input_section = pn.Column(sizing_mode="stretch_width")
         self._update_input_section()
 
+        # Make all_ellipse_sources visible only when save_csv is checked
+        self.all_ellipse_sources.visible = pn.bind(
+            lambda save_checked: save_checked, self.save_csv.param.value
+        )
+
         # Layout
         self.layout = pn.Row(
             pn.Column(
@@ -1256,6 +1265,7 @@ class StandalonePhotometryTab:
                 self.save_diag_plots,
                 self.save_fits,
                 self.save_csv,
+                self.all_ellipse_sources,
                 self.output_folder,
                 "---",
                 self.run_button,
@@ -1356,7 +1366,9 @@ class StandalonePhotometryTab:
                 )
 
                 # Convert to DataFrame
-                results_df = service._results_to_dataframe([result], [request])
+                results_df = service._results_to_dataframe(
+                    [result], [request], include_all_ellipse_sources=self.all_ellipse_sources.value
+                )
                 self.results_df = results_df
                 self.table_view.value = results_df
 
@@ -1395,6 +1407,7 @@ class StandalonePhotometryTab:
                             if self.save_csv.value
                             else None
                         ),
+                        all_ellipse_sources=self.all_ellipse_sources.value,
                     )
 
                     self.results_df = results_df
@@ -1405,8 +1418,6 @@ class StandalonePhotometryTab:
                         f"{results_df['success'].sum()} successful"
                     )
                 finally:
-                    import os
-
                     os.unlink(temp_csv)
 
             elif mode == "Multiple in Image":
@@ -1450,7 +1461,9 @@ class StandalonePhotometryTab:
                     )
                     for (ra, dec), name in zip(coordinates, results_dict.keys())
                 ]
-                results_df = service._results_to_dataframe(results_list, requests_list)
+                results_df = service._results_to_dataframe(
+                    results_list, requests_list, include_all_ellipse_sources=self.all_ellipse_sources.value
+                )
                 self.results_df = results_df
                 self.table_view.value = results_df
 

@@ -307,6 +307,7 @@ class StandalonePhotometryService:
         save_fits: bool = False,
         output_folder: Optional[str] = None,
         output_csv: Optional[str] = None,
+        all_ellipse_sources: bool = False,
     ) -> pd.DataFrame:
         """
         Load requests from CSV and return results as DataFrame.
@@ -342,6 +343,9 @@ class StandalonePhotometryService:
             Where to save outputs
         output_csv : str, optional
             Path to save results CSV. If None, not saved.
+        all_ellipse_sources : bool
+            If True, create separate rows for each source detected within the error ellipse.
+            If False, only include the forced photometry result. Default: False
 
         Returns
         -------
@@ -393,7 +397,9 @@ class StandalonePhotometryService:
         )
 
         # Convert to DataFrame
-        results_df = self._results_to_dataframe(results, requests)
+        results_df = self._results_to_dataframe(
+            results, requests, include_all_ellipse_sources=all_ellipse_sources
+        )
 
         # Save if requested
         if output_csv:
@@ -680,6 +686,7 @@ class StandalonePhotometryService:
         self,
         results: list[EndResult],
         requests: list[PhotometryRequest],
+        include_all_ellipse_sources: bool = False,
     ) -> pd.DataFrame:
         """
         Convert list of EndResult objects to pandas DataFrame.
@@ -690,6 +697,9 @@ class StandalonePhotometryService:
             Photometry results
         requests : list[PhotometryRequest]
             Original requests (for metadata)
+        include_all_ellipse_sources : bool
+            If True, create separate rows for each source detected within the error ellipse.
+            If False, only include the forced photometry result. Default: False
 
         Returns
         -------
@@ -709,30 +719,57 @@ class StandalonePhotometryService:
                     "target_name": request.target_name,
                     "success": False,
                 }
+                rows.append(row)
             else:
-                # Successful measurement
+                # Base row data from forced photometry result
                 phot = result.forced_phot_on_target
-                row = {
+                base_row = {
                     "visit_id": result.visit_id,
                     "detector": result.detector_id,
                     "band": result.band,
-                    "ra": phot.ra,
-                    "dec": phot.dec,
                     "target_name": result.target_name,
-                    "flux_psf": phot.flux,
-                    "flux_err_psf": phot.flux_err,
-                    "mag_psf": phot.mag,
-                    "mag_err_psf": phot.mag_err,
-                    "snr": phot.snr,
-                    "x": phot.x,
-                    "y": phot.y,
+                    "target_ra": request.ra,
+                    "target_dec": request.dec,
+                    "forced_ra": phot.ra,
+                    "forced_dec": phot.dec,
+                    "forced_flux": phot.flux,
+                    "forced_flux_err": phot.flux_err,
+                    "forced_mag": phot.mag,
+                    "forced_mag_err": phot.mag_err,
+                    "forced_snr": phot.snr,
+                    "forced_x": phot.x,
+                    "forced_y": phot.y,
                     "success": True,
                     "n_nearby_sources": len(result.phot_within_error_ellipse or []),
                 }
 
-                # Add aperture photometry if available (future enhancement)
-                # TODO: Extract aperture fluxes from result when implemented
-
-            rows.append(row)
+                if include_all_ellipse_sources and result.phot_within_error_ellipse:
+                    # Create separate row for each source in error ellipse
+                    for i, source in enumerate(result.phot_within_error_ellipse):
+                        row = base_row.copy()
+                        row.update(
+                            {
+                                "ellipse_source_index": i,
+                                "ellipse_source_ra": source.ra,
+                                "ellipse_source_dec": source.dec,
+                                "ellipse_source_ra_err": source.ra_err,
+                                "ellipse_source_dec_err": source.dec_err,
+                                "ellipse_source_x": source.x,
+                                "ellipse_source_y": source.y,
+                                "ellipse_source_x_err": source.x_err,
+                                "ellipse_source_y_err": source.y_err,
+                                "ellipse_source_snr": source.snr,
+                                "ellipse_source_flux": source.flux,
+                                "ellipse_source_flux_err": source.flux_err,
+                                "ellipse_source_mag": source.mag,
+                                "ellipse_source_mag_err": source.mag_err,
+                                "ellipse_source_separation": source.separation,
+                                "ellipse_source_sigma": source.sigma,
+                            }
+                        )
+                        rows.append(row)
+                else:
+                    # Standard mode - one row per result
+                    rows.append(base_row)
 
         return pd.DataFrame(rows)
