@@ -1399,6 +1399,9 @@ class StandalonePhotometryTab:
                             else None
                         ),
                         all_ellipse_sources=self.all_ellipse_sources.value,
+                        default_error_radius=self.error_radius.value,
+                        default_detection_threshold=self.detection_threshold.value,
+                        default_image_type=self.image_type.value,
                     )
 
                     self.results_df = results_df

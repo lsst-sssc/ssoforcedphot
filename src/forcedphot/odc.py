@@ -563,6 +563,9 @@ class ObjectDetectionController:
                     else None
                 ),
                 all_ellipse_sources=self.args.all_ellipse_sources,
+                default_error_radius=self.args.override_error or 3.0,
+                default_detection_threshold=self.args.threshold,
+                default_image_type=self.args.image_type,
             )
             print(f"\nProcessed {len(results_df)} measurements")
             print(f"Success rate: {results_df['success'].sum()}/{len(results_df)}")

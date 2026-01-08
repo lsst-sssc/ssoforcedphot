@@ -214,6 +214,9 @@ class StandalonePhotometryService:
         output_folder: Optional[str] = None,
         output_csv: Optional[str] = None,
         all_ellipse_sources: bool = False,
+        default_error_radius: float = 3.0,
+        default_detection_threshold: float = 5.0,
+        default_image_type: str = "visit_image",
     ) -> pd.DataFrame:
         """
         Load requests from CSV and return results as DataFrame.
@@ -246,6 +249,15 @@ class StandalonePhotometryService:
         all_ellipse_sources : bool
             If True, create separate rows for each source detected within the error ellipse.
             If False, only include the forced photometry result. Default: False
+        default_error_radius : float
+            Default error radius in arcseconds to use when CSV doesn't specify it.
+            Default: 3.0
+        default_detection_threshold : float
+            Default SNR threshold to use when CSV doesn't specify it.
+            Default: 5.0
+        default_image_type : str
+            Default image type to use when CSV doesn't specify it.
+            Default: "visit_image"
 
         Returns
         -------
@@ -278,9 +290,9 @@ class StandalonePhotometryService:
                 band=str(row["band"]),
                 ra=float(row["ra"]),
                 dec=float(row["dec"]),
-                error_radius=float(row.get("error_radius", 3.0)),
-                detection_threshold=float(row.get("detection_threshold", 5.0)),
-                image_type=str(row.get("image_type", "visit_image")),
+                error_radius=float(row.get("error_radius", default_error_radius)),
+                detection_threshold=float(row.get("detection_threshold", default_detection_threshold)),
+                image_type=str(row.get("image_type", default_image_type)),
                 aperture_radii=aperture_radii,
                 target_name=str(row.get("target_name", f"target_{len(requests)}")),
             )
