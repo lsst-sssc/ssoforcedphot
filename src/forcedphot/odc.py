@@ -618,6 +618,14 @@ class ObjectDetectionController:
                 print(f"Magnitude: {phot.mag:.2f} ± {phot.mag_err:.2f} (AB)")
                 print(f"SNR: {phot.snr:.1f}")
 
+            # Save CSV if requested
+            if self.args.save_csv:
+                results_df = service._results_to_dataframe([result], [request])
+                csv_path = os.path.join(self.args.output_folder, "standalone_results.csv")
+                os.makedirs(self.args.output_folder, exist_ok=True)
+                results_df.to_csv(csv_path, index=False)
+                print(f"Results saved to: {csv_path}")
+
             return result
 
         # Mode 3: Multiple coordinates in same image
@@ -644,6 +652,27 @@ class ObjectDetectionController:
             )
 
             print(f"\nProcessed {len(results)} targets")
+
+            # Save CSV if requested
+            if self.args.save_csv:
+                results_list = list(results.values())
+                requests_list = [
+                    PhotometryRequest(
+                        visit_id=self.args.visit_id,
+                        detector=self.args.detector,
+                        band=self.args.filters[0],
+                        ra=ra,
+                        dec=dec,
+                        target_name=name,
+                    )
+                    for (ra, dec), name in zip(coords, results.keys())
+                ]
+                results_df = service._results_to_dataframe(results_list, requests_list)
+                csv_path = os.path.join(self.args.output_folder, "standalone_results.csv")
+                os.makedirs(self.args.output_folder, exist_ok=True)
+                results_df.to_csv(csv_path, index=False)
+                print(f"Results saved to: {csv_path}")
+
             return results
 
         else:

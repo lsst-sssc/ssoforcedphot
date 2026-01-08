@@ -1259,8 +1259,8 @@ class StandalonePhotometryTab:
                 self.output_folder,
                 "---",
                 self.run_button,
-                sizing_mode="stretch_width",
-                width=400,
+                min_width=400,
+                max_width=500,
             ),
             pn.Column(
                 "### Results",
@@ -1360,6 +1360,13 @@ class StandalonePhotometryTab:
                 self.results_df = results_df
                 self.table_view.value = results_df
 
+                # Save CSV if requested
+                if self.save_csv.value:
+                    csv_path = f"{self.output_folder.value}/standalone_results.csv"
+                    os.makedirs(self.output_folder.value, exist_ok=True)
+                    results_df.to_csv(csv_path, index=False)
+                    root_logger.info(f"Results saved to: {csv_path}")
+
                 root_logger.info("Single measurement complete")
 
             elif mode == "Batch CSV":
@@ -1446,6 +1453,13 @@ class StandalonePhotometryTab:
                 results_df = service._results_to_dataframe(results_list, requests_list)
                 self.results_df = results_df
                 self.table_view.value = results_df
+
+                # Save CSV if requested
+                if self.save_csv.value:
+                    csv_path = f"{self.output_folder.value}/standalone_results.csv"
+                    os.makedirs(self.output_folder.value, exist_ok=True)
+                    results_df.to_csv(csv_path, index=False)
+                    root_logger.info(f"Results saved to: {csv_path}")
 
                 root_logger.info(f"Multi-target processing complete: {len(results_df)} measurements")
 
