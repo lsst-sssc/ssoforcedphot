@@ -596,6 +596,10 @@ class PhotometryTab:
             step=0.1,
             width=150,
         )
+        self.refine_ephemeris = pn.widgets.Checkbox(
+            name="Refine Ephemeris at Observation Times",
+            value=False,
+        )
         self.save_diag_plots = pn.widgets.Checkbox(name="Save Diagnostic Plots", value=False)
         self.save_fits = pn.widgets.Checkbox(name="Save Fits", value=False)
         self.display = pn.widgets.Checkbox(name="Display Results", value=False)
@@ -648,6 +652,7 @@ class PhotometryTab:
                 self.detection_threshold,
                 self.cutout_size,
                 self.override_error,
+                self.refine_ephemeris,
                 self.save_diag_plots,
                 self.save_fits,
                 self.display,
@@ -686,6 +691,7 @@ class PhotometryTab:
                 "threshold": self.detection_threshold.value,
                 "min_cutout_size": self.cutout_size.value,
                 "override_error": self.override_error.value,
+                "refine_ephemeris": self.refine_ephemeris.value,
                 "save_diag_plots": self.save_diag_plots.value,
                 "save_fits": self.save_fits.value,
                 "display": self.display.value,
@@ -816,6 +822,10 @@ class CompleteRunTab:
             start=0,
             step=0.1,
             width=150,
+        )
+        self.refine_ephemeris = pn.widgets.Checkbox(
+            name="Refine Ephemeris at Observation Times",
+            value=False,
         )
         self.save_diag_plots = pn.widgets.Checkbox(name="Save Diagnostic Plots", value=False)
         self.save_fits = pn.widgets.Checkbox(name="Save Fits", value=False)
@@ -1082,6 +1092,7 @@ class CompleteRunTab:
                 "threshold": self.detection_threshold.value,
                 "min_cutout_size": self.cutout_size.value,
                 "override_error": self.override_error.value,
+                "refine_ephemeris": self.refine_ephemeris.value,
                 "save_diag_plots": self.save_diag_plots.value,
                 "save_fits": self.save_fits.value,
                 "display": self.display.value,

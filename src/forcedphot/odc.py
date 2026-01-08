@@ -70,7 +70,7 @@ class ObjectDetectionController:
           '--image-search-method' (point/polygon), '--time-interval' (for polygon),
           '--widening' (for polygon).
         - **Photometry**: '--photometry-service', '--threshold', '--override-error',
-          '--display', '--save-json', '--save-csv', '--all-ellipse-sources',
+          '--refine-ephemeris', '--display', '--save-json', '--save-csv', '--all-ellipse-sources',
           '--save-diag-plots', '--save-fits'.
 
 
@@ -197,6 +197,17 @@ class ObjectDetectionController:
             help=(
                 "Overrides the calculated error ellipse with a user-defined circular"
                 "radius in arcseconds for source extraction, default: 0 (no override)"
+            ),
+        )
+
+        parser.add_argument(
+            "--refine-ephemeris",
+            action="store_true",
+            help=(
+                "Enable precise ephemeris refinement. After discovering images, "
+                "queries ephemeris service at exact observation times instead of "
+                "using linear interpolation. Improves accuracy for fast-moving "
+                "objects but increases query time. Default: False."
             ),
         )
 
@@ -447,6 +458,7 @@ class ObjectDetectionController:
             override_error=self.args.override_error,
             display=self.args.display,
             output_folder=output_folder,
+            refine_ephemeris=self.args.refine_ephemeris,
         )
         if self.args.save_json:
             self.imphot_controller.save_results_to_json(
@@ -505,7 +517,8 @@ class ObjectDetectionController:
                                     Can include:
                                         - "image_type" (str, "visit_image" or "difference_image"),
                                             "threshold" (int), "save_diag_plots" (bool), "save_fits" (bool),
-                                            "min_cutout_size" (int), "override_error" (float), "display",
+                                            "min_cutout_size" (int), "override_error" (float),
+                                            "refine_ephemeris" (bool), "display" (bool),
                                             "save_json" (bool), "save_csv" (bool), "save_error_sources"
                                             (bool, maps to 'all_ellipse_sources'), "output_folder" (str).
 
@@ -612,6 +625,7 @@ class ObjectDetectionController:
                 self.args.save_fits = photometry_params.get("save_fits", False)
                 self.args.min_cutout_size = photometry_params.get("min_cutout_size", 800)
                 self.args.override_error = photometry_params.get("override_error")
+                self.args.refine_ephemeris = photometry_params.get("refine_ephemeris", False)
                 self.args.display = photometry_params.get("display", False)
                 self.args.save_json = photometry_params.get("save_json", False)
                 self.args.save_csv = photometry_params.get("save_csv", False)
