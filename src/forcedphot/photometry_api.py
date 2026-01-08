@@ -619,11 +619,12 @@ class StandalonePhotometryService:
             True if image exists, False otherwise
         """
         try:
-            # Query Butler for image
+            # Query Butler for image using bind parameters
             refs = list(
                 self.butler.query_datasets(
                     image_type,
-                    where=f"visit={visit_id} AND detector={detector} AND band='{band}'",
+                    where="visit = :visit AND detector = :detector AND band = :band",
+                    bind={"visit": visit_id, "detector": detector, "band": band},
                 )
             )
             return len(refs) > 0

@@ -1137,6 +1137,325 @@ class CompleteRunTab:
 
 
 # Documentation tab
+class StandalonePhotometryTab:
+    """
+    GUI tab for standalone photometry without ephemeris dependency.
+
+    This tab allows users to perform forced photometry at arbitrary coordinates
+    without requiring ephemeris queries. Supports three input modes:
+    1. Single coordinate measurement
+    2. Batch CSV processing
+    3. Multiple coordinates in same image
+
+    Parameters
+    ----------
+    controller : ObjectDetectionController
+        The main application controller instance.
+    """
+
+    def __init__(self, controller):
+        self.controller = controller
+
+        # Input mode selector
+        self.input_mode = pn.widgets.Select(
+            name="Input Mode",
+            options=["Single Coordinate", "Batch CSV", "Multiple in Image"],
+            value="Single Coordinate",
+        )
+
+        # Image specification widgets
+        self.visit_id = pn.widgets.IntInput(name="Visit ID", value=512055, step=1, width=150)
+        self.detector = pn.widgets.IntInput(name="Detector ID", value=75, step=1, start=0, width=150)
+        self.band = pn.widgets.Select(name="Band", options=["u", "g", "r", "i", "z", "y"], value="g")
+
+        # Single coordinate widgets
+        self.ra = pn.widgets.FloatInput(name="RA (degrees)", value=53.076, step=0.001, width=200)
+        self.dec = pn.widgets.FloatInput(name="Dec (degrees)", value=-28.110, step=0.001, width=200)
+
+        # CSV upload widget
+        self.csv_upload = pn.widgets.FileInput(
+            name="Upload CSV", accept=".csv", sizing_mode="stretch_width"
+        )
+
+        # Multiple coordinates text area
+        self.coords_text = pn.widgets.TextAreaInput(
+            name="Coordinates (RA, Dec - one per line)",
+            placeholder="53.076, -28.110\n53.080, -28.115",
+            height=150,
+            sizing_mode="stretch_width",
+        )
+
+        # Common parameters
+        self.error_radius = pn.widgets.FloatInput(
+            name="Error Radius (arcsec)", value=3.0, step=0.5, start=0, width=150
+        )
+        self.detection_threshold = pn.widgets.FloatInput(
+            name="Detection Threshold (SNR)", value=5.0, step=0.5, start=1.0, width=150
+        )
+        self.image_type = pn.widgets.Select(
+            name="Image Type", options=["visit_image", "difference_image"], value="visit_image"
+        )
+
+        # Processing options
+        self.parallel = pn.widgets.Checkbox(name="Enable Parallel Processing", value=True)
+        self.max_workers = pn.widgets.IntInput(
+            name="Max Workers", value=4, step=1, start=1, end=16, width=100
+        )
+
+        # Save options
+        self.save_diag_plots = pn.widgets.Checkbox(name="Save Diagnostic Plots", value=False)
+        self.save_fits = pn.widgets.Checkbox(name="Save FITS Cutouts", value=False)
+        self.save_csv = pn.widgets.Checkbox(name="Save Results CSV", value=False)
+        self.output_folder = pn.widgets.TextInput(name="Output Folder", value="./output")
+
+        # Run button
+        self.run_button = pn.widgets.Button(
+            name="Run Standalone Photometry", button_type="primary", sizing_mode="stretch_width"
+        )
+
+        # Results table
+        self.table_view = pn.widgets.Tabulator(
+            sizing_mode="stretch_width",
+            height=450,
+            page_size=20,
+            pagination="remote",
+        )
+
+        # Download button (initially disabled)
+        self.download_button = pn.widgets.FileDownload(
+            callback=self._download_csv,
+            filename="standalone_results.csv",
+            button_type="success",
+            label="Download Results CSV",
+            sizing_mode="stretch_width",
+        )
+
+        # Create conditional layout based on input mode
+        self.input_section = pn.Column(sizing_mode="stretch_width")
+        self._update_input_section()
+
+        # Layout
+        self.layout = pn.Row(
+            pn.Column(
+                "### Standalone Photometry",
+                pn.pane.Markdown(
+                    "*Perform photometry at arbitrary coordinates without ephemeris*",
+                    styles={"font-style": "italic", "color": "#888"},
+                ),
+                "---",
+                self.input_mode,
+                self.input_section,
+                "---",
+                "### Common Parameters",
+                self.error_radius,
+                self.detection_threshold,
+                self.image_type,
+                pn.Row(self.parallel, self.max_workers),
+                "---",
+                "### Output Options",
+                self.save_diag_plots,
+                self.save_fits,
+                self.save_csv,
+                self.output_folder,
+                "---",
+                self.run_button,
+                sizing_mode="stretch_width",
+                width=400,
+            ),
+            pn.Column(
+                "### Results",
+                self.table_view,
+                self.download_button,
+                sizing_mode="stretch_width",
+            ),
+            sizing_mode="stretch_both",
+        )
+
+        # Set up event handlers
+        self.input_mode.param.watch(self._on_input_mode_change, "value")
+        self.run_button.on_click(self.run_standalone_photometry)
+
+    def _update_input_section(self):
+        """Update the input section based on selected mode."""
+        mode = self.input_mode.value
+
+        if mode == "Single Coordinate":
+            self.input_section.objects = [
+                self.visit_id,
+                self.detector,
+                self.band,
+                self.ra,
+                self.dec,
+            ]
+        elif mode == "Batch CSV":
+            self.input_section.objects = [
+                self.csv_upload,
+                pn.pane.Markdown(
+                    "**CSV Format**: visit_id, detector, band, ra, dec, [error_radius], [target_name]",
+                    styles={"font-size": "0.9em", "color": "#aaa"},
+                ),
+            ]
+        elif mode == "Multiple in Image":
+            self.input_section.objects = [
+                self.visit_id,
+                self.detector,
+                self.band,
+                self.coords_text,
+            ]
+
+    def _on_input_mode_change(self, event):
+        """Handle input mode changes."""
+        self._update_input_section()
+
+    def _download_csv(self):
+        """Callback for CSV download."""
+        if hasattr(self, "results_df") and self.results_df is not None:
+            return io.StringIO(self.results_df.to_csv(index=False))
+        return io.StringIO("No results available")
+
+    async def run_standalone_photometry(self, event):
+        """
+        Execute standalone photometry based on selected input mode.
+
+        Parameters
+        ----------
+        event : pn.viewable.singles.Button
+            The button click event.
+        """
+        from photometry_api import PhotometryRequest, StandalonePhotometryService
+
+        await gen.sleep(0.01)
+        root_logger.info("Starting standalone photometry...")
+
+        try:
+            service = StandalonePhotometryService(
+                output_folder=self.output_folder.value,
+                detection_threshold=self.detection_threshold.value,
+            )
+
+            mode = self.input_mode.value
+
+            if mode == "Single Coordinate":
+                # Single coordinate mode
+                request = PhotometryRequest(
+                    visit_id=self.visit_id.value,
+                    detector=self.detector.value,
+                    band=self.band.value,
+                    ra=self.ra.value,
+                    dec=self.dec.value,
+                    error_radius=self.error_radius.value,
+                    detection_threshold=self.detection_threshold.value,
+                    image_type=self.image_type.value,
+                )
+
+                result = service.measure_single(
+                    request=request,
+                    save_diag_plots=self.save_diag_plots.value,
+                    save_fits=self.save_fits.value,
+                    output_folder=self.output_folder.value,
+                )
+
+                # Convert to DataFrame
+                results_df = service._results_to_dataframe([result], [request])
+                self.results_df = results_df
+                self.table_view.value = results_df
+
+                root_logger.info("Single measurement complete")
+
+            elif mode == "Batch CSV":
+                # CSV batch mode
+                if self.csv_upload.value is None:
+                    root_logger.error("No CSV file uploaded")
+                    return
+
+                # Save uploaded CSV temporarily
+                import tempfile
+
+                with tempfile.NamedTemporaryFile(mode="wb", delete=False, suffix=".csv") as f:
+                    f.write(self.csv_upload.value)
+                    temp_csv = f.name
+
+                try:
+                    results_df = service.measure_from_csv(
+                        csv_path=temp_csv,
+                        parallel=self.parallel.value,
+                        max_workers=self.max_workers.value,
+                        save_diag_plots=self.save_diag_plots.value,
+                        save_fits=self.save_fits.value,
+                        output_folder=self.output_folder.value,
+                        output_csv=(
+                            f"{self.output_folder.value}/standalone_results.csv"
+                            if self.save_csv.value
+                            else None
+                        ),
+                    )
+
+                    self.results_df = results_df
+                    self.table_view.value = results_df
+
+                    root_logger.info(
+                        f"Batch processing complete: {len(results_df)} measurements, "
+                        f"{results_df['success'].sum()} successful"
+                    )
+                finally:
+                    import os
+
+                    os.unlink(temp_csv)
+
+            elif mode == "Multiple in Image":
+                # Multiple coordinates in same image
+                coords_lines = self.coords_text.value.strip().split("\n")
+                coordinates = []
+                for line in coords_lines:
+                    if line.strip() and not line.startswith("#"):
+                        try:
+                            ra, dec = map(float, line.strip().split(","))
+                            coordinates.append((ra, dec))
+                        except ValueError:
+                            root_logger.warning(f"Skipping invalid line: {line}")
+
+                if not coordinates:
+                    root_logger.error("No valid coordinates provided")
+                    return
+
+                results_dict = service.measure_multi_targets_in_image(
+                    visit_id=self.visit_id.value,
+                    detector=self.detector.value,
+                    band=self.band.value,
+                    coordinates=coordinates,
+                    error_radius=self.error_radius.value,
+                    image_type=self.image_type.value,
+                    save_diag_plots=self.save_diag_plots.value,
+                    save_fits=self.save_fits.value,
+                    output_folder=self.output_folder.value,
+                )
+
+                # Convert to DataFrame
+                results_list = list(results_dict.values())
+                requests_list = [
+                    PhotometryRequest(
+                        visit_id=self.visit_id.value,
+                        detector=self.detector.value,
+                        band=self.band.value,
+                        ra=ra,
+                        dec=dec,
+                        target_name=name,
+                    )
+                    for (ra, dec), name in zip(coordinates, results_dict.keys())
+                ]
+                results_df = service._results_to_dataframe(results_list, requests_list)
+                self.results_df = results_df
+                self.table_view.value = results_df
+
+                root_logger.info(f"Multi-target processing complete: {len(results_df)} measurements")
+
+        except Exception as e:
+            root_logger.error(f"Standalone photometry failed: {str(e)}")
+            import traceback
+
+            root_logger.error(traceback.format_exc())
+
+
 try:
     with open("control_panel_documentation.md", "r") as md_file:
         documentation_content = md_file.read()
@@ -1162,6 +1481,7 @@ data_loader = DataLoader()
 ephemeris_tab = EphemerisTab(controller).layout
 image_tab = ImageTab(controller).layout
 photometry_tab = PhotometryTab(controller).layout
+standalone_tab = StandalonePhotometryTab(controller).layout
 complete_run_tab = CompleteRunTab(controller).layout
 
 
@@ -1194,6 +1514,7 @@ template.main.append(
             ("Ephemeris", ephemeris_tab),
             ("Image", image_tab),
             ("Photometry", photometry_tab),
+            ("Standalone Photometry", standalone_tab),
             ("Complete Run", complete_run_tab),
             ("Documentation", documentation_tab),
             sizing_mode="stretch_width",
