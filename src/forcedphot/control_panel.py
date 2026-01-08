@@ -1197,12 +1197,6 @@ class StandalonePhotometryTab:
             name="Image Type", options=["visit_image", "difference_image"], value="visit_image"
         )
 
-        # Processing options
-        self.parallel = pn.widgets.Checkbox(name="Enable Parallel Processing", value=True)
-        self.max_workers = pn.widgets.IntInput(
-            name="Max Workers", value=4, step=1, start=1, end=16, width=100
-        )
-
         # Save options
         self.save_diag_plots = pn.widgets.Checkbox(name="Save Diagnostic Plots", value=False)
         self.save_fits = pn.widgets.Checkbox(name="Save FITS Cutouts", value=False)
@@ -1259,7 +1253,6 @@ class StandalonePhotometryTab:
                 self.error_radius,
                 self.detection_threshold,
                 self.image_type,
-                pn.Row(self.parallel, self.max_workers),
                 "---",
                 "### Output Options",
                 self.save_diag_plots,
@@ -1397,8 +1390,6 @@ class StandalonePhotometryTab:
                 try:
                     results_df = service.measure_from_csv(
                         csv_path=temp_csv,
-                        parallel=self.parallel.value,
-                        max_workers=self.max_workers.value,
                         save_diag_plots=self.save_diag_plots.value,
                         save_fits=self.save_fits.value,
                         output_folder=self.output_folder.value,

@@ -12,8 +12,6 @@ This module decouples photometry operations from ephemeris queries, allowing use
 """
 
 import logging
-import os
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 from typing import Optional
 
@@ -208,101 +206,9 @@ class StandalonePhotometryService:
 
         return result
 
-    def measure_batch(
-        self,
-        requests: list[PhotometryRequest],
-        parallel: bool = True,
-        max_workers: int = 4,
-        save_diag_plots: bool = False,
-        save_fits: bool = False,
-        output_folder: Optional[str] = None,
-    ) -> list[EndResult]:
-        """
-        Process multiple photometry requests in parallel.
-
-        Parameters
-        ----------
-        requests : list[PhotometryRequest]
-            Multiple measurements to perform
-        parallel : bool
-            Use multiprocessing for parallel execution
-            Default: True
-        max_workers : int
-            Number of parallel workers
-            Default: 4
-        save_diag_plots : bool
-            Save diagnostic plots for each measurement
-            Default: False
-        save_fits : bool
-            Save FITS cutouts for each measurement
-            Default: False
-        output_folder : str, optional
-            Where to save outputs
-
-        Returns
-        -------
-        list[EndResult]
-            Results for each request (same order as input)
-        """
-        self.logger.info(
-            f"Processing {len(requests)} photometry requests "
-            f"({'parallel' if parallel else 'sequential'})"
-        )
-
-        out_folder = output_folder or self.output_folder
-
-        if not parallel or len(requests) == 1:
-            # Sequential processing
-            results = []
-            for i, req in enumerate(requests):
-                self.logger.info(f"Processing request {i+1}/{len(requests)}")
-                try:
-                    result = self.measure_single(
-                        request=req,
-                        save_diag_plots=save_diag_plots,
-                        save_fits=save_fits,
-                        output_folder=out_folder,
-                    )
-                    results.append(result)
-                except Exception as e:
-                    self.logger.error(f"Error processing request {i+1}: {str(e)}")
-                    results.append(None)
-            return results
-
-        # Parallel processing
-        results = [None] * len(requests)
-
-        with ProcessPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all tasks
-            future_to_index = {
-                executor.submit(
-                    self._measure_single_wrapper,
-                    req,
-                    save_diag_plots,
-                    save_fits,
-                    out_folder,
-                ): i
-                for i, req in enumerate(requests)
-            }
-
-            # Collect results as they complete
-            for future in as_completed(future_to_index):
-                index = future_to_index[future]
-                try:
-                    result = future.result()
-                    results[index] = result
-                    self.logger.info(f"Completed request {index+1}/{len(requests)}")
-                except Exception as e:
-                    self.logger.error(f"Error in request {index+1}: {str(e)}")
-                    results[index] = None
-
-        return results
-
     def measure_from_csv(
         self,
         csv_path: str,
-        parallel: bool = True,
-        max_workers: int = 4,
         save_diag_plots: bool = False,
         save_fits: bool = False,
         output_folder: Optional[str] = None,
@@ -327,12 +233,6 @@ class StandalonePhotometryService:
         ----------
         csv_path : str
             Path to input CSV file
-        parallel : bool
-            Use parallel processing
-            Default: True
-        max_workers : int
-            Number of parallel workers
-            Default: 4
         save_diag_plots : bool
             Save diagnostic plots
             Default: False
@@ -386,15 +286,22 @@ class StandalonePhotometryService:
             )
             requests.append(request)
 
-        # Process requests
-        results = self.measure_batch(
-            requests=requests,
-            parallel=parallel,
-            max_workers=max_workers,
-            save_diag_plots=save_diag_plots,
-            save_fits=save_fits,
-            output_folder=output_folder,
-        )
+        # Process requests sequentially
+        self.logger.info(f"Processing {len(requests)} photometry requests sequentially")
+        results = []
+        for i, req in enumerate(requests):
+            self.logger.info(f"Processing request {i+1}/{len(requests)}")
+            try:
+                result = self.measure_single(
+                    request=req,
+                    save_diag_plots=save_diag_plots,
+                    save_fits=save_fits,
+                    output_folder=output_folder,
+                )
+                results.append(result)
+            except Exception as e:
+                self.logger.error(f"Error processing request {i+1}: {str(e)}")
+                results.append(None)
 
         # Convert to DataFrame
         results_df = self._results_to_dataframe(
@@ -666,21 +573,6 @@ class StandalonePhotometryService:
             raise ValueError(f"Dec must be in range [-90, 90]: got {dec}")
 
         return True
-
-    def _measure_single_wrapper(
-        self,
-        request: PhotometryRequest,
-        save_diag_plots: bool,
-        save_fits: bool,
-        output_folder: str,
-    ) -> EndResult:
-        """Wrapper for parallel execution."""
-        return self.measure_single(
-            request=request,
-            save_diag_plots=save_diag_plots,
-            save_fits=save_fits,
-            output_folder=output_folder,
-        )
 
     def _results_to_dataframe(
         self,

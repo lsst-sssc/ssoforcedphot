@@ -298,29 +298,6 @@ class ObjectDetectionController:
             help="Aperture radii in arcseconds (e.g., --aperture-radii 3.0 5.0 7.0)",
         )
 
-        standalone_group.add_argument(
-            "--parallel",
-            action="store_true",
-            help="Enable parallel processing for batch photometry",
-        )
-
-        standalone_group.add_argument(
-            "--max-workers",
-            type=int,
-            default=4,
-            help="Number of parallel workers (default: 4)",
-        )
-
-        standalone_group.add_argument(
-            "--all-ellipse-sources",
-            action="store_true",
-            help=(
-                "If True and saving to CSV, creates separate rows for each "
-                "source detected within the error ellipse. If False, only includes "
-                "the forced photometry result. Default: False."
-            ),
-        )
-
         return parser
 
     def parse_args(self, args=None):
@@ -577,8 +554,6 @@ class ObjectDetectionController:
         if self.args.photometry_csv:
             results_df = service.measure_from_csv(
                 csv_path=self.args.photometry_csv,
-                parallel=self.args.parallel,
-                max_workers=self.args.max_workers,
                 save_diag_plots=self.args.save_diag_plots,
                 save_fits=self.args.save_fits,
                 output_folder=self.args.output_folder,
