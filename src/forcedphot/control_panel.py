@@ -941,6 +941,7 @@ class CompleteRunTab:
                         self.detection_threshold,
                         self.cutout_size,
                         self.override_error,
+                        self.refine_ephemeris,
                         self.save_diag_plots,
                         self.save_fits,
                         self.display,

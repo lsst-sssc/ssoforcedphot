@@ -371,6 +371,9 @@ class PhotometryService:
                 afw_display.setMaskTransparency(100)
 
             if save_fits and output_folder:
+                # Create output folder if it doesn't exist
+                os.makedirs(output_folder, exist_ok=True)
+
                 # Save fits
                 fits_filename = image_name + ".fits"
                 output_filepath_fits = os.path.join(output_folder, fits_filename)
@@ -383,6 +386,9 @@ class PhotometryService:
         # Save diagnostic plot if requested
         # image_name here is the base name like "diag_plot_visitX_detY_bandZ"
         if save_diag_plots and output_folder and image_name and image_metadata_for_plot:
+            # Create output folder if it doesn't exist
+            os.makedirs(output_folder, exist_ok=True)
+
             png_filename = image_name + ".png"
             output_filepath_png = os.path.join(output_folder, png_filename)
 

@@ -294,8 +294,7 @@ class ImPhotController:
                             visit_id=metadata.visit_id,
                             detector_id=metadata.detector_id,
                             band=metadata.band,
-                            datetime_begin=metadata.datetime_begin,
-                            datetime_end=metadata.datetime_end,
+                            coordinates_central=metadata.coordinates_central,
                             t_min=metadata.t_min,
                             t_max=metadata.t_max,
                             ephemeris_data=metadata.ephemeris_data,
@@ -464,6 +463,9 @@ class ImPhotController:
         if not self.results:
             raise ValueError("No results to save. Run process_images() first.")
 
+        # Create output folder if it doesn't exist
+        os.makedirs(output_folder, exist_ok=True)
+
         json_data = [asdict(result) for result in self.results]
         t_name = target_name_maker(str(target_name))
         filename = t_name + "_photometry_results.json"
@@ -513,6 +515,9 @@ class ImPhotController:
         """
         if not self.results:
             raise ValueError("No results to save. Run process_images() first.")
+
+        # Create output folder if it doesn't exist
+        os.makedirs(output_folder, exist_ok=True)
 
         t_name = target_name_maker(str(target_name))
         filename = t_name + "_photometry_results.csv"

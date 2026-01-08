@@ -64,6 +64,7 @@ This tab configures and executes the photometric analysis on the images found by
 - **Detection Threshold (SNR)**: Set the Signal-to-Noise Ratio (SNR) threshold for detecting sources.
 - **Cutout Size (pixels)**: Define the square size of the image cutout in pixels (e.g., `800` for 800x800). Set to `0` to use the entire image.
 - **Override Error Ellipse (arcsec)**: If a value greater than `0` is provided, the ephemeris-derived error ellipse will be overridden by a circular error region of this radius (in arcseconds) for source extraction.
+- **Refine Ephemeris at Observation Times**: When enabled, queries precise ephemeris at exact observation times instead of using linear interpolation. This eliminates interpolation errors and significantly improves accuracy for fast-moving objects like Near-Earth Objects (NEOs) and comets. Note that enabling this option increases processing time as it performs additional ephemeris queries.
 - **Output Options**:
   - `Save Diagnostic Plots (PNG)`: Check to save PNG images marked with detected sources and the error ellipse.
   - `Save FITS Cutouts`: Check to save the FITS image cutouts used for photometry.

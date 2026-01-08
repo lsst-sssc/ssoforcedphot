@@ -128,8 +128,8 @@ class EphemerisRefinementService:
         obs_times = []
         for metadata in image_metadata_list:
             # Calculate midpoint time
-            t_begin = metadata.datetime_begin
-            t_end = metadata.datetime_end
+            t_begin = metadata.t_min
+            t_end = metadata.t_max
             t_mid = Time((t_begin.mjd + t_end.mjd) / 2.0, format="mjd", scale="utc")
             obs_times.append(t_mid)
 
@@ -355,7 +355,7 @@ class EphemerisRefinementService:
         for metadata in image_metadata_list:
             # Calculate midpoint time
             t_mid = Time(
-                (metadata.datetime_begin.mjd + metadata.datetime_end.mjd) / 2.0,
+                (metadata.t_min.mjd + metadata.t_max.mjd) / 2.0,
                 format="mjd",
                 scale="utc"
             )
