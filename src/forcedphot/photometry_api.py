@@ -225,12 +225,15 @@ class StandalonePhotometryService:
         ```
         visit_id,detector,band,ra,dec,error_radius,target_name
         512055,75,g,150.123,-23.456,5.0,target1
-        512060,75,r,150.130,-23.450,5.0,target2
+        512060,75,r,150.130,-23.450,3.0,target2
+        512061,75,i,150.140,-23.460,,target3
         ```
 
         Required columns: visit_id, detector, band, ra, dec
-        Optional columns: error_radius, detection_threshold, image_type,
-                         aperture_radii, target_name
+        Optional columns: error_radius, target_name
+
+        Note: detection_threshold and image_type are not read from CSV;
+        they come from the default parameters (global setup).
 
         Parameters
         ----------
@@ -284,15 +287,35 @@ class StandalonePhotometryService:
             if "aperture_radii" in row and pd.notna(row["aperture_radii"]):
                 aperture_radii = [float(x.strip()) for x in str(row["aperture_radii"]).split(",")]
 
+            # Handle error_radius with validation
+            # Priority: 1) Use valid CSV value if provided, 2) Use global default
+            error_radius = default_error_radius
+            if "error_radius" in row and pd.notna(row["error_radius"]):
+                try:
+                    csv_error = float(row["error_radius"])
+                    # Only use CSV value if it's positive and non-zero
+                    if csv_error > 0:
+                        error_radius = csv_error
+                    else:
+                        self.logger.warning(
+                            f"Invalid error_radius ({csv_error}) in CSV row {len(requests)+1}, "
+                            f"using global default: {default_error_radius}"
+                        )
+                except (ValueError, TypeError):
+                    self.logger.warning(
+                        f"Invalid error_radius value in CSV row {len(requests)+1}, "
+                        f"using global default: {default_error_radius}"
+                    )
+
             request = PhotometryRequest(
                 visit_id=int(row["visit_id"]),
                 detector=int(row["detector"]),
                 band=str(row["band"]),
                 ra=float(row["ra"]),
                 dec=float(row["dec"]),
-                error_radius=float(row.get("error_radius", default_error_radius)),
-                detection_threshold=float(row.get("detection_threshold", default_detection_threshold)),
-                image_type=str(row.get("image_type", default_image_type)),
+                error_radius=error_radius,
+                detection_threshold=default_detection_threshold,
+                image_type=default_image_type,
                 aperture_radii=aperture_radii,
                 target_name=str(row.get("target_name", f"target_{len(requests)}")),
             )
