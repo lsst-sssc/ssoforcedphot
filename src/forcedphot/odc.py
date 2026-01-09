@@ -562,6 +562,11 @@ class ObjectDetectionController:
                     if self.args.save_csv
                     else None
                 ),
+                output_json=(
+                    os.path.join(self.args.output_folder, "standalone_results.json")
+                    if self.args.save_json
+                    else None
+                ),
                 all_ellipse_sources=self.args.all_ellipse_sources,
                 default_error_radius=self.args.override_error or 3.0,
                 default_detection_threshold=self.args.threshold,
@@ -617,6 +622,13 @@ class ObjectDetectionController:
                 results_df.to_csv(csv_path, index=False)
                 print(f"Results saved to: {csv_path}")
 
+            # Save JSON if requested
+            if self.args.save_json:
+                json_path = os.path.join(self.args.output_folder, "standalone_results.json")
+                os.makedirs(self.args.output_folder, exist_ok=True)
+                service._results_to_json([result], json_path)
+                print(f"Results saved to: {json_path}")
+
             return result
 
         # Mode 3: Multiple coordinates in same image
@@ -644,20 +656,21 @@ class ObjectDetectionController:
 
             print(f"\nProcessed {len(results)} targets")
 
+            results_list = list(results.values())
+            requests_list = [
+                PhotometryRequest(
+                    visit_id=self.args.visit_id,
+                    detector=self.args.detector,
+                    band=self.args.filters[0],
+                    ra=ra,
+                    dec=dec,
+                    target_name=name,
+                )
+                for (ra, dec), name in zip(coords, results.keys())
+            ]
+
             # Save CSV if requested
             if self.args.save_csv:
-                results_list = list(results.values())
-                requests_list = [
-                    PhotometryRequest(
-                        visit_id=self.args.visit_id,
-                        detector=self.args.detector,
-                        band=self.args.filters[0],
-                        ra=ra,
-                        dec=dec,
-                        target_name=name,
-                    )
-                    for (ra, dec), name in zip(coords, results.keys())
-                ]
                 results_df = service._results_to_dataframe(
                     results_list, requests_list, include_all_ellipse_sources=self.args.all_ellipse_sources
                 )
@@ -665,6 +678,13 @@ class ObjectDetectionController:
                 os.makedirs(self.args.output_folder, exist_ok=True)
                 results_df.to_csv(csv_path, index=False)
                 print(f"Results saved to: {csv_path}")
+
+            # Save JSON if requested
+            if self.args.save_json:
+                json_path = os.path.join(self.args.output_folder, "standalone_results.json")
+                os.makedirs(self.args.output_folder, exist_ok=True)
+                service._results_to_json(results_list, json_path)
+                print(f"Results saved to: {json_path}")
 
             return results
 

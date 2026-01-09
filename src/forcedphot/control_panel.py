@@ -1201,6 +1201,7 @@ class StandalonePhotometryTab:
         self.save_diag_plots = pn.widgets.Checkbox(name="Save Diagnostic Plots", value=False)
         self.save_fits = pn.widgets.Checkbox(name="Save FITS Cutouts", value=False)
         self.save_csv = pn.widgets.Checkbox(name="Save Results CSV", value=False)
+        self.save_json = pn.widgets.Checkbox(name="Save Results JSON", value=False)
         self.all_ellipse_sources = pn.widgets.Checkbox(
             name="Save all sources within error ellipse", value=False
         )
@@ -1233,6 +1234,7 @@ class StandalonePhotometryTab:
         self._update_input_section()
 
         # Make all_ellipse_sources visible only when save_csv is checked
+        # Note: This option is only relevant for CSV output, not JSON
         self.all_ellipse_sources.visible = pn.bind(
             lambda save_checked: save_checked, self.save_csv.param.value
         )
@@ -1258,6 +1260,7 @@ class StandalonePhotometryTab:
                 self.save_diag_plots,
                 self.save_fits,
                 self.save_csv,
+                self.save_json,
                 self.all_ellipse_sources,
                 self.output_folder,
                 "---",
@@ -1372,6 +1375,13 @@ class StandalonePhotometryTab:
                     results_df.to_csv(csv_path, index=False)
                     root_logger.info(f"Results saved to: {csv_path}")
 
+                # Save JSON if requested
+                if self.save_json.value:
+                    json_path = f"{self.output_folder.value}/standalone_results.json"
+                    os.makedirs(self.output_folder.value, exist_ok=True)
+                    service._results_to_json([result], json_path)
+                    root_logger.info(f"Results saved to: {json_path}")
+
                 root_logger.info("Single measurement complete")
 
             elif mode == "Batch CSV":
@@ -1396,6 +1406,11 @@ class StandalonePhotometryTab:
                         output_csv=(
                             f"{self.output_folder.value}/standalone_results.csv"
                             if self.save_csv.value
+                            else None
+                        ),
+                        output_json=(
+                            f"{self.output_folder.value}/standalone_results.json"
+                            if self.save_json.value
                             else None
                         ),
                         all_ellipse_sources=self.all_ellipse_sources.value,
@@ -1467,6 +1482,13 @@ class StandalonePhotometryTab:
                     os.makedirs(self.output_folder.value, exist_ok=True)
                     results_df.to_csv(csv_path, index=False)
                     root_logger.info(f"Results saved to: {csv_path}")
+
+                # Save JSON if requested
+                if self.save_json.value:
+                    json_path = f"{self.output_folder.value}/standalone_results.json"
+                    os.makedirs(self.output_folder.value, exist_ok=True)
+                    service._results_to_json(results_list, json_path)
+                    root_logger.info(f"Results saved to: {json_path}")
 
                 root_logger.info(f"Multi-target processing complete: {len(results_df)} measurements")
 

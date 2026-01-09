@@ -11,7 +11,9 @@ This module decouples photometry operations from ephemeris queries, allowing use
 - Process batch measurements from CSV files
 """
 
+import json
 import logging
+import os
 from dataclasses import dataclass
 from typing import Optional
 
@@ -213,6 +215,7 @@ class StandalonePhotometryService:
         save_fits: bool = False,
         output_folder: Optional[str] = None,
         output_csv: Optional[str] = None,
+        output_json: Optional[str] = None,
         all_ellipse_sources: bool = False,
         default_error_radius: float = 3.0,
         default_detection_threshold: float = 5.0,
@@ -249,6 +252,8 @@ class StandalonePhotometryService:
             Where to save outputs
         output_csv : str, optional
             Path to save results CSV. If None, not saved.
+        output_json : str, optional
+            Path to save results JSON. If None, not saved.
         all_ellipse_sources : bool
             If True, create separate rows for each source detected within the error ellipse.
             If False, only include the forced photometry result. Default: False
@@ -296,6 +301,7 @@ class StandalonePhotometryService:
                     # Only use CSV value if it's positive and non-zero
                     if csv_error > 0:
                         error_radius = csv_error
+                        print(f"Using error_radius from CSV: {error_radius}")
                     else:
                         self.logger.warning(
                             f"Invalid error_radius ({csv_error}) in CSV row {len(requests)+1}, "
@@ -343,10 +349,19 @@ class StandalonePhotometryService:
             results, requests, include_all_ellipse_sources=all_ellipse_sources
         )
 
-        # Save if requested
+        # Save CSV if requested
         if output_csv:
             results_df.to_csv(output_csv, index=False)
             self.logger.info(f"Results saved to {output_csv}")
+
+        # Save JSON if requested
+        if output_json:
+            # Filter out None results for JSON output
+            valid_results = [r for r in results if r is not None]
+            if valid_results:
+                self._results_to_json(valid_results, output_json)
+            else:
+                self.logger.warning("No valid results to save to JSON")
 
         return results_df
 
@@ -700,3 +715,40 @@ class StandalonePhotometryService:
                     rows.append(base_row)
 
         return pd.DataFrame(rows)
+
+    def _results_to_json(
+        self,
+        results: list[EndResult],
+        output_path: str,
+    ) -> None:
+        """
+        Save photometry results to JSON file.
+
+        Parameters
+        ----------
+        results : list[EndResult]
+            Photometry results to save
+        output_path : str
+            Full path to output JSON file
+
+        Raises
+        ------
+        ValueError
+            If results list is empty
+        """
+        from dataclasses import asdict
+
+        if not results:
+            raise ValueError("No results to save")
+
+        # Convert results to JSON-serializable format
+        json_data = [asdict(result) for result in results]
+
+        # Ensure output directory exists
+        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+
+        # Write JSON file
+        with open(output_path, "w") as f:
+            json.dump(json_data, f, indent=2, default=str)
+
+        self.logger.info(f"Results saved to {output_path}")
