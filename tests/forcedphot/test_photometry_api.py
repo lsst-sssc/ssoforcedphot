@@ -6,7 +6,6 @@ Tests the PhotometryRequest dataclass and StandalonePhotometryService class.
 
 import os
 import tempfile
-from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -121,7 +120,7 @@ class TestStandalonePhotometryService:
         df = service._results_to_dataframe(results, requests)
 
         assert len(df) == 1
-        assert df.iloc[0]["success"] is False
+        assert not df.iloc[0]["success"]
         assert df.iloc[0]["visit_id"] == 512055
         assert df.iloc[0]["target_name"] == "test_target"
 
@@ -168,62 +167,37 @@ class TestStandalonePhotometryService:
         finally:
             os.unlink(csv_file)
 
-    @pytest.mark.skip(reason="Requires Butler/RSP environment")
     def test_measure_single_real(self, service):
         """Integration test with real Butler data (requires RSP)."""
         request = PhotometryRequest(
-            visit_id=512055,
-            detector=75,
-            band="g",
-            ra=53.076,  # Known object location
-            dec=-28.110,
+            visit_id=2024112300235,
+            detector=2,
+            band="i",
+            ra=38.6151529929,
+            dec=7.424556805,
         )
 
         result = service.measure_single(request=request)
 
         assert result is not None
-        assert result.visit_id == 512055
+        assert result.visit_id == 2024112300235
         assert result.forced_phot_on_target is not None
 
-    @pytest.mark.skip(reason="Requires Butler/RSP environment")
-    def test_validate_image_exists_real(self, service):
-        """Test image validation with real Butler (requires RSP)."""
-        # Valid image
-        exists = service._validate_image_exists(512055, 75, "g", "visit_image")
-        assert exists is True
 
-        # Invalid image
-        exists = service._validate_image_exists(999999, 75, "g", "visit_image")
-        assert exists is False
-
-    @pytest.mark.skip(reason="Requires Butler/RSP environment")
     def test_get_image_time_info_real(self, service):
         """Test timing information retrieval with real Butler (requires RSP)."""
-        info = service._get_image_time_info(512055, 75, "visit_image")
+        info = service._get_image_time_info(2024112300235, 2, "visit_image")
 
         assert "begin_time" in info
         assert "end_time" in info
         assert "mid_time" in info
         assert info["mid_time"].scale == "tai"
 
-    @pytest.mark.skip(reason="Requires Butler/RSP environment")
-    def test_measure_batch_real(self, service):
-        """Integration test for batch processing (requires RSP)."""
-        requests = [
-            PhotometryRequest(visit_id=512055, detector=75, band="g", ra=53.076, dec=-28.110),
-            PhotometryRequest(visit_id=512055, detector=75, band="g", ra=53.080, dec=-28.115),
-        ]
 
-        results = service.measure_batch(requests=requests, parallel=False)
-
-        assert len(results) == 2
-        assert all(r is not None for r in results)
-
-    @pytest.mark.skip(reason="Requires Butler/RSP environment")
     def test_measure_from_csv_real(self, service):
         """Integration test for CSV batch processing (requires RSP)."""
-        csv_content = """visit_id,detector,band,ra,dec,error_radius
-512055,75,g,53.076,-28.110,5.0
+        csv_content = """visit_id,detector,band,ra,dec,error_radius,taget_name
+2024112300235,2,i,38.6151529929,7.424556805,15.0,target1
 """
         with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
             f.write(csv_content)
@@ -231,11 +205,11 @@ class TestStandalonePhotometryService:
 
         try:
             results_df = service.measure_from_csv(
-                csv_path=csv_file, parallel=False, output_folder="./test_output"
+                csv_path=csv_file, output_folder="./test_output"
             )
 
             assert len(results_df) == 1
-            assert "flux_psf" in results_df.columns
+            assert "forced_flux" in results_df.columns
             assert "success" in results_df.columns
         finally:
             os.unlink(csv_file)

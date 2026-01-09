@@ -17,10 +17,8 @@ import os
 from dataclasses import dataclass
 from typing import Optional
 
-import astropy.units as u
-import numpy as np
 import pandas as pd
-from astropy.time import Time, TimeDelta
+from astropy.time import TimeDelta
 from image_photometry.photometry_service import PhotometryService
 from image_photometry.utils import (
     EndResult,
