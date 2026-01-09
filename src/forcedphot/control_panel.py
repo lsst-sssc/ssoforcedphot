@@ -1137,7 +1137,6 @@ class CompleteRunTab:
             self.table_view.value = pd.DataFrame()
 
 
-# Documentation tab
 class StandalonePhotometryTab:
     """
     GUI tab for standalone photometry without ephemeris dependency.
@@ -1165,13 +1164,13 @@ class StandalonePhotometryTab:
         )
 
         # Image specification widgets
-        self.visit_id = pn.widgets.IntInput(name="Visit ID", value=512055, step=1, width=150)
-        self.detector = pn.widgets.IntInput(name="Detector ID", value=75, step=1, start=0, width=150)
-        self.band = pn.widgets.Select(name="Band", options=["u", "g", "r", "i", "z", "y"], value="g")
+        self.visit_id = pn.widgets.IntInput(name="Visit ID", value=2024112300235, step=1, width=150)
+        self.detector = pn.widgets.IntInput(name="Detector ID", value=2, step=1, start=0, width=150)
+        self.band = pn.widgets.Select(name="Band", options=["u", "g", "r", "i", "z", "y"], value="i")
 
         # Single coordinate widgets
-        self.ra = pn.widgets.FloatInput(name="RA (degrees)", value=53.076, step=0.001, width=200)
-        self.dec = pn.widgets.FloatInput(name="Dec (degrees)", value=-28.110, step=0.001, width=200)
+        self.ra = pn.widgets.FloatInput(name="RA (degrees)", value=38.6151529929, step=0.001, width=200)
+        self.dec = pn.widgets.FloatInput(name="Dec (degrees)", value=7.424556805, step=0.001, width=200)
 
         # CSV upload widget
         self.csv_upload = pn.widgets.FileInput(
@@ -1181,7 +1180,7 @@ class StandalonePhotometryTab:
         # Multiple coordinates text area
         self.coords_text = pn.widgets.TextAreaInput(
             name="Coordinates (RA, Dec - one per line)",
-            placeholder="53.076, -28.110\n53.080, -28.115",
+            placeholder="38.6151529929, 7.424556805\n38.615152995483, 7.42455680343",
             height=150,
             sizing_mode="stretch_width",
         )
@@ -1217,17 +1216,16 @@ class StandalonePhotometryTab:
             sizing_mode="stretch_width",
             height=450,
             page_size=20,
-            pagination="remote",
         )
 
         # Download button (initially disabled)
-        self.download_button = pn.widgets.FileDownload(
-            callback=self._download_csv,
-            filename="standalone_results.csv",
-            button_type="success",
-            label="Download Results CSV",
-            sizing_mode="stretch_width",
-        )
+        # self.download_button = pn.widgets.FileDownload(
+        #     callback=self._download_csv,
+        #     filename="standalone_results.csv",
+        #     button_type="success",
+        #     label="Download Results CSV",
+        #     sizing_mode="stretch_width",
+        # )
 
         # Create conditional layout based on input mode
         self.input_section = pn.Column(sizing_mode="stretch_width")
@@ -1247,15 +1245,12 @@ class StandalonePhotometryTab:
                     "*Perform photometry at arbitrary coordinates without ephemeris*",
                     styles={"font-style": "italic", "color": "#888"},
                 ),
-                "---",
                 self.input_mode,
                 self.input_section,
-                "---",
                 "### Common Parameters",
                 self.error_radius,
                 self.detection_threshold,
                 self.image_type,
-                "---",
                 "### Output Options",
                 self.save_diag_plots,
                 self.save_fits,
@@ -1263,7 +1258,6 @@ class StandalonePhotometryTab:
                 self.save_json,
                 self.all_ellipse_sources,
                 self.output_folder,
-                "---",
                 self.run_button,
                 min_width=400,
                 max_width=500,
@@ -1271,7 +1265,7 @@ class StandalonePhotometryTab:
             pn.Column(
                 "### Results",
                 self.table_view,
-                self.download_button,
+                # self.download_button,
                 sizing_mode="stretch_width",
             ),
             sizing_mode="stretch_both",
@@ -1557,8 +1551,8 @@ template.main.append(
             ("Ephemeris", ephemeris_tab),
             ("Image", image_tab),
             ("Photometry", photometry_tab),
-            ("Standalone Photometry", standalone_tab),
             ("Complete Run", complete_run_tab),
+            ("Standalone Photometry", standalone_tab),
             ("Documentation", documentation_tab),
             sizing_mode="stretch_width",
         ),
