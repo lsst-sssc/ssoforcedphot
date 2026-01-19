@@ -4,20 +4,14 @@ Unit tests for standalone photometry API module.
 Tests the PhotometryRequest dataclass and StandalonePhotometryService class.
 """
 
+import importlib.util
 import os
 import tempfile
 
 import pandas as pd
 import pytest
 
-# Check LSST availability BEFORE importing photometry_api
-# (photometry_api imports LSST modules at module level)
-try:
-    from lsst.daf.butler import Butler
-
-    LSST_AVAILABLE = True
-except ImportError:
-    LSST_AVAILABLE = False
+LSST_AVAILABLE = importlib.util.find_spec("lsst.daf.butler") is not None
 
 # Conditionally import - these will only work if LSST is available
 if LSST_AVAILABLE:
