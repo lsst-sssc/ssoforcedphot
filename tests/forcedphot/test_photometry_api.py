@@ -11,7 +11,10 @@ import tempfile
 import pandas as pd
 import pytest
 
-LSST_AVAILABLE = importlib.util.find_spec("lsst.daf.butler") is not None
+try:
+    LSST_AVAILABLE = importlib.util.find_spec("lsst.daf.butler") is not None
+except ModuleNotFoundError:
+    LSST_AVAILABLE = False
 
 # Conditionally import - these will only work if LSST is available
 if LSST_AVAILABLE:
