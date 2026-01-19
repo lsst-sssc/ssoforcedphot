@@ -88,9 +88,7 @@ class EphemerisRefinementService:
         elif ephemeris_service.lower() == "miriade":
             refined_ephemeris = self._query_miriade_batch(target, target_type, obs_times)
         else:
-            raise ValueError(
-                f"Invalid ephemeris service: {ephemeris_service}. Use 'Horizons' or 'Miriade'."
-                )
+            raise ValueError(f"Invalid ephemeris service: {ephemeris_service}. Use 'Horizons' or 'Miriade'.")
 
         # Map to image IDs
         result = self._map_to_image_ids(image_metadata_list, refined_ephemeris)
@@ -165,10 +163,9 @@ class EphemerisRefinementService:
 
         # Batch into groups (to avoid URI length limit)
         batch_size = 50  # Conservative estimate
-        batches = [jd_times[i:i + batch_size] for i in range(0, len(jd_times), batch_size)]
+        batches = [jd_times[i : i + batch_size] for i in range(0, len(jd_times), batch_size)]
 
-        self.logger.info(
-            f"Querying Horizons in {len(batches)} batches ({len(jd_times)} total epochs)")
+        self.logger.info(f"Querying Horizons in {len(batches)} batches ({len(jd_times)} total epochs)")
 
         all_ephemeris = []
 

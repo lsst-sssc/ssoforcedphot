@@ -9,15 +9,24 @@ import tempfile
 
 import pandas as pd
 import pytest
-from photometry_api import PhotometryRequest, StandalonePhotometryService
 
-
-try:  
+# Check LSST availability BEFORE importing photometry_api
+# (photometry_api imports LSST modules at module level)
+try:
     from lsst.daf.butler import Butler
-    BUTLER_AVAILABLE = True
+    LSST_AVAILABLE = True
 except ImportError:
-    BUTLER_AVAILABLE = False
+    LSST_AVAILABLE = False
 
+# Conditionally import - these will only work if LSST is available
+if LSST_AVAILABLE:
+    from photometry_api import PhotometryRequest, StandalonePhotometryService
+else:
+    # Define dummy classes for type hints / to avoid NameError
+    PhotometryRequest = None
+    StandalonePhotometryService = None
+
+@pytest.mark.skipif(not LSST_AVAILABLE, reason="Requires LSST environment")
 class TestPhotometryRequest:
     """Tests for PhotometryRequest dataclass."""
 
@@ -64,7 +73,7 @@ class TestPhotometryRequest:
         assert request.target_name == "my_target"
 
 
-@pytest.mark.skipif(not BUTLER_AVAILABLE, reason="Requires LSST Butler/RSP environment")
+@pytest.mark.skipif(not LSST_AVAILABLE, reason="Requires LSST Butler/RSP environment")
 class TestStandalonePhotometryService:
     """Tests for StandalonePhotometryService class."""
 
@@ -174,7 +183,7 @@ class TestStandalonePhotometryService:
         finally:
             os.unlink(csv_file)
 
-    @pytest.mark.skipif(not BUTLER_AVAILABLE, reason="Requires LSST Butler/RSP environment")
+    @pytest.mark.skipif(not LSST_AVAILABLE, reason="Requires LSST Butler/RSP environment")
     def test_measure_single_real(self, service):
         """Integration test with real Butler data (requires RSP)."""
         request = PhotometryRequest(
@@ -191,7 +200,7 @@ class TestStandalonePhotometryService:
         assert result.visit_id == 2024112300235
         assert result.forced_phot_on_target is not None
 
-    @pytest.mark.skipif(not BUTLER_AVAILABLE, reason="Requires LSST Butler/RSP environment")
+    @pytest.mark.skipif(not LSST_AVAILABLE, reason="Requires LSST Butler/RSP environment")
     def test_get_image_time_info_real(self, service):
         """Test timing information retrieval with real Butler (requires RSP)."""
         info = service._get_image_time_info(2024112300235, 2, "visit_image")
@@ -201,7 +210,7 @@ class TestStandalonePhotometryService:
         assert "mid_time" in info
         assert info["mid_time"].scale == "tai"
 
-    @pytest.mark.skipif(not BUTLER_AVAILABLE, reason="Requires LSST Butler/RSP environment")
+    @pytest.mark.skipif(not LSST_AVAILABLE, reason="Requires LSST Butler/RSP environment")
     def test_measure_from_csv_real(self, service):
         """Integration test for CSV batch processing (requires RSP)."""
         csv_content = """visit_id,detector,band,ra,dec,error_radius,taget_name

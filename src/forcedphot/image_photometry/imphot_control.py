@@ -303,9 +303,7 @@ class ImPhotController:
                     )
                 else:
                     # Fallback to interpolated data
-                    self.logger.warning(
-                        f"No refined ephemeris for image {image_id}, using interpolated data"
-                    )
+                    self.logger.warning(f"No refined ephemeris for image {image_id}, using interpolated data")
                     updated_metadata.append(metadata)
 
             self.logger.info(
