@@ -14,6 +14,7 @@ import pytest
 # (photometry_api imports LSST modules at module level)
 try:
     from lsst.daf.butler import Butler
+
     LSST_AVAILABLE = True
 except ImportError:
     LSST_AVAILABLE = False
@@ -25,6 +26,7 @@ else:
     # Define dummy classes for type hints / to avoid NameError
     PhotometryRequest = None
     StandalonePhotometryService = None
+
 
 @pytest.mark.skipif(not LSST_AVAILABLE, reason="Requires LSST environment")
 class TestPhotometryRequest:
