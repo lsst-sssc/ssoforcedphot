@@ -304,22 +304,19 @@ class ImPhotController:
                 else:
                     # Fallback to interpolated data
                     self.logger.warning(
-                        f"No refined ephemeris for image {image_id}, "
-                        "using interpolated data"
+                        f"No refined ephemeris for image {image_id}, using interpolated data"
                     )
                     updated_metadata.append(metadata)
 
             self.logger.info(
-                f"Ephemeris refinement complete: "
-                f"{len(refined_data)}/{len(image_metadata)} images updated"
+                f"Ephemeris refinement complete: {len(refined_data)}/{len(image_metadata)} images updated"
             )
 
             return updated_metadata
 
         except Exception as e:
             self.logger.error(
-                f"Ephemeris refinement failed: {str(e)}. "
-                "Falling back to interpolated ephemeris."
+                f"Ephemeris refinement failed: {str(e)}. Falling back to interpolated ephemeris."
             )
             # Return original metadata with interpolated values
             return image_metadata

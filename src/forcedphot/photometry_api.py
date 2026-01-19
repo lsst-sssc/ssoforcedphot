@@ -532,9 +532,7 @@ class StandalonePhotometryService:
         """
         try:
             # Get visit info from Butler
-            visit_info = self.butler.get(
-                "visit_image.visitInfo", visit=visit_id, detector=detector
-            )
+            visit_info = self.butler.get("visit_image.visitInfo", visit=visit_id, detector=detector)
 
             # Get mid-exposure time
             t_mid = visit_info.date.toAstropy()
@@ -557,9 +555,7 @@ class StandalonePhotometryService:
                 f"detector {detector}: {str(e)}"
             ) from e
 
-    def _validate_image_exists(
-        self, visit_id: int, detector: int, band: str, image_type: str
-    ) -> bool:
+    def _validate_image_exists(self, visit_id: int, detector: int, band: str, image_type: str) -> bool:
         """
         Check if specified image exists in Butler.
 

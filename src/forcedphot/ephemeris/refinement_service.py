@@ -69,8 +69,7 @@ class EphemerisRefinementService:
             where image_id = f"{visit_id}_{detector_id}"
         """
         self.logger.info(
-            f"Refining ephemeris for {len(image_metadata_list)} images "
-            f"using {ephemeris_service}"
+            f"Refining ephemeris for {len(image_metadata_list)} images using {ephemeris_service}"
         )
 
         # Extract observation times
@@ -85,23 +84,16 @@ class EphemerisRefinementService:
 
         # Query refined ephemeris
         if ephemeris_service.lower() == "horizons":
-            refined_ephemeris = self._query_horizons_batch(
-                target, target_type, obs_times
-            )
+            refined_ephemeris = self._query_horizons_batch(target, target_type, obs_times)
         elif ephemeris_service.lower() == "miriade":
-            refined_ephemeris = self._query_miriade_batch(
-                target, target_type, obs_times
-            )
+            refined_ephemeris = self._query_miriade_batch(target, target_type, obs_times)
         else:
             raise ValueError(
-                f"Invalid ephemeris service: {ephemeris_service}. "
-                "Use 'Horizons' or 'Miriade'."
-            )
+                f"Invalid ephemeris service: {ephemeris_service}. Use 'Horizons' or 'Miriade'."
+                )
 
         # Map to image IDs
-        result = self._map_to_image_ids(
-            image_metadata_list, refined_ephemeris
-        )
+        result = self._map_to_image_ids(image_metadata_list, refined_ephemeris)
 
         # Cache results
         if use_cache and cache_folder:
@@ -109,9 +101,7 @@ class EphemerisRefinementService:
 
         return result
 
-    def _extract_observation_times(
-        self, image_metadata_list: list[ImageMetadata]
-    ) -> list[Time]:
+    def _extract_observation_times(self, image_metadata_list: list[ImageMetadata]) -> list[Time]:
         """
         Extract midpoint observation times from image metadata.
 
@@ -175,23 +165,15 @@ class EphemerisRefinementService:
 
         # Batch into groups (to avoid URI length limit)
         batch_size = 50  # Conservative estimate
-        batches = [
-            jd_times[i:i + batch_size]
-            for i in range(0, len(jd_times), batch_size)
-        ]
+        batches = [jd_times[i:i + batch_size] for i in range(0, len(jd_times), batch_size)]
 
         self.logger.info(
-            f"Querying Horizons in {len(batches)} batches "
-            f"({len(jd_times)} total epochs)"
-        )
+            f"Querying Horizons in {len(batches)} batches ({len(jd_times)} total epochs)")
 
         all_ephemeris = []
 
         for i, batch in enumerate(batches):
-            self.logger.info(
-                f"Querying batch {i+1}/{len(batches)} "
-                f"({len(batch)} epochs)"
-            )
+            self.logger.info(f"Querying batch {i+1}/{len(batches)} ({len(batch)} epochs)")
 
             # Query Horizons with list of epochs
             obj = Horizons(
@@ -209,14 +191,10 @@ class EphemerisRefinementService:
                     ephem_data = self._convert_horizons_row(row)
                     all_ephemeris.append(ephem_data)
 
-                self.logger.info(
-                    f"Successfully retrieved {len(ephemeris)} ephemeris points"
-                )
+                self.logger.info(f"Successfully retrieved {len(ephemeris)} ephemeris points")
 
             except Exception as e:
-                self.logger.error(
-                    f"Error querying Horizons batch {i+1}: {str(e)}"
-                )
+                self.logger.error(f"Error querying Horizons batch {i+1}: {str(e)}")
                 # Continue with other batches
                 continue
 
@@ -250,10 +228,7 @@ class EphemerisRefinementService:
         """
         from astroquery.imcce import Miriade
 
-        self.logger.info(
-            f"Querying Miriade for {len(obs_times)} individual epochs "
-            "(sequential queries)"
-        )
+        self.logger.info(f"Querying Miriade for {len(obs_times)} individual epochs (sequential queries)")
 
         # Map target type
         miriade_interface = MiriadeInterface(self.observer_location)
@@ -269,7 +244,7 @@ class EphemerisRefinementService:
                     objtype=objtype,
                     location=self.observer_location,
                     epoch=obs_time.jd,
-                    epoch_step='1d',  # Only need 1 point
+                    epoch_step="1d",
                     epoch_nsteps=1,
                     coordtype=5,
                 )
@@ -280,21 +255,14 @@ class EphemerisRefinementService:
                     all_ephemeris.append(ephem_data)
 
                 if (i + 1) % 10 == 0:
-                    self.logger.info(
-                        f"Progress: {i+1}/{len(obs_times)} queries completed"
-                    )
+                    self.logger.info(f"Progress: {i+1}/{len(obs_times)} queries completed")
 
             except Exception as e:
-                self.logger.error(
-                    f"Error querying Miriade for time {obs_time.iso}: {str(e)}"
-                )
+                self.logger.error(f"Error querying Miriade for time {obs_time.iso}: {str(e)}")
                 # Continue with other times
                 continue
 
-        self.logger.info(
-            f"Successfully retrieved {len(all_ephemeris)}/{len(obs_times)} "
-            "ephemeris points"
-        )
+        self.logger.info(f"Successfully retrieved {len(all_ephemeris)}/{len(obs_times)} ephemeris points")
 
         return all_ephemeris
 
@@ -354,42 +322,13 @@ class EphemerisRefinementService:
 
         for metadata in image_metadata_list:
             # Calculate midpoint time
-            t_mid = Time(
-                (metadata.t_min.mjd + metadata.t_max.mjd) / 2.0,
-                format="mjd",
-                scale="utc"
-            )
+            t_mid = Time((metadata.t_min.mjd + metadata.t_max.mjd) / 2.0, format="mjd", scale="utc")
 
             # Find closest ephemeris point
-            closest_ephem = min(
-                refined_ephemeris,
-                key=lambda e: abs((e.datetime - t_mid).sec)
-            )
+            closest_ephem = min(refined_ephemeris, key=lambda e: abs((e.datetime - t_mid).sec))
 
             # Create image ID
             image_id = f"{metadata.visit_id}_{metadata.detector_id}"
             result[image_id] = closest_ephem
 
         return result
-
-    def _load_from_cache(
-        self, target: str, cache_folder: str
-    ) -> Optional[dict]:
-        """Load cached refined ephemeris if available."""
-        # TODO: Implement caching logic
-        # Format: refined_ephemeris_{target}_{timestamp}.pkl
-        return None
-
-    def _save_to_cache(
-        self, target: str, data: dict, cache_folder: str
-    ) -> None:
-        """Save refined ephemeris to cache."""
-        # TODO: Implement caching logic
-        pass
-
-    def _match_cached_data(
-        self, image_metadata_list: list[ImageMetadata], cached_data: dict
-    ) -> dict[str, EphemerisDataCompressed]:
-        """Match cached data to current image list."""
-        # TODO: Implement cache matching
-        pass

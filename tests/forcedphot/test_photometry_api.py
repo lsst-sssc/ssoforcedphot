@@ -12,6 +12,12 @@ import pytest
 from photometry_api import PhotometryRequest, StandalonePhotometryService
 
 
+try:  
+    from lsst.daf.butler import Butler
+    BUTLER_AVAILABLE = True
+except ImportError:
+    BUTLER_AVAILABLE = False
+
 class TestPhotometryRequest:
     """Tests for PhotometryRequest dataclass."""
 
@@ -58,6 +64,7 @@ class TestPhotometryRequest:
         assert request.target_name == "my_target"
 
 
+@pytest.mark.skipif(not BUTLER_AVAILABLE, reason="Requires LSST Butler/RSP environment")
 class TestStandalonePhotometryService:
     """Tests for StandalonePhotometryService class."""
 
@@ -167,6 +174,7 @@ class TestStandalonePhotometryService:
         finally:
             os.unlink(csv_file)
 
+    @pytest.mark.skipif(not BUTLER_AVAILABLE, reason="Requires LSST Butler/RSP environment")
     def test_measure_single_real(self, service):
         """Integration test with real Butler data (requires RSP)."""
         request = PhotometryRequest(
@@ -183,7 +191,7 @@ class TestStandalonePhotometryService:
         assert result.visit_id == 2024112300235
         assert result.forced_phot_on_target is not None
 
-
+    @pytest.mark.skipif(not BUTLER_AVAILABLE, reason="Requires LSST Butler/RSP environment")
     def test_get_image_time_info_real(self, service):
         """Test timing information retrieval with real Butler (requires RSP)."""
         info = service._get_image_time_info(2024112300235, 2, "visit_image")
@@ -193,20 +201,18 @@ class TestStandalonePhotometryService:
         assert "mid_time" in info
         assert info["mid_time"].scale == "tai"
 
-
+    @pytest.mark.skipif(not BUTLER_AVAILABLE, reason="Requires LSST Butler/RSP environment")
     def test_measure_from_csv_real(self, service):
         """Integration test for CSV batch processing (requires RSP)."""
         csv_content = """visit_id,detector,band,ra,dec,error_radius,taget_name
-2024112300235,2,i,38.6151529929,7.424556805,15.0,target1
-"""
+        2024112300235,2,i,38.6151529929,7.424556805,15.0,target1
+        """
         with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
             f.write(csv_content)
             csv_file = f.name
 
         try:
-            results_df = service.measure_from_csv(
-                csv_path=csv_file, output_folder="./test_output"
-            )
+            results_df = service.measure_from_csv(csv_path=csv_file, output_folder="./test_output")
 
             assert len(results_df) == 1
             assert "forced_flux" in results_df.columns

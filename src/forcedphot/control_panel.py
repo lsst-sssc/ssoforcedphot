@@ -1173,9 +1173,7 @@ class StandalonePhotometryTab:
         self.dec = pn.widgets.FloatInput(name="Dec (degrees)", value=7.424556805, step=0.001, width=200)
 
         # CSV upload widget
-        self.csv_upload = pn.widgets.FileInput(
-            name="Upload CSV", accept=".csv", sizing_mode="stretch_width"
-        )
+        self.csv_upload = pn.widgets.FileInput(name="Upload CSV", accept=".csv", sizing_mode="stretch_width")
 
         # Multiple coordinates text area
         self.coords_text = pn.widgets.TextAreaInput(
