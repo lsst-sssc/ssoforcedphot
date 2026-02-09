@@ -12,6 +12,7 @@ import pytest
 
 try:
     from photometry_api import PhotometryRequest, StandalonePhotometryService
+
     LSST_AVAILABLE = True
 except ImportError:
     LSST_AVAILABLE = False

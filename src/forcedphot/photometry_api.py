@@ -28,6 +28,7 @@ from image_photometry.utils import (
 )
 from lsst.daf.butler import Butler
 
+
 class ImageType(str, Enum):
     """Valid image types for photometry measurements."""
 

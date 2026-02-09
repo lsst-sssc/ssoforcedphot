@@ -6,8 +6,6 @@ at exact observation times extracted from discovered images, eliminating interpo
 """
 
 import logging
-import os
-from typing import Optional
 
 from astropy.time import Time
 from ephemeris.miriade_interface import MiriadeInterface
@@ -80,7 +78,6 @@ class EphemerisRefinementService:
 
         # Map to image IDs
         result = self._map_to_image_ids(image_metadata_list, refined_ephemeris)
-
 
         return result
 
