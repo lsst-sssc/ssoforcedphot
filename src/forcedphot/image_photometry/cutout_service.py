@@ -292,6 +292,85 @@ class SodaCutoutProvider:
             return None
         return str(results[0]["access_url"])
 
+    def _fits_bytes_to_exposure(self, raw_bytes: bytes):
+        """Convert raw FITS bytes from SODA into an lsst.afw.image.ExposureF.
+
+        First tries the native LSST reader (MemFileManager). If that fails
+        (e.g. the SODA service returns a standard FITS rather than the
+        multi-extension LSST format), falls back to reading with
+        astropy.io.fits and constructing an ExposureF from the image data
+        and WCS header.
+
+        Parameters
+        ----------
+        raw_bytes : bytes
+            Raw FITS file content from the SODA cutout response.
+
+        Returns
+        -------
+        lsst.afw.image.ExposureF
+            The cutout as an LSST ExposureF object with WCS set.
+        """
+        # Attempt 1: native LSST reader (works if SODA returns LSST format)
+        try:
+            from lsst.afw.fits import MemFileManager
+            from lsst.afw.image import ExposureF
+
+            mem = MemFileManager(len(raw_bytes))
+            mem.setData(raw_bytes, len(raw_bytes))
+            return ExposureF(mem)
+        except Exception:
+            self.logger.info(
+                "SODA FITS is not in LSST multi-extension format, falling back to astropy reader."
+            )
+
+        # Attempt 2: standard FITS via astropy -> ExposureF
+        import io
+
+        from astropy.io import fits as astropy_fits
+        from lsst.afw.geom import makeSkyWcs
+        from lsst.afw.image import ExposureF, MaskedImageF
+        from lsst.daf.base import PropertyList
+
+        hdulist = astropy_fits.open(io.BytesIO(raw_bytes))
+
+        # Find the image HDU (primary or first image extension)
+        image_data = None
+        image_header = None
+        for hdu in hdulist:
+            if hdu.data is not None and hdu.data.ndim == 2:
+                image_data = hdu.data
+                image_header = hdu.header
+                break
+
+        if image_data is None:
+            raise ValueError("No 2D image data found in SODA FITS response")
+
+        # Create MaskedImageF from the pixel data
+        ny, nx = image_data.shape
+        masked_image = MaskedImageF(nx, ny)
+        masked_image.image.array[:] = image_data.astype(np.float32)
+
+        # Create ExposureF
+        exposure = ExposureF(masked_image)
+
+        # Set WCS from FITS header
+        import contextlib
+
+        metadata = PropertyList()
+        for key in image_header:
+            if key and key not in ("COMMENT", "HISTORY", ""):
+                with contextlib.suppress(Exception):
+                    metadata.set(key, image_header[key])
+        try:
+            wcs = makeSkyWcs(metadata)
+            exposure.setWcs(wcs)
+        except Exception as wcs_err:
+            self.logger.warning(f"Could not set WCS from SODA FITS header: {wcs_err}")
+
+        hdulist.close()
+        return exposure
+
     def get_cutout(
         self,
         ra_deg: float,
@@ -379,12 +458,7 @@ class SodaCutoutProvider:
             raw_bytes = sq.execute_stream().read()
 
             # Step 5: Deserialize to ExposureF
-            from lsst.afw.fits import MemFileManager
-            from lsst.afw.image import ExposureF
-
-            mem = MemFileManager(len(raw_bytes))
-            mem.setData(raw_bytes, len(raw_bytes))
-            cutout_exposure = ExposureF(mem)
+            cutout_exposure = self._fits_bytes_to_exposure(raw_bytes)
 
             # Step 6: Check PSF preservation
             if not cutout_exposure.hasPsf():
