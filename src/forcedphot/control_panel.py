@@ -589,7 +589,16 @@ class PhotometryTab:
         self.detection_threshold = pn.widgets.FloatInput(
             name="Detection Threshold", value=5.0, start=0, width=150
         )
+        self.cutout_provider = pn.widgets.Select(
+            name="Cutout Provider",
+            options=["Butler (local)", "SODA (remote)"],
+            value="Butler (local)",
+            width=180,
+        )
         self.cutout_size = pn.widgets.IntInput(name="Cutout Size (pixels)", value=800, start=0, width=150)
+        self.cutout_size_arcsec = pn.widgets.FloatInput(
+            name="Cutout Radius (arcsec)", value=80.0, start=0.1, step=1.0, width=150
+        )
         self.override_error = pn.widgets.FloatInput(
             name="Override error (arcsec)",
             value=0.0,
@@ -611,6 +620,10 @@ class PhotometryTab:
         )
         self.output_folder = pn.widgets.TextInput(name="Output folder", value="./output")
         self.run_button = pn.widgets.Button(name="Run Photometry", button_type="primary")
+
+        # Cutout size visibility based on provider
+        self.cutout_size.visible = pn.bind(lambda p: "Butler" in p, self.cutout_provider.param.value)
+        self.cutout_size_arcsec.visible = pn.bind(lambda p: "SODA" in p, self.cutout_provider.param.value)
 
         # Set up visibility bindings
         self.output_folder.visible = pn.bind(
@@ -651,7 +664,9 @@ class PhotometryTab:
                 "### Photometry Parameters",
                 self.image_type,
                 self.detection_threshold,
+                self.cutout_provider,
                 self.cutout_size,
+                self.cutout_size_arcsec,
                 self.override_error,
                 self.refine_ephemeris,
                 self.save_diag_plots,
@@ -700,6 +715,10 @@ class PhotometryTab:
                 "save_csv": self.save_csv.value,
                 "save_error_sources": self.error_ellipse_sources.value,
                 "output_folder": self.output_folder.value,
+                "cutout_provider": "butler" if "Butler" in self.cutout_provider.value else "soda",
+                "cutout_size_arcsec": (
+                    self.cutout_size_arcsec.value if "SODA" in self.cutout_provider.value else None
+                ),
             }
         }
         try:
@@ -816,7 +835,16 @@ class CompleteRunTab:
         self.detection_threshold = pn.widgets.FloatInput(
             name="Detection Threshold", value=5.0, start=0, width=150
         )
+        self.cutout_provider = pn.widgets.Select(
+            name="Cutout Provider",
+            options=["Butler (local)", "SODA (remote)"],
+            value="Butler (local)",
+            width=180,
+        )
         self.cutout_size = pn.widgets.IntInput(name="Cutout Size (pixels)", value=800, start=0, width=150)
+        self.cutout_size_arcsec = pn.widgets.FloatInput(
+            name="Cutout Radius (arcsec)", value=80.0, start=0.1, step=1.0, width=150
+        )
         self.override_error = pn.widgets.FloatInput(
             name="Override error (arcsec)",
             value=0.0,
@@ -867,6 +895,10 @@ class CompleteRunTab:
             self.save_json.param.value,
             self.save_csv.param.value,
         )
+
+        # Cutout size visibility based on provider
+        self.cutout_size.visible = pn.bind(lambda p: "Butler" in p, self.cutout_provider.param.value)
+        self.cutout_size_arcsec.visible = pn.bind(lambda p: "SODA" in p, self.cutout_provider.param.value)
 
         # Visibility for error ellipse sources in Photometry section
         self.error_ellipse_sources.visible = pn.bind(lambda save_csv: save_csv, self.save_csv.param.value)
@@ -940,7 +972,9 @@ class CompleteRunTab:
                         "### Photometry Parameters",
                         self.image_type,
                         self.detection_threshold,
+                        self.cutout_provider,
                         self.cutout_size,
+                        self.cutout_size_arcsec,
                         self.override_error,
                         self.refine_ephemeris,
                         self.save_diag_plots,
@@ -1102,6 +1136,10 @@ class CompleteRunTab:
                 "save_csv": self.save_csv.value,
                 "save_error_sources": self.error_ellipse_sources.value,
                 "output_folder": self.output_folder.value,
+                "cutout_provider": "butler" if "Butler" in self.cutout_provider.value else "soda",
+                "cutout_size_arcsec": (
+                    self.cutout_size_arcsec.value if "SODA" in self.cutout_provider.value else None
+                ),
             }
         }
 
@@ -1193,6 +1231,12 @@ class StandalonePhotometryTab:
         self.image_type = pn.widgets.Select(
             name="Image Type", options=["visit_image", "difference_image"], value="visit_image"
         )
+        self.cutout_provider = pn.widgets.Select(
+            name="Cutout Provider",
+            options=["Butler (local)", "SODA (remote)"],
+            value="Butler (local)",
+            width=180,
+        )
 
         # Save options
         self.save_diag_plots = pn.widgets.Checkbox(name="Save Diagnostic Plots", value=False)
@@ -1249,6 +1293,7 @@ class StandalonePhotometryTab:
                 self.error_radius,
                 self.detection_threshold,
                 self.image_type,
+                self.cutout_provider,
                 "### Output Options",
                 self.save_diag_plots,
                 self.save_fits,
@@ -1326,9 +1371,11 @@ class StandalonePhotometryTab:
         root_logger.info("Starting standalone photometry...")
 
         try:
+            cutout_prov = "butler" if "Butler" in self.cutout_provider.value else "soda"
             service = StandalonePhotometryService(
                 output_folder=self.output_folder.value,
                 detection_threshold=self.detection_threshold.value,
+                cutout_provider=cutout_prov,
             )
 
             mode = self.input_mode.value

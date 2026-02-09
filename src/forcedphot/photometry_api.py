@@ -122,6 +122,7 @@ class StandalonePhotometryService:
         collection: str = "LSSTComCam/DP1",
         output_folder: str = "./output",
         detection_threshold: float = 5.0,
+        cutout_provider: str = "butler",
     ):
         """Initialize the standalone photometry service."""
         self.logger = logging.getLogger("standalone_photometry")
@@ -130,6 +131,7 @@ class StandalonePhotometryService:
             dr=dr,
             collection=collection,
             detection_threshold=detection_threshold,
+            cutout_provider=cutout_provider,
         )
         self.output_folder = output_folder
         self.dr = dr
@@ -310,12 +312,12 @@ class StandalonePhotometryService:
                         print(f"Using error_radius from CSV: {error_radius}")
                     else:
                         self.logger.warning(
-                            f"Invalid error_radius ({csv_error}) in CSV row {len(requests)+1}, "
+                            f"Invalid error_radius ({csv_error}) in CSV row {len(requests) + 1}, "
                             f"using global default: {default_error_radius}"
                         )
                 except (ValueError, TypeError):
                     self.logger.warning(
-                        f"Invalid error_radius value in CSV row {len(requests)+1}, "
+                        f"Invalid error_radius value in CSV row {len(requests) + 1}, "
                         f"using global default: {default_error_radius}"
                     )
 
@@ -337,7 +339,7 @@ class StandalonePhotometryService:
         self.logger.info(f"Processing {len(requests)} photometry requests sequentially")
         results = []
         for i, req in enumerate(requests):
-            self.logger.info(f"Processing request {i+1}/{len(requests)}")
+            self.logger.info(f"Processing request {i + 1}/{len(requests)}")
             try:
                 result = self.measure_single(
                     request=req,
@@ -347,7 +349,7 @@ class StandalonePhotometryService:
                 )
                 results.append(result)
             except Exception as e:
-                self.logger.error(f"Error processing request {i+1}: {str(e)}")
+                self.logger.error(f"Error processing request {i + 1}: {str(e)}")
                 results.append(None)
 
         # Convert to DataFrame
@@ -436,8 +438,7 @@ class StandalonePhotometryService:
 
         if len(target_names) != len(coordinates):
             raise ValueError(
-                f"Number of target_names ({len(target_names)}) must match "
-                f"coordinates ({len(coordinates)})"
+                f"Number of target_names ({len(target_names)}) must match coordinates ({len(coordinates)})"
             )
 
         # Create a request for each coordinate/name pair
@@ -558,8 +559,7 @@ class StandalonePhotometryService:
         except Exception as e:
             self.logger.error(f"Error getting image time info: {e}")
             raise ValueError(
-                f"Failed to retrieve timing information for visit {visit_id}, "
-                f"detector {detector}: {str(e)}"
+                f"Failed to retrieve timing information for visit {visit_id}, detector {detector}: {str(e)}"
             ) from e
 
     def _validate_image_exists(self, visit_id: int, detector: int, band: str, image_type: ImageType) -> bool:

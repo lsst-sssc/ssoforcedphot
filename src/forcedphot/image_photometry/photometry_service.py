@@ -17,12 +17,12 @@ from typing import Optional
 
 import astropy.units as u
 import lsst.afw.display as afwdisplay
-import lsst.afw.image as afwimage
 import lsst.afw.table as afwtable
 import lsst.daf.base as dafbase
 import lsst.geom as geom
 import numpy as np
 from astropy.coordinates import SkyCoord
+from image_photometry.cutout_service import CutoutService
 from image_photometry.utils import (
     EndResult,
     ErrorEllipse,
@@ -65,6 +65,7 @@ class PhotometryService:
         detection_threshold: float = 5,
         dr: str = "dp1",
         collection: str = "LSSTComCam/DP1",
+        cutout_provider: str = "butler",
     ):
         """
         Initialize the PhotometryService.
@@ -79,11 +80,15 @@ class PhotometryService:
         collection : str, optional
             Parameter for the 'PhotometryService' and 'ImageServiceButler'
             Select the collection later can be changed
+        cutout_provider : str, optional
+            Cutout backend to use: "butler" (local in-memory) or "soda"
+            (remote IVOA SODA service). Default: "butler".
         """
         self.logger = logging.getLogger("photometry_service")
         self.display = None
         self.detection_threshold = detection_threshold
         self.butler = Butler(dr, collections=collection)
+        self.cutout_service = CutoutService(provider=cutout_provider, dr=dr)
 
     def process_image(
         self,
@@ -101,6 +106,7 @@ class PhotometryService:
         save_json: bool = False,
         json_filename: Optional[str] = None,
         save_csv: bool = False,
+        cutout_size_arcsec: Optional[float] = None,
     ) -> EndResult:
         """
         Process a single image by performing forced photometry at the ephemeris
@@ -151,6 +157,9 @@ class PhotometryService:
             Name of the json file.
         save_csv : bool, optional
             Save the final photometry results as csv (default: False)
+        cutout_size_arcsec : float, optional
+            Cutout radius in arcseconds for SODA provider. If None and using
+            SODA, approximated from cutout_size pixels. Default: None.
 
         Returns
         -------
@@ -169,8 +178,10 @@ class PhotometryService:
         if image_metadata is None:
             raise ValueError("image_metadata is None")
 
-        # Get the exposure
-        if image_type == "difference_image":
+        # Get the exposure (skip for SODA -- server-side cutout handles it)
+        if self.cutout_service.active_provider == "soda":
+            visit_image = None
+        elif image_type == "difference_image":
             visit_image = self.butler.get(
                 "difference_image",
                 dataId={"visit": image_metadata.visit_id, "detector": image_metadata.detector_id},
@@ -240,6 +251,7 @@ class PhotometryService:
             image_name=base_image_name,
             image_metadata_for_plot=image_metadata,
             target_name_for_plot=target_name,
+            cutout_size_arcsec=cutout_size_arcsec,
         )
 
         # Prepare end result
@@ -277,6 +289,7 @@ class PhotometryService:
         error_ellipse: Optional[ErrorEllipse] = None,
         image_metadata_for_plot: Optional[ImageMetadata] = None,
         target_name_for_plot: Optional[str] = None,
+        cutout_size_arcsec: Optional[float] = None,
     ):
         """
         Performs core photometry operations: creating a cutout, identifying sources,
@@ -327,6 +340,8 @@ class PhotometryService:
             diagnostic plot elements. Defaults to None.
         target_name_for_plot : Optional[str], optional
             The name of the target, specifically for display in plot titles. Defaults to None.
+        cutout_size_arcsec : float, optional
+            Cutout radius in arcseconds for the SODA provider. Default: None.
 
         Returns
         -------
@@ -336,7 +351,14 @@ class PhotometryService:
             - list[PhotometryResult]: A list of results for other sources detected within the error ellipse.
         """
         # Get WCS and prepare coordinates
-        target_img, bbox, offsets = self._prepare_image(visit_image, ra_deg, dec_deg, cutout_size)
+        target_img, bbox, offsets = self._prepare_image(
+            visit_image,
+            ra_deg,
+            dec_deg,
+            cutout_size,
+            image_metadata=image_metadata_for_plot,
+            cutout_size_arcsec=cutout_size_arcsec,
+        )
         x_offset, y_offset = offsets
 
         if target_img is None:
@@ -433,7 +455,7 @@ class PhotometryService:
                 missing_info.append("image_metadata_for_plot")
             self.logger.warning(
                 f"""Skipping diagnostic plot generation because some required information is
-                missing: {', '.join(missing_info)}."""
+                missing: {", ".join(missing_info)}."""
             )
 
         # Return the results from _prepare_photometry_results
@@ -637,79 +659,70 @@ class PhotometryService:
 
         return forced_meas_cat
 
-    def _prepare_image(self, visit_image, ra_deg, dec_deg, cutout_size):
+    def _prepare_image(
+        self,
+        visit_image,
+        ra_deg,
+        dec_deg,
+        cutout_size,
+        image_metadata: Optional[ImageMetadata] = None,
+        cutout_size_arcsec: Optional[float] = None,
+    ):
         """
-        Prepares the image for photometry by creating a cutout centered around
-        the specified celestial coordinates. Handles cases where the target is
-        too close to the image edge or the cutout size is invalid.
+        Prepares the image for photometry by delegating to the CutoutService.
+
+        Supports two backends:
+        - Butler: extracts a sub-image from an already-loaded ExposureF.
+        - SODA: requests a server-side cutout via the IVOA SODA protocol.
 
         Parameters
         ----------
-        visit_image : lsst.afw.image.ExposureF
-            The full calibrated LSST exposure from which to create a cutout.
+        visit_image : lsst.afw.image.ExposureF or None
+            The full calibrated LSST exposure (required for Butler, None for SODA).
         ra_deg : float
             The Right Ascension (in degrees) of the center of the desired cutout.
         dec_deg : float
             The Declination (in degrees) of the center of the desired cutout.
         cutout_size : int
-            The desired size in pixels for the square cutout (e.g., 800 for 800x800).
+            The desired size in pixels for the square cutout (used by Butler).
+        image_metadata : ImageMetadata, optional
+            Image metadata providing visit_id, detector_id, band for SODA lookups.
+        cutout_size_arcsec : float, optional
+            Cutout radius in arcseconds (used by SODA). If None and using SODA,
+            defaults to cutout_size * 0.2 (approximate LSSTCam pixel scale).
 
         Returns
         -------
         tuple
             A tuple (target_img, bbox, offsets) where:
-            - target_img (lsst.afw.image.ExposureF or None): The cutout image exposure,
-              or None if the target is too close to the edge. If `cutout_size` is 0
-              or the cutout would extend outside the image, the full `visit_image`
-              might be returned.
-            - bbox (lsst.geom.Box2I or None): The bounding box of the cutout within
-              the original image coordinates, or None if the full image is used or
-              cutout creation fails.
-            - offsets (tuple[float, float]): A tuple `(x_offset, y_offset)` representing
-              the minimum X and Y pixel coordinates of the cutout's origin relative
-              to the original `visit_image`. Returns `(0, 0)` if no cutout is made.
+            - target_img (lsst.afw.image.ExposureF or None): The cutout image.
+            - bbox (lsst.geom.Box2I or None): The bounding box (Butler only).
+            - offsets (tuple[float, float]): Pixel offsets (x, y).
         """
-        wcs = visit_image.getWcs()
-        coord = geom.SpherePoint(np.radians(ra_deg), np.radians(dec_deg), geom.radians)
+        if self.cutout_service.active_provider == "butler":
+            result = self.cutout_service.get_cutout(
+                ra_deg,
+                dec_deg,
+                cutout_size,
+                exposure=visit_image,
+            )
+        else:
+            # SODA path: use angular size and image identifiers
+            effective_arcsec = cutout_size_arcsec if cutout_size_arcsec else cutout_size * 0.2
+            result = self.cutout_service.get_cutout(
+                ra_deg,
+                dec_deg,
+                effective_arcsec,
+                visit_id=image_metadata.visit_id if image_metadata else None,
+                detector_id=image_metadata.detector_id if image_metadata else None,
+                band=image_metadata.band if image_metadata else None,
+            )
 
-        pixel_coord = wcs.skyToPixel(coord)
-        x_center, y_center = pixel_coord.getX(), pixel_coord.getY()
-        half_size = cutout_size // 2
-
-        min_x, max_x = 0, visit_image.getWidth()
-        min_y, max_y = 0, visit_image.getHeight()
-
-        # Check if target is within 10 pixels of any edge
-        if x_center < 10 or x_center > (max_x - 10) or y_center < 10 or y_center > (max_y - 10):
-            print("Target is within 10 pixels of image edge or outside of the boundaries. Skipping image.")
+        if not result.success:
+            self.logger.warning(f"Cutout failed: {result.message}")
             return None, None, (0, 0)
 
-        if cutout_size <= 0:
-            print("Using the complete image.")
-            return visit_image, None, (0, 0)
-
-        elif (
-            (x_center - half_size) < min_x
-            or (x_center + half_size) > max_x
-            or (y_center - half_size) < min_y
-            or (y_center + half_size) > max_y
-        ):
-            print("The cutout boundaries are outside of the image.")
-            print("Using the complete image.")
-            return visit_image, None, (0, 0)
-
-        print(f"Creating cutout with size {cutout_size} pixels")
-
-        # Create bounding box for cutout
-        bbox = geom.Box2I()
-        bbox.include(geom.Point2I(float(x_center - half_size), float(y_center - half_size)))
-        bbox.include(geom.Point2I(float(x_center + half_size), float(y_center + half_size)))
-
-        # Create cutout with PARENT origin to preserve WCS
-        # Using PARENT keeps the original pixel coordinate system and WCS intact
-        target_img = visit_image.Factory(visit_image, bbox, origin=afwimage.PARENT, deep=False)
-
-        return target_img, bbox, (bbox.getMinX(), bbox.getMinY())
+        return result.exposure, result.bbox, (result.x_offset, result.y_offset)
 
     def _initialize_coordinates(
         self, target_img, ra_deg, dec_deg, find_sources_flag, error_ellipse: Optional[ErrorEllipse] = None
