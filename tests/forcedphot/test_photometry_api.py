@@ -4,7 +4,6 @@ Unit tests for standalone photometry API module.
 Tests the PhotometryRequest dataclass and StandalonePhotometryService class.
 """
 
-import importlib.util
 import os
 import tempfile
 
@@ -12,15 +11,11 @@ import pandas as pd
 import pytest
 
 try:
-    LSST_AVAILABLE = importlib.util.find_spec("lsst.daf.butler") is not None
-except ModuleNotFoundError:
-    LSST_AVAILABLE = False
-
-# Conditionally import - these will only work if LSST is available
-if LSST_AVAILABLE:
     from photometry_api import PhotometryRequest, StandalonePhotometryService
-else:
-    # Define dummy classes for type hints / to avoid NameError
+    LSST_AVAILABLE = True
+except ImportError:
+    LSST_AVAILABLE = False
+    ImageType = None
     PhotometryRequest = None
     StandalonePhotometryService = None
 
@@ -202,7 +197,7 @@ class TestStandalonePhotometryService:
     @pytest.mark.skipif(not LSST_AVAILABLE, reason="Requires LSST Butler/RSP environment")
     def test_get_image_time_info_real(self, service):
         """Test timing information retrieval with real Butler (requires RSP)."""
-        info = service._get_image_time_info(2024112300235, 2, "visit_image")
+        info = service._get_image_time_info(2024112300235, 2)
 
         assert "begin_time" in info
         assert "end_time" in info

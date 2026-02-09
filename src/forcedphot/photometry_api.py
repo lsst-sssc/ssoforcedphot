@@ -15,6 +15,7 @@ import json
 import logging
 import os
 from dataclasses import dataclass
+from enum import Enum
 from typing import Optional
 
 import pandas as pd
@@ -26,6 +27,12 @@ from image_photometry.utils import (
     ImageMetadata,
 )
 from lsst.daf.butler import Butler
+
+class ImageType(str, Enum):
+    """Valid image types for photometry measurements."""
+
+    VISIT = "visit_image"
+    DIFFERENCE = "difference_image"
 
 
 @dataclass
@@ -55,9 +62,9 @@ class PhotometryRequest:
     detection_threshold : float, optional
         SNR threshold for source detection within error_radius.
         Default: 5.0
-    image_type : str, optional
-        Type of image to process: "visit_image" or "difference_image".
-        Default: "visit_image"
+    image_type : ImageType, optional
+        Type of image to process: ImageType.VISIT or ImageType.DIFFERENCE.
+        Default: ImageType.VISIT
     aperture_radii : list[float], optional
         List of aperture radii in arcseconds for aperture photometry.
         If None, only PSF photometry is performed.
@@ -77,7 +84,7 @@ class PhotometryRequest:
     # Optional parameters
     error_radius: float = 3.0
     detection_threshold: float = 5.0
-    image_type: str = "visit_image"
+    image_type: ImageType = ImageType.VISIT
     aperture_radii: Optional[list[float]] = None
     target_name: str = "standalone_target"
 
@@ -217,7 +224,7 @@ class StandalonePhotometryService:
         all_ellipse_sources: bool = False,
         default_error_radius: float = 3.0,
         default_detection_threshold: float = 5.0,
-        default_image_type: str = "visit_image",
+        default_image_type: ImageType = ImageType.VISIT,
     ) -> pd.DataFrame:
         """
         Load requests from CSV and return results as DataFrame.
@@ -261,9 +268,9 @@ class StandalonePhotometryService:
         default_detection_threshold : float
             Default SNR threshold to use when CSV doesn't specify it.
             Default: 5.0
-        default_image_type : str
+        default_image_type : ImageType
             Default image type to use when CSV doesn't specify it.
-            Default: "visit_image"
+            Default: ImageType.VISIT
 
         Returns
         -------
@@ -371,7 +378,7 @@ class StandalonePhotometryService:
         coordinates: list[tuple[float, float]],
         target_names: Optional[list[str]] = None,
         error_radius: float = 3.0,
-        image_type: str = "visit_image",
+        image_type: ImageType = ImageType.VISIT,
         aperture_radii: Optional[list[float]] = None,
         save_diag_plots: bool = False,
         save_fits: bool = False,
@@ -398,9 +405,9 @@ class StandalonePhotometryService:
         error_radius : float
             Search radius in arcseconds
             Default: 3.0
-        image_type : str
-            "visit_image" or "difference_image"
-            Default: "visit_image"
+        image_type : ImageType
+            ImageType.VISIT or ImageType.DIFFERENCE
+            Default: ImageType.VISIT
         aperture_radii : list[float], optional
             Aperture radii in arcseconds
         save_diag_plots : bool
@@ -432,21 +439,22 @@ class StandalonePhotometryService:
                 f"coordinates ({len(coordinates)})"
             )
 
-        # Create requests
-        requests = [
-            PhotometryRequest(
-                visit_id=visit_id,
-                detector=detector,
-                band=band,
-                ra=ra,
-                dec=dec,
-                error_radius=error_radius,
-                image_type=image_type,
-                aperture_radii=aperture_radii,
-                target_name=name,
+        # Create a request for each coordinate/name pair
+        requests = []
+        for (ra, dec), name in zip(coordinates, target_names):
+            requests.append(
+                PhotometryRequest(
+                    visit_id=visit_id,
+                    detector=detector,
+                    band=band,
+                    ra=ra,
+                    dec=dec,
+                    error_radius=error_radius,
+                    image_type=image_type,
+                    aperture_radii=aperture_radii,
+                    target_name=name,
+                )
             )
-            for (ra, dec), name in zip(coordinates, target_names)
-        ]
 
         # Process all targets
         # TODO: Optimize to load image once and reuse
@@ -481,14 +489,14 @@ class StandalonePhotometryService:
             Synthetic metadata suitable for PhotometryService.process_image()
         """
         # Get image time information from Butler
-        image_info = self._get_image_time_info(request.visit_id, request.detector, request.image_type)
+        image_info = self._get_image_time_info(request.visit_id, request.detector)
 
         # Create synthetic ephemeris data at the user-provided coordinate
         exact_ephemeris = EphemerisDataCompressed(
             datetime=image_info["mid_time"],
             ra_deg=request.ra,
             dec_deg=request.dec,
-            ra_rate=0.0,  # Unknown, but not used in standalone mode
+            ra_rate=0.0,
             dec_rate=0.0,
             uncertainty={
                 "rss": request.error_radius,
@@ -512,7 +520,7 @@ class StandalonePhotometryService:
 
         return metadata
 
-    def _get_image_time_info(self, visit_id: int, detector: int, image_type: str) -> dict:
+    def _get_image_time_info(self, visit_id: int, detector: int) -> dict:
         """
         Get timing information for an image from Butler.
 
@@ -522,8 +530,6 @@ class StandalonePhotometryService:
             Visit identifier
         detector : int
             Detector ID
-        image_type : str
-            "visit_image" or "difference_image"
 
         Returns
         -------
@@ -555,7 +561,7 @@ class StandalonePhotometryService:
                 f"detector {detector}: {str(e)}"
             ) from e
 
-    def _validate_image_exists(self, visit_id: int, detector: int, band: str, image_type: str) -> bool:
+    def _validate_image_exists(self, visit_id: int, detector: int, band: str, image_type: ImageType) -> bool:
         """
         Check if specified image exists in Butler.
 
@@ -567,8 +573,8 @@ class StandalonePhotometryService:
             Detector ID
         band : str
             Photometric band
-        image_type : str
-            "visit_image" or "difference_image"
+        image_type : ImageType
+            ImageType.VISIT or ImageType.DIFFERENCE
 
         Returns
         -------

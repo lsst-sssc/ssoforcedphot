@@ -6,6 +6,7 @@ at exact observation times extracted from discovered images, eliminating interpo
 """
 
 import logging
+import os
 from typing import Optional
 
 from astropy.time import Time
@@ -41,8 +42,6 @@ class EphemerisRefinementService:
         target: str,
         target_type: str,
         ephemeris_service: str,
-        cache_folder: Optional[str] = "./output/refined_ephemeris",
-        use_cache: bool = True,
     ) -> dict[str, EphemerisDataCompressed]:
         """
         Extract exact observation times from images and query precise ephemeris.
@@ -57,10 +56,6 @@ class EphemerisRefinementService:
             Object type (smallbody, majorbody, etc.)
         ephemeris_service : str
             "Horizons" or "Miriade"
-        cache_folder : str, optional
-            Directory to store cached refined ephemeris
-        use_cache : bool
-            Whether to use cached data if available
 
         Returns
         -------
@@ -75,13 +70,6 @@ class EphemerisRefinementService:
         # Extract observation times
         obs_times = self._extract_observation_times(image_metadata_list)
 
-        # Check cache
-        if use_cache:
-            cached_data = self._load_from_cache(target, cache_folder)
-            if cached_data:
-                self.logger.info("Using cached refined ephemeris data")
-                return self._match_cached_data(image_metadata_list, cached_data)
-
         # Query refined ephemeris
         if ephemeris_service.lower() == "horizons":
             refined_ephemeris = self._query_horizons_batch(target, target_type, obs_times)
@@ -93,9 +81,6 @@ class EphemerisRefinementService:
         # Map to image IDs
         result = self._map_to_image_ids(image_metadata_list, refined_ephemeris)
 
-        # Cache results
-        if use_cache and cache_folder:
-            self._save_to_cache(target, result, cache_folder)
 
         return result
 
