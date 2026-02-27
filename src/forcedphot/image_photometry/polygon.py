@@ -61,10 +61,13 @@ def calculate_polygons(ephemeris_data: list[EphemerisDataCompressed], time_inter
             current_index = len(ephemeris_rows)
         else:
             end_point = segment_points[-1]
-            # Find the index of the end_point to set up the next iteration
-            # This is safe because segment_points is a slice of the main list
             end_point_global_index = ephemeris_rows.index(end_point)
-            current_index = end_point_global_index + 1
+            next_index = end_point_global_index + 1
+            current_index = next_index
+            # Extend time_end (and sky endpoint b) to the next polygon's start
+            # so there's no temporal gap between consecutive polygons
+            if next_index < len(ephemeris_rows):
+                end_point = ephemeris_rows[next_index]
 
         # --- 2b. Calculate Polygon for the current segment ---
         a = SkyCoord(ra=start_point.ra_deg, dec=start_point.dec_deg, unit="deg", frame="icrs")
