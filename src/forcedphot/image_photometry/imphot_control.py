@@ -13,6 +13,7 @@ import os
 from dataclasses import asdict
 from typing import Any, Optional
 
+from ephemeris.refinement_service import EphemerisRefinementService
 from image_photometry.image_service import ImageService
 from image_photometry.image_service_butler import ImageServiceButler
 from image_photometry.photometry_service import PhotometryService
@@ -47,6 +48,8 @@ class ImPhotController:
             for Butler-based image search (e.g., polygon search).
         phot_service (PhotometryService): An instance of 'PhotometryService' for
             performing photometry measurements.
+        refinement_service (EphemerisRefinementService): An instance of 'EphemerisRefinementService'
+            for querying precise ephemeris at exact observation times.
         search_params (Optional[SearchParameters]): Stores configuration for point-based image search.
             Initialized to None and set by 'configure_search'.
         search_params_polygon (Optional[SearchParametersPolygon]): Stores configuration for polygon-based
@@ -105,6 +108,7 @@ class ImPhotController:
             dr=dr,
             collection=collection,
         )
+        self.refinement_service = EphemerisRefinementService()
         self.search_params: Optional[SearchParameters] = None
         self.search_params_polygon: Optional[SearchParametersPolygon] = None
         self.polygon_data: Optional[list] = None
@@ -231,6 +235,90 @@ class ImPhotController:
 
         return self.image_metadata
 
+    def refine_image_ephemeris(
+        self,
+        image_metadata: list[ImageMetadata],
+        target_name: str,
+        target_type: str,
+        ephemeris_service: str,
+        enable_refinement: bool = True,
+    ) -> list[ImageMetadata]:
+        """
+        Refine ephemeris data for discovered images.
+
+        Parameters
+        ----------
+        image_metadata : list[ImageMetadata]
+            List of discovered images
+        target_name : str
+            Target designation
+        target_type : str
+            Object type
+        ephemeris_service : str
+            "Horizons" or "Miriade"
+        enable_refinement : bool
+            Whether to enable refinement (default: True)
+
+        Returns
+        -------
+        list[ImageMetadata]
+            Updated image metadata with refined ephemeris
+        """
+        if not enable_refinement:
+            self.logger.info("Ephemeris refinement disabled, using interpolated values")
+            return image_metadata
+
+        self.logger.info("Starting ephemeris refinement...")
+
+        try:
+            # Query refined ephemeris
+            refined_data = self.refinement_service.refine_ephemeris(
+                image_metadata_list=image_metadata,
+                target=target_name,
+                target_type=target_type,
+                ephemeris_service=ephemeris_service,
+            )
+
+            # Update ImageMetadata objects
+            updated_metadata = []
+            for metadata in image_metadata:
+                image_id = f"{metadata.visit_id}_{metadata.detector_id}"
+
+                if image_id in refined_data:
+                    # Replace exact_ephemeris with refined data
+                    refined_ephem = refined_data[image_id]
+
+                    # Create updated metadata
+                    updated_metadata.append(
+                        ImageMetadata(
+                            visit_id=metadata.visit_id,
+                            detector_id=metadata.detector_id,
+                            band=metadata.band,
+                            coordinates_central=metadata.coordinates_central,
+                            t_min=metadata.t_min,
+                            t_max=metadata.t_max,
+                            ephemeris_data=metadata.ephemeris_data,
+                            exact_ephemeris=refined_ephem,  # UPDATED
+                        )
+                    )
+                else:
+                    # Fallback to interpolated data
+                    self.logger.warning(f"No refined ephemeris for image {image_id}, using interpolated data")
+                    updated_metadata.append(metadata)
+
+            self.logger.info(
+                f"Ephemeris refinement complete: {len(refined_data)}/{len(image_metadata)} images updated"
+            )
+
+            return updated_metadata
+
+        except Exception as e:
+            self.logger.error(
+                f"Ephemeris refinement failed: {str(e)}. Falling back to interpolated ephemeris."
+            )
+            # Return original metadata with interpolated values
+            return image_metadata
+
     def process_images(
         self,
         target_name: str,
@@ -246,6 +334,7 @@ class ImPhotController:
         output_folder: str = "./output",
         save_json: bool = False,
         save_csv: bool = False,
+        refine_ephemeris: bool = False,
     ) -> None:
         """
         Performs photometry on all retrieved images.
@@ -289,6 +378,9 @@ class ImPhotController:
             Save the final photometry results as JSON (default: False)
         save_csv : bool, optional
             Save the final photometry results as csv (default: False)
+        refine_ephemeris : bool, optional
+            If True, queries precise ephemeris at exact observation times
+            instead of using interpolated values. Defaults to False.
 
         Raises
         ------
@@ -297,6 +389,16 @@ class ImPhotController:
         """
         if image_metadata is None:
             raise ValueError("No images found. Run search_images() first.")
+
+        # Refine ephemeris if requested
+        if refine_ephemeris:
+            image_metadata = self.refine_image_ephemeris(
+                image_metadata=image_metadata,
+                target_name=target_name,
+                target_type=target_type,
+                ephemeris_service=ephemeris_service,
+                enable_refinement=True,
+            )
 
         self.phot_service.detection_threshold = self.detection_threshold
 
@@ -356,6 +458,9 @@ class ImPhotController:
         if not self.results:
             raise ValueError("No results to save. Run process_images() first.")
 
+        # Create output folder if it doesn't exist
+        os.makedirs(output_folder, exist_ok=True)
+
         json_data = [asdict(result) for result in self.results]
         t_name = target_name_maker(str(target_name))
         filename = t_name + "_photometry_results.json"
@@ -405,6 +510,9 @@ class ImPhotController:
         """
         if not self.results:
             raise ValueError("No results to save. Run process_images() first.")
+
+        # Create output folder if it doesn't exist
+        os.makedirs(output_folder, exist_ok=True)
 
         t_name = target_name_maker(str(target_name))
         filename = t_name + "_photometry_results.csv"

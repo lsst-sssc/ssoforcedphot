@@ -23,14 +23,32 @@ This tool relies on interpolating ephemeris data to determine target positions a
 - Forced photometry to be performed slightly off-target, resulting in inaccurate brightness measurements
 - The true object position to fall outside the small error ellipse, causing the tool to miss the object entirely
 
-**Solution**: Use the `--override-error` option to manually set a larger, more sensible error radius (in arcseconds). This increases the search area and makes it more likely to detect the actual target as a nearby source.
+**Solutions**:
 
-Example:
-```bash
-python odc.py ... --override-error 5.0
-```
+1. **Ephemeris Refinement (Recommended)**: Use the `--refine-ephemeris` option to query precise ephemeris at exact observation times instead of using linear interpolation. This eliminates interpolation errors entirely and is especially recommended for fast-moving objects like Near-Earth Objects (NEOs) and comets.
 
-We recommend starting with 3-5 arcseconds and adjusting based on your object's characteristics and ephemeris data quality.
+   Example:
+   ```bash
+   python odc.py --service-selection all \
+       --target "2024 TN57" \
+       --target-type smallbody \
+       --start-time "2024-12-01 00:00:00" \
+       --day-range 10 \
+       --filters g r i \
+       --refine-ephemeris \
+       --save-json --save-csv
+   ```
+
+   **Note**: Refinement increases processing time as it performs additional ephemeris queries at each observation time, but provides significantly improved accuracy.
+
+2. **Override Error Radius**: Use the `--override-error` option to manually set a larger error radius (in arcseconds). This increases the search area as a workaround for interpolation errors.
+
+   Example:
+   ```bash
+   python odc.py ... --override-error 5.0
+   ```
+
+   We recommend starting with 3-5 arcseconds and adjusting based on your object's characteristics and ephemeris data quality.
 
 
 ## References and Documentation
@@ -148,6 +166,8 @@ python odc.py --service-selection all \
   - Default: `3`.
 - `--override-error`: If greater than 0, this value in arcseconds will be used as the radius for a circular error ellipse, overriding the ephemeris's reported uncertainty.
   - Default: `0` (no override).
+- `--refine-ephemeris`: Enable precise ephemeris refinement. After discovering images, queries ephemeris service at exact observation times instead of using linear interpolation. Improves accuracy for fast-moving objects but increases query time.
+  - Default: `False`.
 - `--display`: If `True`, attempts to display results (images and error ellipses) in Firefly for visualization.
   - Default: `False`.
 - `-h, --help`: Show help message and exit.
@@ -266,6 +286,7 @@ input_data = {
     "photometry": {
         "image_type": "visit_image", # Corrected from "calexp"
         "threshold": 5,
+        "refine_ephemeris": True, # Enable precise ephemeris at exact observation times
         "save_diag_plots": True, # Corrected from "save_cutouts"
         "save_fits": True, # New option for FITS cutouts
         "display": False,

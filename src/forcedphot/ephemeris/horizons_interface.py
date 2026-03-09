@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 from typing import Optional
 
@@ -226,6 +227,9 @@ class HorizonsInterface:
         result_table["SMIA_3sigma_arcsec"].description = "Semi-minor axis of error ellipse in arcseconds"
         result_table["Theta_3sigma_deg"].unit = u.deg
         result_table["Theta_3sigma_deg"].description = "Position angle of error ellipse in degrees"
+
+        # Create output folder if it doesn't exist
+        os.makedirs(output_folder, exist_ok=True)
 
         result_table.write(output_folder + "/" + output_filename, format="ascii.ecsv", overwrite=True)
         self.logger.info(f"Ephemeris data successfully saved to {output_filename}")
