@@ -48,8 +48,18 @@ This tool relies on interpolating ephemeris data to determine target positions a
    python odc.py ... --override-error 5.0
    ```
 
-   We recommend starting with 3-5 arcseconds and adjusting based on your object's characteristics and ephemeris data quality.
+   We recommend starting with 3-20 arcseconds and adjusting based on your object's characteristics and ephemeris data quality.
 
+## Important Note: Bright-Star Contamination
+
+When a target falls spatially close to a bright star, source detection may fail to identify it as an independent source. Bright stars produce extended flux halos, internal reflections, and prominent diffraction spikes. Together, these features can cover a significant area of the sky around the star. If the target lies within this contaminated region, the detection pipeline treats the entire area as a single large footprint dominated by the bright star, and the target's own signal is too faint to register as a separate peak.
+
+In this case the pipeline still performs forced photometry at the target's predicted coordinates, but since no independent nearby source is detected within the error ellipse, the forced photometry result is copied into the first entry of the nearby sources list with a separation of 0. On the diagnostic plot, no blue marker is drawn for this entry, so the absence of a blue marker near the target in an otherwise populated field can be a visual hint that this edge case has occurred. The actual photometry values for the target remain valid — only the nearby-source detection is affected.
+
+**What to look for in the output:**
+- Nearby source list has one entry with `separation = 0`
+- No blue marker at the target position on the diagnostic plot
+- The nearby source flux and magnitude values are identical to the forced photometry result
 
 ## References and Documentation
 

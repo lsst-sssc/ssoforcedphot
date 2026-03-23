@@ -19,7 +19,7 @@ from enum import Enum
 from typing import Optional
 
 import pandas as pd
-from astropy.time import TimeDelta
+from astropy.time import Time, TimeDelta
 from image_photometry.photometry_service import PhotometryService
 from image_photometry.utils import (
     EndResult,
@@ -27,6 +27,7 @@ from image_photometry.utils import (
     ImageMetadata,
 )
 from lsst.daf.butler import Butler
+from lsst.rsp import get_tap_service
 
 
 class ImageType(str, Enum):
@@ -90,6 +91,58 @@ class PhotometryRequest:
     target_name: str = "standalone_target"
 
 
+@dataclass
+class CoordinateSearchRequest:
+    """
+    Request to discover and measure all images at a fixed sky coordinate.
+
+    This dataclass specifies a coordinate-based image discovery + photometry run.
+    The service queries ivoa.ObsCore for all calibrated visit images that:
+    - Spatially contain the given (RA, Dec) coordinate
+    - Were taken within the given time range
+    - Match one of the requested photometric bands
+
+    Forced photometry is then performed on every discovered image.
+
+    Attributes
+    ----------
+    ra : float
+        Right Ascension in degrees [0, 360)
+    dec : float
+        Declination in degrees [-90, 90]
+    time_start : str
+        Start of the time range in ISO 8601 format, e.g. "2024-11-01T00:00:00"
+    time_end : str
+        End of the time range in ISO 8601 format, e.g. "2024-12-01T00:00:00"
+    bands : list[str]
+        One or more photometric bands to search, e.g. ["g", "r", "i"]
+    error_radius : float, optional
+        Circular search radius in arcseconds for nearby-source detection.
+        Default: 3.0 arcsec
+    detection_threshold : float, optional
+        SNR threshold for source detection within error_radius.
+        Default: 5.0
+    image_type : ImageType, optional
+        Type of image to measure: ImageType.VISIT or ImageType.DIFFERENCE.
+        Default: ImageType.VISIT
+    target_name : str, optional
+        Label for this target used in output files and log messages.
+        Default: "coordinate_target"
+    """
+
+    ra: float
+    dec: float
+    time_start: str
+    time_end: str
+    bands: list[str]
+
+    # Optional parameters
+    error_radius: float = 3.0
+    detection_threshold: float = 5.0
+    image_type: ImageType = ImageType.VISIT
+    target_name: str = "coordinate_target"
+
+
 class StandalonePhotometryService:
     """
     Performs forced photometry from user-provided coordinates without ephemeris.
@@ -127,6 +180,7 @@ class StandalonePhotometryService:
         """Initialize the standalone photometry service."""
         self.logger = logging.getLogger("standalone_photometry")
         self.butler = Butler(dr, collections=collection)
+        self.tap_service = get_tap_service("tap")
         self.photometry_service = PhotometryService(
             dr=dr,
             collection=collection,
@@ -473,6 +527,145 @@ class StandalonePhotometryService:
         # Return as dictionary
         return {name: result for name, result in zip(target_names, results_list)}
 
+    def measure_at_coordinate(
+        self,
+        request: CoordinateSearchRequest,
+        save_diag_plots: bool = False,
+        save_fits: bool = False,
+        output_folder: Optional[str] = None,
+        output_csv: Optional[str] = None,
+        output_json: Optional[str] = None,
+    ) -> pd.DataFrame:
+        """
+        Discover all images at a fixed sky coordinate and measure forced photometry on each.
+
+        This is the primary entry point for coordinate-based image discovery.
+        It queries ``ivoa.ObsCore`` for all calibrated visit images that spatially
+        contain the given (RA, Dec) and were taken within the specified time range
+        and band selection, then performs forced PSF photometry on every discovered image.
+
+        Unlike :meth:`measure_single`, this method does not require prior knowledge of
+        visit IDs or detector numbers — it discovers them automatically via TAP.
+
+        Parameters
+        ----------
+        request : CoordinateSearchRequest
+            Full search specification: coordinate, time range, band list,
+            error radius, and detection settings
+        save_diag_plots : bool
+            Save diagnostic PNG plots for each image.
+            Default: False
+        save_fits : bool
+            Save FITS cutout for each image.
+            Default: False
+        output_folder : str, optional
+            Directory to save outputs (overrides the service default)
+        output_csv : str, optional
+            Path to write a CSV summary of all results. If None, not saved.
+        output_json : str, optional
+            Path to write a JSON file of all results. If None, not saved.
+
+        Returns
+        -------
+        pd.DataFrame
+            Results table with one row per image (or per source if the error
+            ellipse contains multiple detections). Columns mirror those from
+            :meth:`measure_from_csv`.
+
+        Raises
+        ------
+        ValueError
+            If coordinates are out of valid range or the time range is invalid
+        """
+        self.logger.info(
+            f"Starting coordinate-based image search and photometry for "
+            f"RA={request.ra:.5f}, Dec={request.dec:.5f}, "
+            f"time_start={request.time_start}, time_end={request.time_end}, "
+            f"bands={request.bands}"
+        )
+
+        out_folder = output_folder or self.output_folder
+
+        # Validate coordinates
+        self._validate_coordinates(request.ra, request.dec)
+
+        # Validate time range
+        t_start = Time(request.time_start, format="isot", scale="tai")
+        t_end = Time(request.time_end, format="isot", scale="tai")
+        if t_end <= t_start:
+            raise ValueError(f"time_end ({request.time_end}) must be after time_start ({request.time_start})")
+
+        # Discover images via TAP
+        tap_results = self._search_images_for_coordinate(request)
+        if tap_results is None or tap_results.empty:
+            self.logger.warning(
+                f"No images found for RA={request.ra:.5f}, Dec={request.dec:.5f} "
+                f"in the specified time range and bands"
+            )
+            return pd.DataFrame()
+
+        self.logger.info(f"Found {len(tap_results)} images — running forced photometry on each")
+
+        # Run photometry on every discovered image
+        results: list[EndResult] = []
+        phot_requests: list[PhotometryRequest] = []
+
+        for idx, (_, row) in enumerate(tap_results.iterrows()):
+            visit_id = int(row["lsst_visit"])
+            detector = int(row["lsst_detector"])
+            band = str(row["lsst_band"])
+
+            self.logger.info(
+                f"Processing image {idx + 1}/{len(tap_results)}: "
+                f"visit={visit_id}, detector={detector}, band={band}"
+            )
+
+            phot_request = PhotometryRequest(
+                visit_id=visit_id,
+                detector=detector,
+                band=band,
+                ra=request.ra,
+                dec=request.dec,
+                error_radius=request.error_radius,
+                detection_threshold=request.detection_threshold,
+                image_type=request.image_type,
+                target_name=request.target_name,
+            )
+            phot_requests.append(phot_request)
+
+            try:
+                result = self.measure_single(
+                    request=phot_request,
+                    save_diag_plots=save_diag_plots,
+                    save_fits=save_fits,
+                    output_folder=out_folder,
+                )
+                results.append(result)
+            except Exception as e:
+                self.logger.error(
+                    f"Photometry failed for visit={visit_id}, detector={detector}, band={band}: {e}"
+                )
+                results.append(None)
+
+        # Convert to DataFrame
+        results_df = self._results_to_dataframe(results, phot_requests)
+
+        # Save CSV if requested
+        if output_csv:
+            results_df.to_csv(output_csv, index=False)
+            self.logger.info(f"Results saved to {output_csv}")
+
+        # Save JSON if requested
+        if output_json:
+            valid_results = [r for r in results if r is not None]
+            if valid_results:
+                self._results_to_json(valid_results, output_json)
+            else:
+                self.logger.warning("No valid results to save to JSON")
+
+        return results_df
+
+
     def _create_image_metadata(self, request: PhotometryRequest) -> ImageMetadata:
         """
         Create synthetic ImageMetadata from PhotometryRequest.
@@ -753,3 +946,121 @@ class StandalonePhotometryService:
             json.dump(json_data, f, indent=2, default=str)
 
         self.logger.info(f"Results saved to {output_path}")
+
+def _search_images_for_coordinate(self, request: "CoordinateSearchRequest") -> Optional[pd.DataFrame]:
+        """
+        Query ivoa.ObsCore for all calibrated visit images that contain a fixed coordinate.
+
+        Constructs an ADQL query using a spatial point-in-region check
+        (``CONTAINS(POINT('ICRS', ra, dec), s_region) = 1``) combined with a
+        time range and band filter, then executes it via the TAP service.
+
+        Parameters
+        ----------
+        request : CoordinateSearchRequest
+            Coordinate, time range, and band specification for the search
+
+        Returns
+        -------
+        Optional[pd.DataFrame]
+            DataFrame with columns lsst_visit, lsst_detector, lsst_band, s_ra, s_dec,
+            t_min, t_max for each matching image, or None if the query fails
+        """
+        t_start = Time(request.time_start, format="isot", scale="tai")
+        t_end = Time(request.time_end, format="isot", scale="tai")
+
+        bands_clause = " OR ".join([f"lsst_band = '{b}'" for b in request.bands])
+
+        query = f"""
+        SELECT
+            lsst_visit,
+            lsst_detector,
+            lsst_band,
+            s_ra,
+            s_dec,
+            t_min,
+            t_max
+        FROM ivoa.ObsCore
+        WHERE calib_level = 2
+        AND ({bands_clause})
+        AND t_max >= {t_start.tai.mjd}
+        AND t_min <= {t_end.tai.mjd}
+        AND CONTAINS(POINT('ICRS', {request.ra}, {request.dec}), s_region) = 1
+        """
+
+        self.logger.info(
+            f"Searching ivoa.ObsCore for images at RA={request.ra:.5f}, Dec={request.dec:.5f} "
+            f"between {request.time_start} and {request.time_end} in bands {request.bands}"
+        )
+
+        try:
+            job = self.tap_service.submit_job(query)
+            job.run()
+            job.wait(phases=["COMPLETED", "ERROR"])
+            job.raise_if_error()
+            result = job.fetch_result().to_table().to_pandas()
+            self.logger.info(f"TAP query returned {len(result)} images")
+            return result if not result.empty else None
+        except Exception as e:
+            self.logger.error(f"TAP query failed: {e}")
+            return None
+
+def _build_image_metadata_from_tap_row(
+        self,
+        row: pd.Series,
+        ra: float,
+        dec: float,
+        error_radius: float,
+    ) -> ImageMetadata:
+        """
+        Build an ImageMetadata object from a single ivoa.ObsCore TAP result row.
+
+        Creates a synthetic ``EphemerisDataCompressed`` at the image mid-exposure
+        time using the user-supplied fixed coordinate (zero proper motion, circular
+        error ellipse with radius ``error_radius``).
+
+        Parameters
+        ----------
+        row : pd.Series
+            A single row from the TAP query result DataFrame
+        ra : float
+            Fixed Right Ascension in degrees
+        dec : float
+            Fixed Declination in degrees
+        error_radius : float
+            Circular error radius in arcseconds (used as both smaa and smia)
+
+        Returns
+        -------
+        ImageMetadata
+            Synthetic metadata object suitable for PhotometryService.process_image()
+        """
+        t_min = Time(row["t_min"], format="mjd", scale="tai")
+        t_max = Time(row["t_max"], format="mjd", scale="tai")
+        t_mid = Time((t_min.mjd + t_max.mjd) / 2.0, format="mjd", scale="tai")
+
+        exact_ephemeris = EphemerisDataCompressed(
+            datetime=t_mid,
+            ra_deg=ra,
+            dec_deg=dec,
+            ra_rate=0.0,
+            dec_rate=0.0,
+            uncertainty={
+                "rss": error_radius,
+                "smaa": error_radius,
+                "smia": error_radius,
+                "theta": 0.0,
+            },
+        )
+
+        return ImageMetadata(
+            visit_id=int(row["lsst_visit"]),
+            detector_id=int(row["lsst_detector"]),
+            band=str(row["lsst_band"]),
+            coordinates_central=(float(row["s_ra"]), float(row["s_dec"])),
+            t_min=t_min,
+            t_max=t_max,
+            ephemeris_data=[exact_ephemeris],
+            exact_ephemeris=exact_ephemeris,
+        )
+

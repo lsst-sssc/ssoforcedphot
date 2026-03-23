@@ -36,6 +36,7 @@ from image_photometry.visualization import create_diagnostic_plot
 from lsst.daf.butler import Butler
 from lsst.meas.algorithms.detection import SourceDetectionTask
 from lsst.meas.base import ForcedMeasurementTask, SingleFrameMeasurementTask
+from lsst.meas.deblender import SourceDeblendTask
 
 
 class PhotometryService:
@@ -420,9 +421,10 @@ class PhotometryService:
             nearby_skycoords_for_plot = []
             if sources_phot_results_list:
                 for src_result in sources_phot_results_list:
-                    nearby_skycoords_for_plot.append(
-                        SkyCoord(ra=src_result.ra, dec=src_result.dec, unit="deg")
-                    )
+                    if src_result.separation > 0:
+                        nearby_skycoords_for_plot.append(
+                            SkyCoord(ra=src_result.ra, dec=src_result.dec, unit="deg")
+                        )
 
             plot_title = (
                 f"Target: {target_name_for_plot or 'N/A'} | Visit: {image_metadata_for_plot.visit_id} "
@@ -544,20 +546,66 @@ class PhotometryService:
         config.thresholdValue = self.detection_threshold
         config.thresholdType = "stdev"
 
+        # Configure deblender: propagateAllPeaks=True guarantees a child source is
+        # created for every peak, including any injected target peak, regardless of
+        # how faint it is relative to the bright parent (no flux-fraction cutoff).
+        deblend_config = SourceDeblendTask.ConfigClass()
+        deblend_config.propagateAllPeaks = True
         sourcedetectiontask = SourceDetectionTask(schema=schema, config=config)
+        sourcedeblendtask = SourceDeblendTask(schema=schema, config=deblend_config)
         sourcemeasurementtask = SingleFrameMeasurementTask(
             schema=schema, config=SingleFrameMeasurementTask.ConfigClass(), algMetadata=dafbase.PropertyList()
         )
 
-        # Run detection and measurement
+        # Run detection
         tab = afwtable.SourceTable.make(schema)
         result = sourcedetectiontask.run(tab, visit_image)
         sources = result.sources
+
+        wcs = visit_image.getWcs()
+
+        sourcedeblendtask.run(visit_image, sources)
         sourcemeasurementtask.run(measCat=sources, exposure=visit_image)
+
+        # Quick post-deblend check: log closest detected source to target
+        target_sp_check = geom.SpherePoint(np.radians(ra_coord), np.radians(dec_coord), geom.radians)
+        min_sep = 9999.0
+        for src in sources:
+            ra_s = float(src.get("coord_ra"))
+            dec_s = float(src.get("coord_dec"))
+            if ra_s != 0.0 and np.isfinite(ra_s) and np.isfinite(dec_s):
+                sep = target_sp_check.separation(
+                    geom.SpherePoint(ra_s, dec_s, geom.radians)
+                ).asArcseconds()
+                if sep < min_sep:
+                    min_sep = sep
+        self.logger.info(f"Post-deblend: closest detected source to target is {min_sep:.2f} arcsec")
 
         # Get all sources and add separations
         sources_copy = sources.copy(True)
         table = sources_copy.asAstropy()
+
+        # Fix bad coord_ra/dec (NaN or zero) by recomputing from centroid pixel + WCS.
+        # Centroid measurement fails on saturated sources, leaving coord_ra/dec invalid;
+        # this fallback ensures such sources still get valid sky coordinates.
+        n_bad_coord = 0
+        for row in table:
+            ra_s = np.rad2deg(float(row["coord_ra"]))
+            dec_s = np.rad2deg(float(row["coord_dec"]))
+            if not np.isfinite(ra_s) or not np.isfinite(dec_s) or ra_s == 0.0:
+                n_bad_coord += 1
+                cx = float(row["slot_Centroid_x"])
+                cy = float(row["slot_Centroid_y"])
+                if np.isfinite(cx) and np.isfinite(cy):
+                    sky = wcs.pixelToSky(geom.Point2D(cx, cy))
+                    row["coord_ra"] = sky.getRa().asRadians()
+                    row["coord_dec"] = sky.getDec().asRadians()
+        if n_bad_coord:
+            self.logger.debug(
+                f"find_measure_sources: {n_bad_coord} sources had bad coord_ra/dec — "
+                "fell back to centroid+WCS"
+            )
+
         table_with_sep = self._calculate_separations(table, ra_coord, dec_coord, error_ellipse.smaa_3sig)
 
         if error_ellipse is None:
@@ -949,6 +997,19 @@ class PhotometryService:
                         f"for 'forced_meas_cat' (length {len(forced_meas_cat)}). "
                         "This suggests a mismatch in the number of sources processed."
                     )
+
+        # If the target was not independently detected by source detection, include it
+        # from forced photometry so it always appears in phot_within_error_ellipse.
+        # This handles cases where the target lies inside a bright star's footprint and
+        # is not assigned its own detection peak.
+        seps = [r.separation for r in sources_phot_results_list]
+        self.logger.info(
+            f"phot_within_error_ellipse: {len(sources_phot_results_list)} detected sources, "
+            f"separations = {[f'{s:.2f}' for s in seps]}"
+        )
+        if not any(r.separation < 2.0 for r in sources_phot_results_list):
+            sources_phot_results_list.insert(0, target_result)
+            self.logger.info("Fallback: target not found in detected sources — added forced-phot result to phot_within_error_ellipse")
 
         return target_result, sources_phot_results_list
 
