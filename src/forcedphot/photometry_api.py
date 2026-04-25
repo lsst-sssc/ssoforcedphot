@@ -957,6 +957,7 @@ def _search_images_for_coordinate(self, request: "CoordinateSearchRequest") -> O
 
         Parameters
         ----------
+        self
         request : CoordinateSearchRequest
             Coordinate, time range, and band specification for the search
 

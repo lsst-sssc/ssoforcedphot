@@ -451,10 +451,7 @@ class SodaCutoutProvider:
                 session=session,
             )
             # Convert cutout_size (arcsec) to degrees for SODA CIRCLE parameter
-            if cutout_size == 0:
-                radius_deg = 1560 / 3600.0
-            else:
-                radius_deg = cutout_size / 3600.0
+            radius_deg = 1560 / 3600.0 if cutout_size == 0 else cutout_size / 3600.0
             sq.circle = (ra_deg * u.deg, dec_deg * u.deg, radius_deg * u.deg)
 
             # Step 4: Execute and get FITS bytes

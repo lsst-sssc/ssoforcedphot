@@ -1009,7 +1009,10 @@ class PhotometryService:
         )
         if not any(r.separation < 2.0 for r in sources_phot_results_list):
             sources_phot_results_list.insert(0, target_result)
-            self.logger.info("Fallback: target not found in detected sources — added forced-phot result to phot_within_error_ellipse")
+            self.logger.info(
+                """Fallback: target not found in detected sources — added forced-phot
+                result to phot_within_error_ellipse"""
+            )
 
         return target_result, sources_phot_results_list
 
