@@ -946,7 +946,6 @@ class StandalonePhotometryService:
 
         self.logger.info(f"Results saved to {output_path}")
 
-
     def _search_images_for_coordinate(self, request: "CoordinateSearchRequest") -> Optional[pd.DataFrame]:
         """
         Query ivoa.ObsCore for all calibrated visit images that contain a fixed coordinate.
@@ -1004,7 +1003,6 @@ class StandalonePhotometryService:
         except Exception as e:
             self.logger.error(f"TAP query failed: {e}")
             return None
-
 
     def _build_image_metadata_from_tap_row(
         self,
