@@ -1012,7 +1012,7 @@ def _build_image_metadata_from_tap_row(
     ra: float,
     dec: float,
     error_radius: float,
-    ) -> ImageMetadata:
+) -> ImageMetadata:
     """
     Build an ImageMetadata object from a single ivoa.ObsCore TAP result row.
 
