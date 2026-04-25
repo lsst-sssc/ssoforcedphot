@@ -1005,12 +1005,13 @@ def _search_images_for_coordinate(self, request: "CoordinateSearchRequest") -> O
         self.logger.error(f"TAP query failed: {e}")
         return None
 
+
 def _build_image_metadata_from_tap_row(
-        self,
-        row: pd.Series,
-        ra: float,
-        dec: float,
-        error_radius: float,
+    self,
+    row: pd.Series,
+    ra: float,
+    dec: float,
+    error_radius: float,
     ) -> ImageMetadata:
     """
     Build an ImageMetadata object from a single ivoa.ObsCore TAP result row.
@@ -1063,4 +1064,3 @@ def _build_image_metadata_from_tap_row(
         ephemeris_data=[exact_ephemeris],
         exact_ephemeris=exact_ephemeris,
     )
-
