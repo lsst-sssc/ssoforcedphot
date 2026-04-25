@@ -574,9 +574,7 @@ class PhotometryService:
             ra_s = float(src.get("coord_ra"))
             dec_s = float(src.get("coord_dec"))
             if ra_s != 0.0 and np.isfinite(ra_s) and np.isfinite(dec_s):
-                sep = target_sp_check.separation(
-                    geom.SpherePoint(ra_s, dec_s, geom.radians)
-                ).asArcseconds()
+                sep = target_sp_check.separation(geom.SpherePoint(ra_s, dec_s, geom.radians)).asArcseconds()
                 if sep < min_sep:
                     min_sep = sep
         self.logger.info(f"Post-deblend: closest detected source to target is {min_sep:.2f} arcsec")

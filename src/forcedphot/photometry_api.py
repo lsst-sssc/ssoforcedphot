@@ -665,7 +665,6 @@ class StandalonePhotometryService:
 
         return results_df
 
-
     def _create_image_metadata(self, request: PhotometryRequest) -> ImageMetadata:
         """
         Create synthetic ImageMetadata from PhotometryRequest.
@@ -947,32 +946,32 @@ class StandalonePhotometryService:
 
         self.logger.info(f"Results saved to {output_path}")
 
+
 def _search_images_for_coordinate(self, request: "CoordinateSearchRequest") -> Optional[pd.DataFrame]:
-        """
-        Query ivoa.ObsCore for all calibrated visit images that contain a fixed coordinate.
+    """
+    Query ivoa.ObsCore for all calibrated visit images that contain a fixed coordinate.
 
-        Constructs an ADQL query using a spatial point-in-region check
-        (``CONTAINS(POINT('ICRS', ra, dec), s_region) = 1``) combined with a
-        time range and band filter, then executes it via the TAP service.
+    Constructs an ADQL query using a spatial point-in-region check
+    (``CONTAINS(POINT('ICRS', ra, dec), s_region) = 1``) combined with a
+    time range and band filter, then executes it via the TAP service.
 
-        Parameters
-        ----------
-        self
-        request : CoordinateSearchRequest
-            Coordinate, time range, and band specification for the search
+    Parameters
+    ----------
+    request : CoordinateSearchRequest
+        Coordinate, time range, and band specification for the search
 
-        Returns
-        -------
-        Optional[pd.DataFrame]
-            DataFrame with columns lsst_visit, lsst_detector, lsst_band, s_ra, s_dec,
-            t_min, t_max for each matching image, or None if the query fails
-        """
-        t_start = Time(request.time_start, format="isot", scale="tai")
-        t_end = Time(request.time_end, format="isot", scale="tai")
+    Returns
+    -------
+    Optional[pd.DataFrame]
+        DataFrame with columns lsst_visit, lsst_detector, lsst_band, s_ra, s_dec,
+        t_min, t_max for each matching image, or None if the query fails
+    """
+    t_start = Time(request.time_start, format="isot", scale="tai")
+    t_end = Time(request.time_end, format="isot", scale="tai")
 
-        bands_clause = " OR ".join([f"lsst_band = '{b}'" for b in request.bands])
+    bands_clause = " OR ".join([f"lsst_band = '{b}'" for b in request.bands])
 
-        query = f"""
+    query = f"""
         SELECT
             lsst_visit,
             lsst_detector,
@@ -989,22 +988,22 @@ def _search_images_for_coordinate(self, request: "CoordinateSearchRequest") -> O
         AND CONTAINS(POINT('ICRS', {request.ra}, {request.dec}), s_region) = 1
         """
 
-        self.logger.info(
-            f"Searching ivoa.ObsCore for images at RA={request.ra:.5f}, Dec={request.dec:.5f} "
-            f"between {request.time_start} and {request.time_end} in bands {request.bands}"
-        )
+    self.logger.info(
+        f"Searching ivoa.ObsCore for images at RA={request.ra:.5f}, Dec={request.dec:.5f} "
+        f"between {request.time_start} and {request.time_end} in bands {request.bands}"
+    )
 
-        try:
-            job = self.tap_service.submit_job(query)
-            job.run()
-            job.wait(phases=["COMPLETED", "ERROR"])
-            job.raise_if_error()
-            result = job.fetch_result().to_table().to_pandas()
-            self.logger.info(f"TAP query returned {len(result)} images")
-            return result if not result.empty else None
-        except Exception as e:
-            self.logger.error(f"TAP query failed: {e}")
-            return None
+    try:
+        job = self.tap_service.submit_job(query)
+        job.run()
+        job.wait(phases=["COMPLETED", "ERROR"])
+        job.raise_if_error()
+        result = job.fetch_result().to_table().to_pandas()
+        self.logger.info(f"TAP query returned {len(result)} images")
+        return result if not result.empty else None
+    except Exception as e:
+        self.logger.error(f"TAP query failed: {e}")
+        return None
 
 def _build_image_metadata_from_tap_row(
         self,
@@ -1013,55 +1012,55 @@ def _build_image_metadata_from_tap_row(
         dec: float,
         error_radius: float,
     ) -> ImageMetadata:
-        """
-        Build an ImageMetadata object from a single ivoa.ObsCore TAP result row.
+    """
+    Build an ImageMetadata object from a single ivoa.ObsCore TAP result row.
 
-        Creates a synthetic ``EphemerisDataCompressed`` at the image mid-exposure
-        time using the user-supplied fixed coordinate (zero proper motion, circular
-        error ellipse with radius ``error_radius``).
+    Creates a synthetic ``EphemerisDataCompressed`` at the image mid-exposure
+    time using the user-supplied fixed coordinate (zero proper motion, circular
+    error ellipse with radius ``error_radius``).
 
-        Parameters
-        ----------
-        row : pd.Series
-            A single row from the TAP query result DataFrame
-        ra : float
-            Fixed Right Ascension in degrees
-        dec : float
-            Fixed Declination in degrees
-        error_radius : float
-            Circular error radius in arcseconds (used as both smaa and smia)
+    Parameters
+    ----------
+    row : pd.Series
+        A single row from the TAP query result DataFrame
+    ra : float
+        Fixed Right Ascension in degrees
+    dec : float
+        Fixed Declination in degrees
+    error_radius : float
+        Circular error radius in arcseconds (used as both smaa and smia)
 
-        Returns
-        -------
-        ImageMetadata
-            Synthetic metadata object suitable for PhotometryService.process_image()
-        """
-        t_min = Time(row["t_min"], format="mjd", scale="tai")
-        t_max = Time(row["t_max"], format="mjd", scale="tai")
-        t_mid = Time((t_min.mjd + t_max.mjd) / 2.0, format="mjd", scale="tai")
+    Returns
+    -------
+    ImageMetadata
+        Synthetic metadata object suitable for PhotometryService.process_image()
+    """
+    t_min = Time(row["t_min"], format="mjd", scale="tai")
+    t_max = Time(row["t_max"], format="mjd", scale="tai")
+    t_mid = Time((t_min.mjd + t_max.mjd) / 2.0, format="mjd", scale="tai")
 
-        exact_ephemeris = EphemerisDataCompressed(
-            datetime=t_mid,
-            ra_deg=ra,
-            dec_deg=dec,
-            ra_rate=0.0,
-            dec_rate=0.0,
-            uncertainty={
-                "rss": error_radius,
-                "smaa": error_radius,
-                "smia": error_radius,
-                "theta": 0.0,
-            },
-        )
+    exact_ephemeris = EphemerisDataCompressed(
+        datetime=t_mid,
+        ra_deg=ra,
+        dec_deg=dec,
+        ra_rate=0.0,
+        dec_rate=0.0,
+        uncertainty={
+            "rss": error_radius,
+            "smaa": error_radius,
+            "smia": error_radius,
+            "theta": 0.0,
+        },
+    )
 
-        return ImageMetadata(
-            visit_id=int(row["lsst_visit"]),
-            detector_id=int(row["lsst_detector"]),
-            band=str(row["lsst_band"]),
-            coordinates_central=(float(row["s_ra"]), float(row["s_dec"])),
-            t_min=t_min,
-            t_max=t_max,
-            ephemeris_data=[exact_ephemeris],
-            exact_ephemeris=exact_ephemeris,
-        )
+    return ImageMetadata(
+        visit_id=int(row["lsst_visit"]),
+        detector_id=int(row["lsst_detector"]),
+        band=str(row["lsst_band"]),
+        coordinates_central=(float(row["s_ra"]), float(row["s_dec"])),
+        t_min=t_min,
+        t_max=t_max,
+        ephemeris_data=[exact_ephemeris],
+        exact_ephemeris=exact_ephemeris,
+    )
 
