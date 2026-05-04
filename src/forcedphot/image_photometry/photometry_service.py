@@ -24,6 +24,7 @@ import numpy as np
 from astropy.coordinates import SkyCoord
 from image_photometry.cutout_service import CutoutService
 from image_photometry.utils import (
+    AperturePhotometryResult,
     EndResult,
     ErrorEllipse,
     ImageMetadata,
@@ -108,6 +109,7 @@ class PhotometryService:
         json_filename: Optional[str] = None,
         save_csv: bool = False,
         cutout_size_arcsec: Optional[float] = None,
+        aperture_radii: Optional[list[float]] = None,
     ) -> EndResult:
         """
         Process a single image by performing forced photometry at the ephemeris
@@ -161,6 +163,9 @@ class PhotometryService:
         cutout_size_arcsec : float, optional
             Cutout radius in arcseconds for SODA provider. If None and using
             SODA, approximated from cutout_size pixels. Default: None.
+        aperture_radii : list[float], optional
+            Aperture radii in arcseconds. If None, only PSF photometry is performed.
+            Defaults to None.
 
         Returns
         -------
@@ -253,6 +258,7 @@ class PhotometryService:
             image_metadata_for_plot=image_metadata,
             target_name_for_plot=target_name,
             cutout_size_arcsec=cutout_size_arcsec,
+            aperture_radii=aperture_radii,
         )
 
         # Prepare end result
@@ -281,7 +287,6 @@ class PhotometryService:
         dec_deg,
         cutout_size=400,
         display=True,
-        psf_only=True,
         find_sources_flag=True,
         save_diag_plots=False,
         save_fits=False,
@@ -291,6 +296,7 @@ class PhotometryService:
         image_metadata_for_plot: Optional[ImageMetadata] = None,
         target_name_for_plot: Optional[str] = None,
         cutout_size_arcsec: Optional[float] = None,
+        aperture_radii: Optional[list[float]] = None,
     ):
         """
         Performs core photometry operations: creating a cutout, identifying sources,
@@ -315,11 +321,6 @@ class PhotometryService:
         display : bool, optional
             If True, the cutout image will be displayed in Firefly, along with marked sources
             and the error ellipse. Defaults to True.
-        psf_only : bool, optional
-            If True, only performs PSF (Point Spread Function) photometry. If False,
-            additional measurement plugins (GaussianFlux, SdssShape, CircularApertureFlux)
-            would be included (though currently not fully implemented in the provided code).
-            Defaults to True.
         find_sources_flag : bool, optional
             If True, the method will attempt to find additional sources around the target
             within the cutout, which are then also measured. Defaults to True.
@@ -343,6 +344,9 @@ class PhotometryService:
             The name of the target, specifically for display in plot titles. Defaults to None.
         cutout_size_arcsec : float, optional
             Cutout radius in arcseconds for the SODA provider. Default: None.
+        aperture_radii : list[float], optional
+            Aperture radii in arcseconds. If None, only PSF photometry is performed.
+            Defaults to None.
 
         Returns
         -------
@@ -365,6 +369,12 @@ class PhotometryService:
         if target_img is None:
             return None, None
 
+        # Convert aperture radii from arcsec to pixels using image WCS
+        aperture_radii_px = None
+        if aperture_radii:
+            px_scale = target_img.getWcs().getPixelScale().asArcseconds()
+            aperture_radii_px = [round(r / px_scale, 1) for r in aperture_radii]
+
         # Initialize coordinate lists
         ra_list, dec_list, found_sources = self._initialize_coordinates(
             target_img, ra_deg, dec_deg, find_sources_flag, error_ellipse
@@ -374,12 +384,17 @@ class PhotometryService:
 
         # Setup and perform measurements
         forced_meas_cat = self._perform_forced_photometry(
-            target_img, ra_list, dec_list, x_offset, y_offset, psf_only
+            target_img, ra_list, dec_list, x_offset, y_offset, aperture_radii_px
         )
 
         # Prepare PhotometryResult dataclasses for the target and any other found sources
         target_phot_result, sources_phot_results_list = self._prepare_photometry_results(
-            forced_meas_cat=forced_meas_cat, ra=ra_deg, dec=dec_deg, found_sources=found_sources
+            forced_meas_cat=forced_meas_cat,
+            ra=ra_deg,
+            dec=dec_deg,
+            found_sources=found_sources,
+            aperture_radii=aperture_radii,
+            aperture_radii_px=aperture_radii_px,    
         )
 
         # Handle display and visualization (including saving diagnostic plot)
@@ -623,7 +638,9 @@ class PhotometryService:
 
             return filtered_table
 
-    def _perform_forced_photometry(self, target_img, ra_list, dec_list, x_offset, y_offset, psf_only):
+    def _perform_forced_photometry(
+        self, target_img, ra_list, dec_list, x_offset, y_offset, aperture_radii_px=None
+    ):
         """
         Sets up and executes forced photometry on a list of specified celestial coordinates
         within a given image exposure.
@@ -647,9 +664,9 @@ class PhotometryService:
         y_offset : int
             The Y-coordinate offset of the `target_img`'s origin relative to the
             original full image.
-        psf_only : bool
-            If True, only PSF-based flux measurements (`base_PsfFlux`) are performed.
-            If False, additional plugins could be included (though currently not in this code).
+        aperture_radii_px : list[float], optional
+            Aperture radii in pixels. If None, only PSF photometry is performed.
+            Defaults to None.
 
         Returns
         -------
@@ -673,11 +690,13 @@ class PhotometryService:
 
         config = ForcedMeasurementTask.ConfigClass()
         config.copyColumns = {}
-        config.plugins.names = ["base_TransformedCentroid", "base_PsfFlux", "base_TransformedShape"]
+        plugin_names = ["base_TransformedCentroid", "base_PsfFlux", "base_TransformedShape"]
+        if aperture_radii_px:
+            plugin_names.append("base_CircularApertureFlux")
+        config.plugins.names = plugin_names
 
-        # Not implemented...
-        if not psf_only:
-            config.plugins.names.extend(["base_GaussianFlux", "base_SdssShape", "base_CircularApertureFlux"])
+        if aperture_radii_px:
+            config.plugins["base_CircularApertureFlux"].radii = aperture_radii_px
 
         config.doReplaceWithNoise = False
 
@@ -818,7 +837,75 @@ class PhotometryService:
 
         return ra_list, dec_list, sources
 
-    def _prepare_photometry_results(self, forced_meas_cat, ra, dec, found_sources):
+    def _extract_aperture_results(self, meas_record, aperture_radii, aperture_radii_px):
+        """
+        Build a list of AperturePhotometryResult from a forced measurement record.
+
+        Parameters
+        ----------
+        meas_record : lsst.afw.table.SourceRecord
+            A single row from the forced measurement catalog.
+        aperture_radii : list[float]
+            Aperture radii in arcseconds (used for radius_arcsec field).
+        aperture_radii_px : list[float]
+            Aperture radii in pixels (used to build LSST column names).
+
+        Returns
+        -------
+        list[AperturePhotometryResult] or None
+        """
+        if not aperture_radii or not aperture_radii_px:
+            return None
+
+        results = []
+        for r_arcsec, r_px in zip(aperture_radii, aperture_radii_px):
+            col_flux = f"base_CircularApertureFlux_{r_px:.1f}_instFlux".replace(".", "_")
+            col_err = f"base_CircularApertureFlux_{r_px:.1f}_instFluxErr".replace(".", "_")
+            col_flag = f"base_CircularApertureFlux_{r_px:.1f}_flag".replace(".", "_")
+
+            try:
+                raw_flux = meas_record.get(col_flux)
+                flux = float(raw_flux) if not np.isnan(raw_flux) else 0.0
+            except (KeyError, LookupError):
+                flux = 0.0
+
+            try:
+                raw_err = meas_record.get(col_err)
+                flux_err = float(raw_err) if (not np.isnan(raw_err) and raw_err > 0) else 0.0
+            except (KeyError, LookupError):
+                flux_err = 0.0
+
+            snr = flux / flux_err if flux_err > 0 else 0.0
+            mag = (flux * u.nJy).to(u.ABmag).value if flux > 0 else 0.0
+            mag_err = 2.5 / np.log(10) * flux_err / flux if flux > 0 and flux_err > 0 else 0.0
+
+            try:
+                flag = bool(meas_record.get(col_flag))
+            except (KeyError, LookupError):
+                flag = True  # treat missing flag column as failure
+
+            results.append(
+                AperturePhotometryResult(
+                    radius_arcsec=r_arcsec,
+                    flux=flux,
+                    flux_err=flux_err,
+                    snr=snr,
+                    mag=mag,
+                    mag_err=mag_err,
+                    flag=flag,
+                )
+            )
+        return results
+
+    def _prepare_photometry_results(
+        self,
+        forced_meas_cat,
+        ra,
+        dec,
+        found_sources,
+        aperture_radii=None,
+        aperture_radii_px=None,
+    ):
         """
         Prepares structured `PhotometryResult` dataclasses from the raw LSST
         measurement catalog for the target and any additional sources found
@@ -843,6 +930,12 @@ class PhotometryService:
             (likely filtered by an error ellipse) that were also included in
             `forced_meas_cat` (from index 1 onwards). Can be None or empty if no
             additional sources were found.
+        aperture_radii : list[float], optional
+            Aperture radii in arcseconds. If None, only PSF photometry is performed.
+            Defaults to None.
+        aperture_radii_px : list[float], optional
+            Aperture radii in pixels (used to build LSST column names).
+            Defaults to None.
 
         Returns
         -------
@@ -921,6 +1014,11 @@ class PhotometryService:
             flags={},
         )
 
+        # Extract aperture photometry results for the target
+        target_result.aperture = self._extract_aperture_results(
+            forced_meas_cat[0], aperture_radii, aperture_radii_px
+        )
+
         # Prepare results for additional sources (originally from found_sources table)
         sources_phot_results_list = []
         if found_sources is not None and len(found_sources) > 0:
@@ -987,6 +1085,9 @@ class PhotometryService:
                         flags={
                             # "base_PsfFlux_flag_edge": meas_record.get("base_PsfFlux_flag_edge", False)
                         },
+                    )
+                    source_result.aperture = self._extract_aperture_results(
+                        meas_record, aperture_radii, aperture_radii_px
                     )
                     sources_phot_results_list.append(source_result)
                 else:

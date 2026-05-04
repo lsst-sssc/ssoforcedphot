@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import astropy.units as u
 import pytest
 from astropy.time import Time
+
 from forcedphot.ephemeris.data_model import QueryResult
 from forcedphot.image_photometry.utils import ImageMetadata
 from forcedphot.odc import ObjectDetectionController
@@ -110,6 +111,9 @@ def test_run_photometry(odc_instance):
         override_error=0,
         display=False,
         output_folder="./output",
+        refine_ephemeris=False,
+        cutout_size_arcsec=None,
+        aperture_radii=None,
     )
 
 

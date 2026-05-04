@@ -20,14 +20,25 @@ from typing import Optional
 
 import pandas as pd
 from astropy.time import Time, TimeDelta
-from image_photometry.photometry_service import PhotometryService
-from image_photometry.utils import (
-    EndResult,
-    EphemerisDataCompressed,
-    ImageMetadata,
-)
-from lsst.daf.butler import Butler
-from lsst.rsp import get_tap_service
+try:
+    from image_photometry.photometry_service import PhotometryService
+    from image_photometry.utils import (
+        EndResult,
+        EphemerisDataCompressed,
+        ImageMetadata,
+    )
+    from lsst.daf.butler import Butler
+    from lsst.rsp import get_tap_service
+except ImportError:
+    PhotometryService = None
+    EndResult = None
+    EphemerisDataCompressed = None
+    ImageMetadata = None
+    Butler = None
+    get_tap_service = None
+
+DEFAULT_APERTURE_RADII: list[float] = [3.0, 5.0, 7.0]
+"""Default aperture radii in arcseconds when aperture photometry is requested without explicit radii."""
 
 
 class ImageType(str, Enum):
@@ -67,11 +78,10 @@ class PhotometryRequest:
     image_type : ImageType, optional
         Type of image to process: ImageType.VISIT or ImageType.DIFFERENCE.
         Default: ImageType.VISIT
-    aperture_radii : list[float], optional
-        List of aperture radii in arcseconds for aperture photometry.
-        If None, only PSF photometry is performed.
-        Example: [3.0, 5.0, 7.0]
-        Default: None (not yet implemented)
+    aperture_radii : list[float] or None, optional
+        Aperture radii in arcseconds. Pass None for PSF-only photometry (default).
+        Pass an empty list to use DEFAULT_APERTURE_RADII = [3.0, 5.0, 7.0].
+        Pass explicit radii to use those values directly.
     target_name : str, optional
         Optional name for this target (for output labeling).
         Default: "standalone_target"
@@ -234,6 +244,11 @@ class StandalonePhotometryService:
         # Use provided output folder or default
         out_folder = output_folder or self.output_folder
 
+        # Resolve aperture radii: None → PSF only; [] → use defaults; [r1, …] → as-is
+        aperture_radii = request.aperture_radii
+        if aperture_radii is not None and len(aperture_radii) == 0:
+            aperture_radii = DEFAULT_APERTURE_RADII
+
         # Validate coordinates
         self._validate_coordinates(request.ra, request.dec)
 
@@ -266,6 +281,7 @@ class StandalonePhotometryService:
             save_fits=save_fits,
             display=False,
             output_folder=out_folder,
+            aperture_radii=aperture_radii,
         )
 
         return result

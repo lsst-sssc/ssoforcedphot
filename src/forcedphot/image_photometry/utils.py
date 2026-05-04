@@ -16,7 +16,7 @@ Main Components:
 import csv
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 import astropy.units as u
 import lsst.geom as geom
@@ -25,6 +25,11 @@ from astropy.coordinates import Angle, SkyCoord
 from astropy.table import Table
 from astropy.time import Time
 from ephemeris.data_model import QueryResult
+
+try:
+    import lsst.geom as geom
+except ImportError:
+    geom = None
 
 
 def target_name_maker(target_name):
@@ -444,6 +449,38 @@ class ErrorEllipse:
 
 
 @dataclass
+class AperturePhotometryResult:
+    """
+    Dataclass to hold the results of a single circular aperture photometric measurement.
+
+    Attributes
+    ----------
+    radius_arcsec : float
+        Aperture radius in arcseconds
+    flux : float
+        Flux in nanojanskys
+    flux_err : float
+        Flux uncertainty in nanojanskys
+    snr : float
+        Signal-to-noise ratio
+    mag : float
+        AB Magnitude
+    mag_err : float
+        AB Magnitude uncertainty
+    flag : bool
+        True if the aperture measurement failed
+    """
+
+    radius_arcsec: float
+    flux: float
+    flux_err: float
+    snr: float
+    mag: float
+    mag_err: float
+    flag: bool
+
+
+@dataclass
 class PhotometryResult:
     """
     Dataclass to hold the results of photometric measurements.
@@ -485,6 +522,9 @@ class PhotometryResult:
             - base_PsfFlux_flag_badCentroid
             - base_PsfFlux_flag_badCentroid_edge
             - slot_Centroid_flag_edge
+    aperture : list[AperturePhotometryResult] or None, optional
+        Aperture photometry results for one or more circular apertures. None if
+        aperture photometry was not performed.
     """
 
     ra: float
@@ -503,6 +543,7 @@ class PhotometryResult:
     separation: float
     sigma: float
     flags: dict[str, bool]
+    aperture: Optional[list[AperturePhotometryResult]] = None
 
 
 @dataclass
@@ -624,6 +665,21 @@ class EndResult:
                 for flag_name, flag_value in forced_phot.flags.items():
                     row[f"forced_phot_flag_{flag_name}"] = flag_value
 
+            # Aperture photometry on target
+                if forced_phot.aperture:
+                    for ap in forced_phot.aperture:
+                        r = str(float(ap.radius_arcsec)).replace(".", "_")
+                        row.update(
+                            {
+                                f"aperture_{r}arcsec_flux": ap.flux,
+                                f"aperture_{r}arcsec_flux_err": ap.flux_err,
+                                f"aperture_{r}arcsec_snr": ap.snr,
+                                f"aperture_{r}arcsec_mag": ap.mag,
+                                f"aperture_{r}arcsec_mag_err": ap.mag_err,
+                                f"aperture_{r}arcsec_flag": ap.flag,
+                            }
+                        )
+
         # Sources within error ellipse (flatten to single best source or count)
         row["num_sources_in_ellipse"] = len(self.phot_within_error_ellipse)
 
@@ -654,6 +710,21 @@ class EndResult:
             if best_source.flags:
                 for flag_name, flag_value in best_source.flags.items():
                     row[f"ellipse_source_flag_{flag_name}"] = flag_value
+
+        # Aperture photometry on best ellipse source
+            if best_source.aperture:
+                for ap in best_source.aperture:
+                    r = str(float(ap.radius_arcsec)).replace(".", "_")
+                    row.update(
+                        {
+                            f"ellipse_source_aperture_{r}arcsec_flux": ap.flux,
+                            f"ellipse_source_aperture_{r}arcsec_flux_err": ap.flux_err,
+                            f"ellipse_source_aperture_{r}arcsec_snr": ap.snr,
+                            f"ellipse_source_aperture_{r}arcsec_mag": ap.mag,
+                            f"ellipse_source_aperture_{r}arcsec_mag_err": ap.mag_err,
+                            f"ellipse_source_aperture_{r}arcsec_flag": ap.flag,
+                        }
+                    )
 
         return row
 

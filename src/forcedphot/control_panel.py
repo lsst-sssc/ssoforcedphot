@@ -619,6 +619,17 @@ class PhotometryTab:
             name="Save all the sources within the error ellipse", value=False
         )
         self.output_folder = pn.widgets.TextInput(name="Output folder", value="./output")
+        self.run_aperture = pn.widgets.Checkbox(name="Aperture Photometry", value=False)
+        self.aperture_radii_input = pn.widgets.ArrayInput(
+            name="Aperture Radii (arcsec)",
+            value=[3.0, 5.0, 7.0],
+            item_type=float,
+            disabled=True,
+        )
+        # Enable input only when checkbox is checked
+        self.aperture_radii_input.disabled = pn.bind(
+            lambda checked: not checked, self.run_aperture.param.value
+        )
         self.run_button = pn.widgets.Button(name="Run Photometry", button_type="primary")
 
         # Cutout size visibility based on provider
@@ -668,6 +679,8 @@ class PhotometryTab:
                 self.cutout_size,
                 self.cutout_size_arcsec,
                 self.override_error,
+                self.run_aperture,
+                self.aperture_radii_input,
                 self.refine_ephemeris,
                 self.save_diag_plots,
                 self.save_fits,
@@ -719,6 +732,7 @@ class PhotometryTab:
                 "cutout_size_arcsec": (
                     self.cutout_size_arcsec.value if "SODA" in self.cutout_provider.value else None
                 ),
+                "aperture_radii": (self.aperture_radii_input.value if self.run_aperture.value else None),
             }
         }
         try:
@@ -1231,6 +1245,21 @@ class StandalonePhotometryTab:
         self.image_type = pn.widgets.Select(
             name="Image Type", options=["visit_image", "difference_image"], value="visit_image"
         )
+        self.run_aperture = pn.widgets.Checkbox(name="Aperture Photometry", value=False)
+        self.aperture_radii_input = pn.widgets.ArrayInput(
+            name="Aperture Radii (arcsec)",
+            value=[3.0, 5.0, 7.0],
+            item_type=float,
+            disabled=True,
+        )
+        self.aperture_radii_input.disabled = pn.bind(
+            lambda checked: not checked, self.run_aperture.param.value
+        )
+        # In Batch CSV mode, aperture radii are read per-row from the CSV file
+        self.aperture_note = pn.pane.Markdown(
+            "_Note: In Batch CSV mode, aperture radii are read from the CSV file per row._",
+            visible=pn.bind(lambda mode: mode == "Batch CSV", self.input_mode.param.value),
+        )
         self.cutout_provider = pn.widgets.Select(
             name="Cutout Provider",
             options=["Butler (local)", "SODA (remote)"],
@@ -1293,6 +1322,9 @@ class StandalonePhotometryTab:
                 self.error_radius,
                 self.detection_threshold,
                 self.image_type,
+                self.run_aperture,
+                self.aperture_radii_input,
+                self.aperture_note,
                 self.cutout_provider,
                 "### Output Options",
                 self.save_diag_plots,
@@ -1391,6 +1423,7 @@ class StandalonePhotometryTab:
                     error_radius=self.error_radius.value,
                     detection_threshold=self.detection_threshold.value,
                     image_type=self.image_type.value,
+                    aperture_radii=(self.aperture_radii_input.value if self.run_aperture.value else None),
                 )
 
                 result = service.measure_single(
@@ -1491,6 +1524,7 @@ class StandalonePhotometryTab:
                     coordinates=coordinates,
                     error_radius=self.error_radius.value,
                     image_type=self.image_type.value,
+                    aperture_radii=(self.aperture_radii_input.value if self.run_aperture.value else None),
                     save_diag_plots=self.save_diag_plots.value,
                     save_fits=self.save_fits.value,
                     output_folder=self.output_folder.value,
@@ -1506,6 +1540,7 @@ class StandalonePhotometryTab:
                         ra=ra,
                         dec=dec,
                         target_name=name,
+                        aperture_radii=(self.aperture_radii_input.value if self.run_aperture.value else None),
                     )
                     for (ra, dec), name in zip(coordinates, results_dict.keys())
                 ]

@@ -49,6 +49,7 @@ class ObjectDetectionController:
         self.args.output_folder = "./output"
         self.args.cutout_provider = "butler"
         self.args.cutout_size_arcsec = None
+        self.args.aperture_radii = None
         self.logger = logging.getLogger("odc")
         self.ephemeris_client = EphemerisClient()
         self.ephemeris_results: list[EphemerisDataCompressed] = []
@@ -315,7 +316,7 @@ class ObjectDetectionController:
 
         standalone_group.add_argument(
             "--aperture-radii",
-            nargs="+",
+            nargs="*",
             type=float,
             help="Aperture radii in arcseconds (e.g., --aperture-radii 3.0 5.0 7.0)",
         )
@@ -511,6 +512,12 @@ class ObjectDetectionController:
 
         start_time = time.time()
 
+        # Normalize: --aperture-radii with no values → use project defaults
+        DEFAULT_APERTURE_RADII: list[float] = [3.0, 5.0, 7.0]
+
+        if self.args.aperture_radii is not None and len(self.args.aperture_radii) == 0:
+            self.args.aperture_radii = DEFAULT_APERTURE_RADII
+
         # Configure photometry parameters
         self.imphot_controller.detection_threshold = self.args.threshold
         self.imphot_controller.phot_service.cutout_service.set_provider(self.args.cutout_provider)
@@ -529,6 +536,7 @@ class ObjectDetectionController:
             output_folder=output_folder,
             refine_ephemeris=self.args.refine_ephemeris,
             cutout_size_arcsec=self.args.cutout_size_arcsec,
+            aperture_radii=self.args.aperture_radii,
         )
         if self.args.save_json:
             self.imphot_controller.save_results_to_json(
@@ -866,6 +874,12 @@ class ObjectDetectionController:
                 self.args.refine_ephemeris = photometry_params.get("refine_ephemeris", False)
                 self.args.cutout_provider = photometry_params.get("cutout_provider", "butler")
                 self.args.cutout_size_arcsec = photometry_params.get("cutout_size_arcsec")
+                self.args.aperture_radii = photometry_params.get("aperture_radii")
+                # Normalize: empty list → use project defaults
+                from forcedphot.photometry_api import DEFAULT_APERTURE_RADII
+
+                if self.args.aperture_radii is not None and len(self.args.aperture_radii) == 0:
+                    self.args.aperture_radii = DEFAULT_APERTURE_RADII
                 self.args.display = photometry_params.get("display", False)
                 self.args.save_json = photometry_params.get("save_json", False)
                 self.args.save_csv = photometry_params.get("save_csv", False)

@@ -152,7 +152,7 @@ class EphemerisRefinementService:
         all_ephemeris = []
 
         for i, batch in enumerate(batches):
-            self.logger.info(f"Querying batch {i+1}/{len(batches)} ({len(batch)} epochs)")
+            self.logger.info(f"Querying batch {i + 1}/{len(batches)} ({len(batch)} epochs)")
 
             # Query Horizons with list of epochs
             obj = Horizons(
@@ -173,7 +173,7 @@ class EphemerisRefinementService:
                 self.logger.info(f"Successfully retrieved {len(ephemeris)} ephemeris points")
 
             except Exception as e:
-                self.logger.error(f"Error querying Horizons batch {i+1}: {str(e)}")
+                self.logger.error(f"Error querying Horizons batch {i + 1}: {str(e)}")
                 # Continue with other batches
                 continue
 
@@ -234,7 +234,7 @@ class EphemerisRefinementService:
                     all_ephemeris.append(ephem_data)
 
                 if (i + 1) % 10 == 0:
-                    self.logger.info(f"Progress: {i+1}/{len(obs_times)} queries completed")
+                    self.logger.info(f"Progress: {i + 1}/{len(obs_times)} queries completed")
 
             except Exception as e:
                 self.logger.error(f"Error querying Miriade for time {obs_time.iso}: {str(e)}")
