@@ -8,10 +8,13 @@ The Faint Solar System Object Detection Service is a Python tool designed for mo
 ## Features
 - Ephemeris data retrieval from multiple services (JPL Horizons, Miriade).
 - Image search and processing using ObsCore.
-- Forced photometry on target coordinates.
+- PSF forced photometry on target coordinates.
+- Optional aperture photometry at user-defined radii alongside PSF measurements.
 - Photometry on nearby sources detected within a specified error ellipse.
+- Standalone photometry at arbitrary sky coordinates, without requiring ephemeris data.
 - Multiple filter selection for image searches (u, g, r, i, z, y).
 - Flexible input options: single query for a target, or batch processing via CSV files.
+- Pluggable cutout backends: Butler (local in-memory) or SODA (remote server-side cutouts).
 - Multiple output options: JSON and CSV files for results, diagnostic plots (PNG), and FITS image cutouts.
 
 
@@ -168,6 +171,10 @@ python odc.py --service-selection all \
 - `--save-json`: Save final photometry results as JSON.
 - `--save-csv`: Save final photometry results as CSV.
 - `--all-ellipse-sources`: If `True` and saving to CSV, create separate rows for each source detected within the error ellipse. If `False`, only include the best source per result.
+- `--cutout-provider`: Cutout backend to use.
+  - Options: `"butler"` (local in-memory slicing), `"soda"` (remote IVOA SODA server-side cutouts).
+  - Default: `"butler"`.
+- `--cutout-size-arcsec`: Cutout radius in arcseconds when using the SODA provider. If not set, approximated from `--min-cutout-size` using 0.2 arcsec/pixel.
 
 ### Additional Options
 - `--location`: Observer location code (e.g., "X05" for Rubin Observatory).
@@ -178,9 +185,20 @@ python odc.py --service-selection all \
   - Default: `0` (no override).
 - `--refine-ephemeris`: Enable precise ephemeris refinement. After discovering images, queries ephemeris service at exact observation times instead of using linear interpolation. Improves accuracy for fast-moving objects but increases query time.
   - Default: `False`.
+- `--aperture-radii`: Aperture radii in arcseconds for aperture photometry (in addition to PSF forced photometry). Pass multiple values separated by spaces (e.g., `--aperture-radii 3.0 5.0 7.0`). If the flag is given with no values, defaults to `[3.0, 5.0, 7.0]`. Omitting the flag disables aperture photometry entirely.
 - `--display`: If `True`, attempts to display results (images and error ellipses) in Firefly for visualization.
   - Default: `False`.
 - `-h, --help`: Show help message and exit.
+
+### Standalone Photometry Options
+These options trigger photometry at arbitrary coordinates without an ephemeris query. They require `--service-selection photometry` (or `all`).
+
+- `--ra`: Right Ascension in degrees for a single-coordinate measurement.
+- `--dec`: Declination in degrees for a single-coordinate measurement.
+- `--visit-id`: Visit ID identifying the image to measure (required for single-coordinate and multi-coordinate modes).
+- `--detector`: Detector ID for standalone photometry.
+- `--photometry-csv`: Path to a CSV file for batch standalone photometry. Required columns: `visit_id`, `detector`, `band`, `ra`, `dec`. Optional columns: `error_radius`, `target_name`, `aperture_radii` (comma-separated, e.g. `3.0,5.0,7.0`).
+- `--coords-file`: Path to a text file with multiple RA,Dec coordinates (one per line, comma-separated) to measure in the same image (used together with `--visit-id`, `--detector`, and `--filters`).
 
 ## Working with Input Files
 
@@ -294,15 +312,19 @@ input_data = {
         "time_interval": 5.0 # Only relevant if image_search_method is "polygon"
     },
     "photometry": {
-        "image_type": "visit_image", # Corrected from "calexp"
+        "image_type": "visit_image",
         "threshold": 5,
-        "refine_ephemeris": True, # Enable precise ephemeris at exact observation times
-        "save_diag_plots": True, # Corrected from "save_cutouts"
-        "save_fits": True, # New option for FITS cutouts
+        "min_cutout_size": 800,
+        "cutout_provider": "butler",      # or "soda" for remote server-side cutouts
+        "cutout_size_arcsec": None,        # set to a float when using "soda" provider
+        "refine_ephemeris": True,
+        "aperture_radii": [3.0, 5.0, 7.0], # omit or set to None to disable aperture photometry
+        "save_diag_plots": True,
+        "save_fits": True,
         "display": False,
         "save_json": True,
         "save_csv": True,
-        "save_error_sources": True, # New option for all ellipse sources in CSV
+        "save_error_sources": True,        # include all ellipse sources as rows in CSV
         "output_folder": "./api_output"
     }
 }
@@ -315,6 +337,22 @@ print(results)
 ```
 
 ## Common Use Cases
+
+### 0. Full Pipeline with Aperture Photometry (CLI)
+Run the complete pipeline and also measure flux in circular apertures at 3, 5, and 7 arcsecond radii.
+```bash
+python odc.py --service-selection all \
+              --target "2024 TN57" \
+              --target-type smallbody \
+              --start-time "2024-12-01 00:00:00" \
+              --day-range 10 \
+              --step 12h \
+              --filters g r i \
+              --aperture-radii 3.0 5.0 7.0 \
+              --save-json \
+              --save-csv \
+              --output-folder ./output
+```
 
 ### 1. Basic Ephemeris Query (CLI)
 Query and display ephemeris data for a single target for one day.
@@ -364,13 +402,14 @@ python odc.py --service-selection all \
 The package provides a Panel-based web interface for interactive use:
 - Open `control_panel.py` in your RSP notebook environment.
 - Start the Panel app by clicking the "Preview with Lumen" icon (usually in the top left corner of the code view, or by running `panel serve control_panel.py` in a terminal).
-The application is divided into five main tabs, each handling a specific part of the detection and analysis process.
+The application is divided into six main tabs, each handling a specific part of the detection and analysis process.
 
 ### Main Features
 - Ephemeris generation and management.
 - Image search and filtering.
-- Photometric analysis.
+- Photometric analysis with PSF forced photometry and optional aperture photometry.
 - Complete pipeline execution (combining all steps).
+- Standalone photometry at arbitrary coordinates without ephemeris.
 - Real-time logging output (with some caveats, see "Tips").
 
 ### Tab Descriptions
@@ -422,10 +461,15 @@ Displays a table with metadata for found images, including:
 Configures and executes photometric analysis on the image metadata retrieved from the "Image Search" tab.
 
 ##### Key Parameters:
-- **Image Type**: Choose between `"visit_image"` (raw visit data) and `"goodSeeingDiff_differenceExp"` (difference images).
+- **Image Type**: Choose between `"visit_image"` (raw visit data) and `"difference_image"` (difference images).
 - **Detection Threshold (SNR)**: Set the Signal-to-Noise Ratio (SNR) sensitivity for source detection.
-- **Cutout Size (pixels)**: Define the square analysis window in pixels (e.g., `800` for 800x800). Set to `0` to use the full image.
+- **Cutout Provider**: `Butler (local)` for in-memory slicing or `SODA (remote)` for server-side cutouts.
+- **Cutout Size (pixels)** (Butler): Define the square analysis window in pixels (e.g., `800` for 800×800).
+- **Cutout Radius (arcsec)** (SODA): Define the cutout radius in arcseconds for the SODA request.
 - **Override Error Ellipse (arcsec)**: If greater than 0, provides a user-defined circular radius to override the ephemeris's reported uncertainty for forced photometry.
+- **Aperture Photometry**: Enable to measure flux in circular apertures in addition to PSF forced photometry.
+- **Aperture Radii (arcsec)** (enabled when Aperture Photometry is checked): List of aperture radii (e.g., `[3.0, 5.0, 7.0]`).
+- **Refine Ephemeris at Observation Times**: Query precise ephemeris at exact observation times instead of interpolating. Recommended for fast-moving objects.
 - **Output Options**:
   - `Save Diagnostic Plots (PNG)`: Save plots showing sources and error ellipses.
   - `Save FITS Cutouts`: Save the FITS image cutouts.
@@ -446,22 +490,39 @@ The table summarizes photometry measurements for the target object in each proce
 Executes the full object detection pipeline end-to-end, from ephemeris query, through image search, to final photometry.
 
 ##### Features:
-- Consolidates all parameters from the previous tabs into a single, comprehensive interface.
+- Consolidates all parameters from the previous tabs into a single, comprehensive interface, including aperture photometry settings.
 - Provides collapsible parameter cards for better organization and navigation.
 - Offers single-click execution of the entire workflow, streamlining the process.
 
 ##### Usage:
 1. Configure all parameters across the Ephemeris, Image Search, and Photometry sections.
-2. Click the "Run All Services" button to start the complete pipeline execution.
+2. Click the "Run All" button to start the complete pipeline execution.
 3. The final photometry results will be displayed in the table at the bottom of the tab.
+
+#### 5. Standalone Photometry Tab
+Performs forced photometry at arbitrary sky coordinates without requiring ephemeris data. Useful for re-measuring known positions, transient follow-up, or any non-SSO science case.
+
+##### Input Modes:
+- **Single Coordinate**: Measure at one RA/Dec in a single specified image.
+- **Batch CSV**: Process multiple rows from an uploaded CSV file (`visit_id`, `detector`, `band`, `ra`, `dec` required; `error_radius`, `target_name`, `aperture_radii` optional).
+- **Multiple in Image**: Measure multiple RA/Dec coordinates in the same image.
+
+##### Key Parameters:
+- **Error Radius (arcsec)**: Search radius for nearby source detection.
+- **Detection Threshold (SNR)**: SNR threshold for source detection.
+- **Image Type**: `"visit_image"` or `"difference_image"`.
+- **Aperture Photometry** and **Aperture Radii**: Enable and configure aperture photometry.
+- **Cutout Provider**, **Cutout Size / Cutout Radius**: Same as the Photometry Analysis tab.
+- **Output Options**: Save diagnostic plots, FITS, CSV, and/or JSON results.
 
 ### Using the Application
 
 #### Basic Workflow:
-1. **Generate Ephemeris**: Navigate to the "Ephemeris Query" tab. Select your source, enter target information, and define time parameters. Click "Run Ephemeris Query".
-2. **Search for Images**: Go to the "Image Search" tab. Select desired filters and the image search method. Click "Run Image Search". This step will use the ephemeris data obtained in the previous step.
-3. **Perform Photometry**: Switch to the "Photometry Analysis" tab. Configure detection and output parameters. Click "Run Photometry Analysis". This step will use the image metadata from the previous step.
-4. **Complete Pipeline**: For an integrated workflow, use the "Complete Run" tab. Configure all parameters in one place and execute the entire pipeline with a single button press.
+1. **Generate Ephemeris**: Navigate to the "Ephemeris Query" tab. Select your source, enter target information, and define time parameters. Click "Run Query".
+2. **Search for Images**: Go to the "Image Search" tab. Select desired filters and the image search method. Click "Run Image Query". This step will use the ephemeris data obtained in the previous step.
+3. **Perform Photometry**: Switch to the "Photometry Analysis" tab. Configure detection, aperture, cutout, and output parameters. Click "Run Photometry". This step will use the image metadata from the previous step.
+4. **Complete Pipeline**: For an integrated workflow, use the "Complete Run" tab. Configure all parameters in one place and execute the entire pipeline with a single button press ("Run All").
+5. **Standalone Photometry**: To measure flux at known coordinates without ephemeris, use the "Standalone Photometry" tab. Select an input mode, provide coordinates and image identifiers, and click "Run Standalone Photometry".
 
 #### Additional Features:
 - **Terminal Output**: View real-time (note: actual updates might be slightly delayed in the browser due to Panel's rendering mechanism) logging and system messages at the bottom of the application window.
