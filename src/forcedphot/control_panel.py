@@ -885,6 +885,16 @@ class CompleteRunTab:
             name="Save all the sources within the error ellipse", value=False
         )
         self.output_folder = pn.widgets.TextInput(name="Output folder", value="./output")
+        self.run_aperture = pn.widgets.Checkbox(name="Aperture Photometry", value=False)
+        self.aperture_radii_input = pn.widgets.LiteralInput(
+            name="Aperture Radii (arcsec)",
+            value=[3.0, 5.0, 7.0],
+            type=list,
+            disabled=True,
+        )
+        self.run_aperture.param.watch(
+            lambda e: setattr(self.aperture_radii_input, "disabled", not e.new), "value"
+        )
 
         # Set up visibility bindings
         self.end_time.visible = pn.bind(lambda ts: ts == "End Time", self.time_spec.param.value)
@@ -996,6 +1006,8 @@ class CompleteRunTab:
                         self.cutout_size,
                         self.cutout_size_arcsec,
                         self.override_error,
+                        self.run_aperture,
+                        self.aperture_radii_input,
                         self.refine_ephemeris,
                         self.save_diag_plots,
                         self.save_fits,
@@ -1160,6 +1172,7 @@ class CompleteRunTab:
                 "cutout_size_arcsec": (
                     self.cutout_size_arcsec.value if "SODA" in self.cutout_provider.value else None
                 ),
+                "aperture_radii": (self.aperture_radii_input.value if self.run_aperture.value else None),
             }
         }
 
@@ -1275,6 +1288,12 @@ class StandalonePhotometryTab:
             value="Butler (local)",
             width=180,
         )
+        self.cutout_size = pn.widgets.IntInput(name="Cutout Size (pixels)", value=800, start=0, width=150)
+        self.cutout_size_arcsec = pn.widgets.FloatInput(
+            name="Cutout Radius (arcsec)", value=80.0, start=0.1, step=1.0, width=150
+        )
+        self.cutout_size.visible = pn.bind(lambda p: "Butler" in p, self.cutout_provider.param.value)
+        self.cutout_size_arcsec.visible = pn.bind(lambda p: "SODA" in p, self.cutout_provider.param.value)
 
         # Save options
         self.save_diag_plots = pn.widgets.Checkbox(name="Save Diagnostic Plots", value=False)
@@ -1335,6 +1354,8 @@ class StandalonePhotometryTab:
                 self.aperture_radii_input,
                 self.aperture_note,
                 self.cutout_provider,
+                self.cutout_size,
+                self.cutout_size_arcsec,
                 "### Output Options",
                 self.save_diag_plots,
                 self.save_fits,
@@ -1418,6 +1439,10 @@ class StandalonePhotometryTab:
                 output_folder=self.output_folder.value,
                 detection_threshold=self.detection_threshold.value,
                 cutout_provider=cutout_prov,
+                cutout_size=self.cutout_size.value,
+                cutout_size_arcsec=(
+                    self.cutout_size_arcsec.value if "SODA" in self.cutout_provider.value else None
+                ),
             )
 
             mode = self.input_mode.value

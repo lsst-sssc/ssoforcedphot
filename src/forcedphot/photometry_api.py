@@ -20,6 +20,7 @@ from typing import Optional
 
 import pandas as pd
 from astropy.time import Time, TimeDelta
+
 try:
     from image_photometry.photometry_service import PhotometryService
     from image_photometry.utils import (
@@ -177,6 +178,10 @@ class StandalonePhotometryService:
         Default directory for saving outputs (default: "./output")
     detection_threshold : float
         Default SNR threshold for source detection (default: 5.0)
+    cutout_size : int
+        Cutout size in pixels for Butler provider (default: 800)
+    cutout_size_arcsec : float, optional
+        Cutout radius in arcseconds for SODA provider (default: None)
     """
 
     def __init__(
@@ -186,6 +191,8 @@ class StandalonePhotometryService:
         output_folder: str = "./output",
         detection_threshold: float = 5.0,
         cutout_provider: str = "butler",
+        cutout_size: int = 800,
+        cutout_size_arcsec: Optional[float] = None,
     ):
         """Initialize the standalone photometry service."""
         self.logger = logging.getLogger("standalone_photometry")
@@ -200,6 +207,8 @@ class StandalonePhotometryService:
         self.output_folder = output_folder
         self.dr = dr
         self.collection = collection
+        self.cutout_size = cutout_size
+        self.cutout_size_arcsec = cutout_size_arcsec
 
     def measure_single(
         self,
@@ -275,7 +284,8 @@ class StandalonePhotometryService:
             target_type="standalone",
             image_type=request.image_type,
             ephemeris_service="N/A",
-            cutout_size=800,
+            cutout_size=self.cutout_size,
+            cutout_size_arcsec=self.cutout_size_arcsec,
             override_error=request.error_radius,
             save_diag_plots=save_diag_plots,
             save_fits=save_fits,
