@@ -87,7 +87,7 @@ class TerminalHandler(logging.Handler):
 
             self.terminal_widget.write(msg + "\n")
             # Force update to browser
-            pn.io.push_notebook(self.terminal_widget)
+            # pn.io.push_notebook(self.terminal_widget)
         except Exception:
             self.handleError(record)
 
@@ -127,7 +127,7 @@ class StreamToLogger:
             else:
                 self.logger.info(buf.rstrip())
             # Force update to browser
-            pn.io.push_notebook(self.terminal)
+            # pn.io.push_notebook(self.terminal)
         self.flush()
 
     def flush(self):
@@ -620,16 +620,19 @@ class PhotometryTab:
         )
         self.output_folder = pn.widgets.TextInput(name="Output folder", value="./output")
         self.run_aperture = pn.widgets.Checkbox(name="Aperture Photometry", value=False)
-        self.aperture_radii_input = pn.widgets.ArrayInput(
+        self.aperture_radii_input = pn.widgets.LiteralInput(
             name="Aperture Radii (arcsec)",
             value=[3.0, 5.0, 7.0],
-            item_type=float,
+            type=list,
             disabled=True,
         )
         # Enable input only when checkbox is checked
-        self.aperture_radii_input.disabled = pn.bind(
-            lambda checked: not checked, self.run_aperture.param.value
+        self.run_aperture.param.watch(
+            lambda e: setattr(self.aperture_radii_input, "disabled", not e.new), "value"
         )
+        # self.aperture_radii_input.disabled = pn.bind(
+        #     lambda checked: not checked, self.run_aperture.param.value
+        # )
         self.run_button = pn.widgets.Button(name="Run Photometry", button_type="primary")
 
         # Cutout size visibility based on provider
@@ -738,7 +741,10 @@ class PhotometryTab:
         try:
             await gen.sleep(0.01)
             result = self.controller.api_connection(input_data)
-            if "photometry" in result and result["photometry"]:
+            if "error" in result:
+                self.table_view.value = pd.DataFrame()
+                self.results_pane.object = {"error": result["error"]}
+            elif "photometry" in result and result["photometry"]:
                 # Flatten the photometry results for the table
                 photometry_data = result["photometry"]
                 rows = []
@@ -1161,7 +1167,10 @@ class CompleteRunTab:
             root_logger.info("Running photometry...")
             await gen.sleep(0.01)
             photometry_result = self.controller.api_connection(input_data_photometry)
-            if "photometry" in photometry_result and photometry_result["photometry"]:
+            if "error" in photometry_result:
+                root_logger.error(f"Photometry error: {photometry_result['error']}")
+                self.table_view.value = pd.DataFrame()
+            elif "photometry" in photometry_result and photometry_result["photometry"]:
                 # Process results
                 rows = []
                 for presult in photometry_result["photometry"]:
@@ -1246,14 +1255,14 @@ class StandalonePhotometryTab:
             name="Image Type", options=["visit_image", "difference_image"], value="visit_image"
         )
         self.run_aperture = pn.widgets.Checkbox(name="Aperture Photometry", value=False)
-        self.aperture_radii_input = pn.widgets.ArrayInput(
+        self.aperture_radii_input = pn.widgets.LiteralInput(
             name="Aperture Radii (arcsec)",
             value=[3.0, 5.0, 7.0],
-            item_type=float,
+            type=list,
             disabled=True,
         )
-        self.aperture_radii_input.disabled = pn.bind(
-            lambda checked: not checked, self.run_aperture.param.value
+        self.run_aperture.param.watch(
+            lambda e: setattr(self.aperture_radii_input, "disabled", not e.new), "value"
         )
         # In Batch CSV mode, aperture radii are read per-row from the CSV file
         self.aperture_note = pn.pane.Markdown(
@@ -1397,12 +1406,13 @@ class StandalonePhotometryTab:
         event : pn.viewable.singles.Button
             The button click event.
         """
-        from photometry_api import PhotometryRequest, StandalonePhotometryService
+        # from photometry_api import PhotometryRequest, StandalonePhotometryService
 
         await gen.sleep(0.01)
         root_logger.info("Starting standalone photometry...")
 
         try:
+            from photometry_api import PhotometryRequest, StandalonePhotometryService
             cutout_prov = "butler" if "Butler" in self.cutout_provider.value else "soda"
             service = StandalonePhotometryService(
                 output_folder=self.output_folder.value,

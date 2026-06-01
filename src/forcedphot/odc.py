@@ -876,7 +876,7 @@ class ObjectDetectionController:
                 self.args.cutout_size_arcsec = photometry_params.get("cutout_size_arcsec")
                 self.args.aperture_radii = photometry_params.get("aperture_radii")
                 # Normalize: empty list → use project defaults
-                from forcedphot.photometry_api import DEFAULT_APERTURE_RADII
+                from photometry_api import DEFAULT_APERTURE_RADII
 
                 if self.args.aperture_radii is not None and len(self.args.aperture_radii) == 0:
                     self.args.aperture_radii = DEFAULT_APERTURE_RADII

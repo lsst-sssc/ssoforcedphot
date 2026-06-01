@@ -792,6 +792,21 @@ class EndResult:
                         for flag_name, flag_value in source.flags.items():
                             row[f"ellipse_source_flag_{flag_name}"] = flag_value
 
+                    # Override aperture columns with this source's own aperture values
+                    if source.aperture:
+                        for ap in source.aperture:
+                            r = str(float(ap.radius_arcsec)).replace(".", "_")
+                            row.update(
+                                {
+                                    f"ellipse_source_aperture_{r}arcsec_flux": ap.flux,
+                                    f"ellipse_source_aperture_{r}arcsec_flux_err": ap.flux_err,
+                                    f"ellipse_source_aperture_{r}arcsec_snr": ap.snr,
+                                    f"ellipse_source_aperture_{r}arcsec_mag": ap.mag,
+                                    f"ellipse_source_aperture_{r}arcsec_mag_err": ap.mag_err,
+                                    f"ellipse_source_aperture_{r}arcsec_flag": ap.flag,
+                                }
+                            )
+
                     all_rows.append(row)
             else:
                 # Standard mode - one row per result
