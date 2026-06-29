@@ -7,6 +7,8 @@ import sys
 import astropy.units as u
 import pandas as pd
 import panel as pn
+import param
+import ui_help
 from astropy.table import Table
 from astropy.time import Time
 from ephemeris.data_loader import DataLoader
@@ -181,6 +183,27 @@ def serialize_query_result(result):
     }
 
 
+class UIState(param.Parameterized):
+    """Shared reactive UI state across tabs."""
+
+    ephemeris_row_count = param.Integer(default=0)
+
+
+def _ephemeris_count(results):
+    """Number of ephemeris rows in a controller results dict, or 0."""
+    if isinstance(results, dict):
+        qr = results.get("ephemeris")
+        if isinstance(qr, QueryResult):
+            return len(qr.ephemeris.RA_deg)
+    return 0
+
+
+def _row_warning_pane(n):
+    """Render a warning Alert when the row count is high, else an empty pane."""
+    msg = ui_help.row_count_warning(n)
+    return pn.pane.Alert(msg, alert_type="warning") if msg else pn.pane.Markdown("")
+
+
 class EphemerisTab:
     """
     GUI tab for managing ephemeris queries and displaying the results.
@@ -196,8 +219,9 @@ class EphemerisTab:
         ephemeris services and store results.
     """
 
-    def __init__(self, controller):
+    def __init__(self, controller, ui_state):
         self.controller = controller
+        self.ui_state = ui_state
         root_logger.warning(
             """Note: The image and photometry service may take a while.
             This terminal widget will not refresh in real-time until each full step completes.
@@ -206,30 +230,53 @@ class EphemerisTab:
 
         # Widgets
         self.ephemeris_source = pn.widgets.RadioButtonGroup(
-            name="Ephemeris Source", options=["Use Existing Data", "Upload ECSV"], value="Use Existing Data"
+            name="Ephemeris Source", options=["Use Existing Data", "Upload ECSV"], value="Use Existing Data",
+            description=ui_help.TOOLTIPS["ephemeris_source"],
         )
         self.file_upload = pn.widgets.input.FileInput(accept=".ecsv", multiple=False)
-        self.service = pn.widgets.Select(name="Service", options=["Horizons", "Miriade"], value="Horizons")
-        self.target_name = pn.widgets.TextInput(name="Target Name")
+        self.service = pn.widgets.Select(
+            name="Service", options=["Horizons", "Miriade"], value="Horizons",
+            description=ui_help.TOOLTIPS["service"],
+        )
+        self.target_name = pn.widgets.TextInput(
+            name="Target Name",
+            description=ui_help.TOOLTIPS["target_name"],
+        )
         self.target_type = pn.widgets.Select(
             name="Target Type",
             options=["smallbody", "asteroid_name", "comet_name", "designation"],
             value="smallbody",
+            description=ui_help.TOOLTIPS["target_type"],
         )
         self.start_time = pn.widgets.DatetimePicker(
             name="Start Time", value=datetime.datetime.now(), enable_time=True
         )
         self.time_spec = pn.widgets.RadioButtonGroup(
-            name="Time Specification", options=["End Time", "Day Range"], value="End Time"
+            name="Time Specification", options=["End Time", "Day Range"], value="End Time",
+            description=ui_help.TOOLTIPS["time_spec"],
         )
         self.end_time = pn.widgets.DatetimePicker(
             name="End Time", value=datetime.datetime.now() + datetime.timedelta(days=1), enable_time=True
         )
-        self.day_range = pn.widgets.IntInput(name="Day Range", value=1, start=1, width=120)
-        self.step_value = pn.widgets.FloatInput(name="Step Value", value=1, start=1, step=1, width=120)
-        self.step_unit = pn.widgets.Select(name="Step Unit", options=["d", "h", "m"], value="h", width=50)
-        self.save_ephem_data = pn.widgets.Checkbox(name="Save Ephemeris")
-        self.output_folder = pn.widgets.TextInput(name="Output folder", value="./output")
+        self.day_range = pn.widgets.IntInput(
+            name="Day Range", value=1, start=1, width=120,
+            description=ui_help.TOOLTIPS["day_range"],
+        )
+        self.step_value = pn.widgets.FloatInput(
+            name="Step Value", value=1, start=1, step=1, width=120,
+            description=ui_help.TOOLTIPS["step_value"],
+        )
+        self.step_unit = pn.widgets.Select(
+            name="Step Unit", options=["d", "h", "m"], value="h", width=50,
+            description=ui_help.TOOLTIPS["step_unit"],
+        )
+        self.save_ephem_data = pn.widgets.Checkbox(
+            name="Save Ephemeris",
+        )
+        self.output_folder = pn.widgets.TextInput(
+            name="Output folder", value="./output",
+            description=ui_help.TOOLTIPS["output_folder"],
+        )
         self.run_button = pn.widgets.Button(
             name=pn.bind(
                 lambda s: "Update" if s == "Upload ECSV" else "Run Query", self.ephemeris_source.param.value
@@ -286,8 +333,16 @@ class EphemerisTab:
             """Condition check for ephemeris data source"""
             return self.file_upload if source == "Upload ECSV" else pn.pane.Str("Using Ephemeris service.")
 
+        self.tips_card = pn.Card(
+            pn.pane.Markdown(ui_help.tips_markdown("ephemeris")),
+            title="\U0001F4A1 Tips",
+            collapsed=True,
+            sizing_mode="stretch_width",
+        )
+
         self.layout = pn.Row(
             pn.Column(
+                self.tips_card,
                 "### Ephemeris Query Parameters",
                 self.ephemeris_source,
                 pn.bind(conditional_upload, self.ephemeris_source.param.value),
@@ -305,6 +360,7 @@ class EphemerisTab:
                 self.save_ephem_data,
                 self.output_folder,
                 self.run_button,
+                pn.bind(_row_warning_pane, self.ui_state.param.ephemeris_row_count),
                 sizing_mode="stretch_width",
             ),
             self.table_view,
@@ -332,6 +388,7 @@ class EphemerisTab:
             The button click event (unused, but required by Panel's on_click signature).
         """
         await gen.sleep(0.01)
+        self.ui_state.ephemeris_row_count = 0
         if self.ephemeris_source.value == "Upload ECSV":
             root_logger.info("Processing uploaded ECSV file.")
             if not self.file_upload.value:
@@ -346,6 +403,7 @@ class EphemerisTab:
 
                 # Update the table view
                 self.table_view.value = df
+                self.ui_state.ephemeris_row_count = len(df)
 
                 input_data = {
                     "ephemeris": {
@@ -402,6 +460,7 @@ class EphemerisTab:
                     ephemeris_data = serialized_query["ephemeris"]
                     df = pd.DataFrame(ephemeris_data)
                     self.table_view.value = df
+                    self.ui_state.ephemeris_row_count = len(df)
                 else:
                     self.result_pane.object = self.controller.ephemeris_results
                     self.table_view.value = pd.DataFrame()
@@ -426,14 +485,16 @@ class ImageTab:
         and provides the image search functionality.
     """
 
-    def __init__(self, controller):
+    def __init__(self, controller, ui_state):
         self.controller = controller
+        self.ui_state = ui_state
 
         # Widgets
         self.search_method = pn.widgets.RadioButtonGroup(
             name="Image Search Method",
             options=["Point", "Polygon"],
             value="Point",
+            description=ui_help.TOOLTIPS["image_search_method"],
         )
 
         self.filters = pn.widgets.ToggleGroup(
@@ -455,7 +516,8 @@ class ImageTab:
             value=1.0,
             start=0,
             step=0.5,
-            width=120,
+            width=170,
+            description=ui_help.TOOLTIPS["widening"],
         )
 
         self.time_interval = pn.widgets.FloatInput(
@@ -463,7 +525,8 @@ class ImageTab:
             value=5.0,
             start=0.1,
             step=0.5,
-            width=120,
+            width=170,
+            description=ui_help.TOOLTIPS["time_interval"],
         )
 
         # Set up visibility bindings for polygon options
@@ -489,10 +552,19 @@ class ImageTab:
             },
         )
 
+        self.tips_card = pn.Card(
+            pn.pane.Markdown(ui_help.tips_markdown("image")),
+            title="\U0001F4A1 Tips",
+            collapsed=True,
+            sizing_mode="stretch_width",
+        )
+
         # Layout
         self.layout = pn.Row(
             pn.Column(
+                self.tips_card,
                 "### Image Query Parameters",
+                pn.bind(_row_warning_pane, self.ui_state.param.ephemeris_row_count),
                 self.search_method,
                 pn.Column(
                     pn.Row("### Filters:", margin=(0, 10)),
@@ -584,27 +656,35 @@ class PhotometryTab:
 
         # Widgets for photometry parameters
         self.image_type = pn.widgets.Select(
-            name="Image type", options=["visit_image", "difference_image"], value="visit_image"
+            name="Image type", options=["visit_image", "difference_image"], value="visit_image",
+            description=ui_help.TOOLTIPS["image_type"],
         )
         self.detection_threshold = pn.widgets.FloatInput(
-            name="Detection Threshold", value=5.0, start=0, width=150
+            name="Detection Threshold", value=5.0, start=0, width=180,
+            description=ui_help.TOOLTIPS["detection_threshold"],
         )
         self.cutout_provider = pn.widgets.Select(
             name="Cutout Provider",
             options=["Butler (local)", "SODA (remote)"],
             value="Butler (local)",
             width=180,
+            description=ui_help.TOOLTIPS["cutout_provider"],
         )
-        self.cutout_size = pn.widgets.IntInput(name="Cutout Size (pixels)", value=800, start=0, width=150)
+        self.cutout_size = pn.widgets.IntInput(
+            name="Cutout Size (pixels)", value=800, start=0, width=180,
+            description=ui_help.TOOLTIPS["cutout_size"],
+        )
         self.cutout_size_arcsec = pn.widgets.FloatInput(
-            name="Cutout Radius (arcsec)", value=80.0, start=0.1, step=1.0, width=150
+            name="Cutout Radius (arcsec)", value=80.0, start=0.1, step=1.0, width=180,
+            description=ui_help.TOOLTIPS["cutout_radius"],
         )
         self.override_error = pn.widgets.FloatInput(
             name="Override error (arcsec)",
             value=0.0,
             start=0,
             step=0.1,
-            width=150,
+            width=180,
+            description=ui_help.TOOLTIPS["override_error"],
         )
         self.refine_ephemeris = pn.widgets.Checkbox(
             name="Refine Ephemeris at Observation Times",
@@ -616,15 +696,18 @@ class PhotometryTab:
         self.save_json = pn.widgets.Checkbox(name="Save Result to JSON", value=False)
         self.save_csv = pn.widgets.Checkbox(name="Save Result to csv", value=False)
         self.error_ellipse_sources = pn.widgets.Checkbox(
-            name="Save all the sources within the error ellipse", value=False
+            name="Save all the sources within the error ellipse", value=False,
         )
         self.output_folder = pn.widgets.TextInput(name="Output folder", value="./output")
-        self.run_aperture = pn.widgets.Checkbox(name="Aperture Photometry", value=False)
+        self.run_aperture = pn.widgets.Checkbox(
+            name="Aperture Photometry", value=False,
+        )
         self.aperture_radii_input = pn.widgets.LiteralInput(
             name="Aperture Radii (arcsec)",
             value=[3.0, 5.0, 7.0],
             type=list,
             disabled=True,
+            description=ui_help.TOOLTIPS["aperture_radii"],
         )
         # Enable input only when checkbox is checked
         self.run_aperture.param.watch(
@@ -672,9 +755,17 @@ class PhotometryTab:
             },
         )
 
+        self.tips_card = pn.Card(
+            pn.pane.Markdown(ui_help.tips_markdown("photometry")),
+            title="\U0001F4A1 Tips",
+            collapsed=True,
+            sizing_mode="stretch_width",
+        )
+
         # Layout
         self.layout = pn.Row(
             pn.Column(
+                self.tips_card,
                 "### Photometry Parameters",
                 self.image_type,
                 self.detection_threshold,
@@ -788,39 +879,66 @@ class CompleteRunTab:
         The main application controller instance that orchestrates all steps of the pipeline.
     """
 
-    def __init__(self, controller):
+    def __init__(self, controller, ui_state):
         self.controller = controller
+        self.ui_state = ui_state
 
         # Ephemeris Section Widgets
         self.ephemeris_source = pn.widgets.RadioButtonGroup(
-            name="Ephemeris Source", options=["Use Generated Data", "Upload ECSV"], value="Use Generated Data"
+            name="Ephemeris Source",
+            options=["Use Generated Data", "Upload ECSV"],
+            value="Use Generated Data",
+            description=ui_help.TOOLTIPS["ephemeris_source"],
         )
         self.file_upload = pn.widgets.input.FileInput(accept=".ecsv", multiple=False)
-        self.service = pn.widgets.Select(name="Service", options=["Horizons", "Miriade"], value="Horizons")
-        self.target_name = pn.widgets.TextInput(name="Target Name")
+        self.service = pn.widgets.Select(
+            name="Service", options=["Horizons", "Miriade"], value="Horizons",
+            description=ui_help.TOOLTIPS["service"],
+        )
+        self.target_name = pn.widgets.TextInput(
+            name="Target Name",
+            description=ui_help.TOOLTIPS["target_name"],
+        )
         self.target_type = pn.widgets.Select(
-            name="Target Type", options=["smallbody", "comet_name", "designation"], value="smallbody"
+            name="Target Type", options=["smallbody", "comet_name", "designation"], value="smallbody",
+            description=ui_help.TOOLTIPS["target_type"],
         )
         self.start_time = pn.widgets.DatetimePicker(
             name="Start Time", value=datetime.datetime.now(), enable_time=True
         )
         self.time_spec = pn.widgets.RadioButtonGroup(
-            name="Time Specification", options=["End Time", "Day Range"], value="End Time"
+            name="Time Specification", options=["End Time", "Day Range"], value="End Time",
+            description=ui_help.TOOLTIPS["time_spec"],
         )
         self.end_time = pn.widgets.DatetimePicker(
             name="End Time", value=datetime.datetime.now() + datetime.timedelta(days=1), enable_time=True
         )
-        self.day_range = pn.widgets.IntInput(name="Day Range", value=1, start=1, width=120)
-        self.step_value = pn.widgets.FloatInput(name="Step Value", value=12, start=1, step=1, width=120)
-        self.step_unit = pn.widgets.Select(name="Step Unit", options=["d", "h", "m"], value="h", width=50)
-        self.save_ephem_data = pn.widgets.Checkbox(name="Save Ephemeris")
-        self.output_folder = pn.widgets.TextInput(name="Output folder", value="./output")
+        self.day_range = pn.widgets.IntInput(
+            name="Day Range", value=1, start=1, width=120,
+            description=ui_help.TOOLTIPS["day_range"],
+        )
+        self.step_value = pn.widgets.FloatInput(
+            name="Step Value", value=12, start=1, step=1, width=120,
+            description=ui_help.TOOLTIPS["step_value"],
+        )
+        self.step_unit = pn.widgets.Select(
+            name="Step Unit", options=["d", "h", "m"], value="h", width=50,
+            description=ui_help.TOOLTIPS["step_unit"],
+        )
+        self.save_ephem_data = pn.widgets.Checkbox(
+            name="Save Ephemeris",
+        )
+        self.output_folder = pn.widgets.TextInput(
+            name="Output folder", value="./output",
+            description=ui_help.TOOLTIPS["output_folder"],
+        )
 
         # Image Section Widgets
         self.search_method = pn.widgets.RadioButtonGroup(
             name="Image Search Method",
             options=["Point", "Polygon"],
             value="Point",
+            description=ui_help.TOOLTIPS["image_search_method"],
         )
 
         self.filters = pn.widgets.ToggleGroup(
@@ -837,7 +955,8 @@ class CompleteRunTab:
             value=1.0,
             start=0,
             step=0.5,
-            width=120,
+            width=180,
+            description=ui_help.TOOLTIPS["widening"],
         )
 
         self.time_interval = pn.widgets.FloatInput(
@@ -845,32 +964,41 @@ class CompleteRunTab:
             value=5.0,
             start=0.1,
             step=0.5,
-            width=120,
+            width=180,
+            description=ui_help.TOOLTIPS["time_interval"],
         )
 
         # Photometry Section Widgets
         self.image_type = pn.widgets.Select(
-            name="Image type", options=["visit_image", "difference_image"], value="visit_image"
+            name="Image type", options=["visit_image", "difference_image"], value="visit_image",
+            description=ui_help.TOOLTIPS["image_type"],
         )
         self.detection_threshold = pn.widgets.FloatInput(
-            name="Detection Threshold", value=5.0, start=0, width=150
+            name="Detection Threshold", value=5.0, start=0, width=180,
+            description=ui_help.TOOLTIPS["detection_threshold"],
         )
         self.cutout_provider = pn.widgets.Select(
             name="Cutout Provider",
             options=["Butler (local)", "SODA (remote)"],
             value="Butler (local)",
             width=180,
+            description=ui_help.TOOLTIPS["cutout_provider"],
         )
-        self.cutout_size = pn.widgets.IntInput(name="Cutout Size (pixels)", value=800, start=0, width=150)
+        self.cutout_size = pn.widgets.IntInput(
+            name="Cutout Size (pixels)", value=800, start=0, width=180,
+            description=ui_help.TOOLTIPS["cutout_size"],
+        )
         self.cutout_size_arcsec = pn.widgets.FloatInput(
-            name="Cutout Radius (arcsec)", value=80.0, start=0.1, step=1.0, width=150
+            name="Cutout Radius (arcsec)", value=80.0, start=0.1, step=1.0, width=180,
+            description=ui_help.TOOLTIPS["cutout_radius"],
         )
         self.override_error = pn.widgets.FloatInput(
             name="Override error (arcsec)",
             value=0.0,
             start=0,
             step=0.1,
-            width=150,
+            width=180,
+            description=ui_help.TOOLTIPS["override_error"],
         )
         self.refine_ephemeris = pn.widgets.Checkbox(
             name="Refine Ephemeris at Observation Times",
@@ -882,15 +1010,18 @@ class CompleteRunTab:
         self.save_json = pn.widgets.Checkbox(name="Save Result to JSON", value=False)
         self.save_csv = pn.widgets.Checkbox(name="Save Result to csv", value=False)
         self.error_ellipse_sources = pn.widgets.Checkbox(
-            name="Save all the sources within the error ellipse", value=False
+            name="Save all the sources within the error ellipse", value=False,
         )
         self.output_folder = pn.widgets.TextInput(name="Output folder", value="./output")
-        self.run_aperture = pn.widgets.Checkbox(name="Aperture Photometry", value=False)
+        self.run_aperture = pn.widgets.Checkbox(
+            name="Aperture Photometry", value=False,
+        )
         self.aperture_radii_input = pn.widgets.LiteralInput(
             name="Aperture Radii (arcsec)",
             value=[3.0, 5.0, 7.0],
             type=list,
             disabled=True,
+            description=ui_help.TOOLTIPS["aperture_radii"],
         )
         self.run_aperture.param.watch(
             lambda e: setattr(self.aperture_radii_input, "disabled", not e.new), "value"
@@ -957,9 +1088,17 @@ class CompleteRunTab:
         self.run_all_button = pn.widgets.Button(name="Run All", button_type="primary")
         self.run_all_button.on_click(self.run_all)
 
+        self.tips_card = pn.Card(
+            pn.pane.Markdown(ui_help.tips_markdown("complete_run")),
+            title="\U0001F4A1 Tips",
+            collapsed=True,
+            sizing_mode="stretch_width",
+        )
+
         # --- Layout ---
         self.layout = pn.Row(
             pn.Column(
+                self.tips_card,
                 pn.Card(
                     pn.Column(
                         "### Ephemeris Parameters",
@@ -1130,6 +1269,10 @@ class CompleteRunTab:
                 return
 
         # Image Step
+        ephem_n = _ephemeris_count(self.controller.ephemeris_results)
+        ephem_warning = ui_help.row_count_warning(ephem_n)
+        if ephem_warning:
+            root_logger.warning(ephem_warning)
         await gen.sleep(0.01)
         input_data_image = {
             "image": {
@@ -1235,6 +1378,7 @@ class StandalonePhotometryTab:
             name="Input Mode",
             options=["Single Coordinate", "Batch CSV", "Multiple in Image"],
             value="Single Coordinate",
+            description=ui_help.TOOLTIPS["input_mode"],
         )
 
         # Image specification widgets
@@ -1259,20 +1403,26 @@ class StandalonePhotometryTab:
 
         # Common parameters
         self.error_radius = pn.widgets.FloatInput(
-            name="Error Radius (arcsec)", value=3.0, step=0.5, start=0, width=150
+            name="Error Radius (arcsec)", value=3.0, step=0.5, start=0, width=180,
+            description=ui_help.TOOLTIPS["error_radius"],
         )
         self.detection_threshold = pn.widgets.FloatInput(
-            name="Detection Threshold (SNR)", value=5.0, step=0.5, start=1.0, width=150
+            name="Detection Threshold", value=5.0, step=0.5, start=1.0, width=180,
+            description=ui_help.TOOLTIPS["detection_threshold"],
         )
         self.image_type = pn.widgets.Select(
-            name="Image Type", options=["visit_image", "difference_image"], value="visit_image"
+            name="Image Type", options=["visit_image", "difference_image"], value="visit_image",
+            description=ui_help.TOOLTIPS["image_type"],
         )
-        self.run_aperture = pn.widgets.Checkbox(name="Aperture Photometry", value=False)
+        self.run_aperture = pn.widgets.Checkbox(
+            name="Aperture Photometry", value=False,
+        )
         self.aperture_radii_input = pn.widgets.LiteralInput(
             name="Aperture Radii (arcsec)",
             value=[3.0, 5.0, 7.0],
             type=list,
             disabled=True,
+            description=ui_help.TOOLTIPS["aperture_radii"],
         )
         self.run_aperture.param.watch(
             lambda e: setattr(self.aperture_radii_input, "disabled", not e.new), "value"
@@ -1287,10 +1437,15 @@ class StandalonePhotometryTab:
             options=["Butler (local)", "SODA (remote)"],
             value="Butler (local)",
             width=180,
+            description=ui_help.TOOLTIPS["cutout_provider"],
         )
-        self.cutout_size = pn.widgets.IntInput(name="Cutout Size (pixels)", value=800, start=0, width=150)
+        self.cutout_size = pn.widgets.IntInput(
+            name="Cutout Size (pixels)", value=800, start=0, width=180,
+            description=ui_help.TOOLTIPS["cutout_size"],
+        )
         self.cutout_size_arcsec = pn.widgets.FloatInput(
-            name="Cutout Radius (arcsec)", value=80.0, start=0.1, step=1.0, width=150
+            name="Cutout Radius (arcsec)", value=80.0, start=0.1, step=1.0, width=180,
+            description=ui_help.TOOLTIPS["cutout_radius"],
         )
         self.cutout_size.visible = pn.bind(lambda p: "Butler" in p, self.cutout_provider.param.value)
         self.cutout_size_arcsec.visible = pn.bind(lambda p: "SODA" in p, self.cutout_provider.param.value)
@@ -1301,7 +1456,7 @@ class StandalonePhotometryTab:
         self.save_csv = pn.widgets.Checkbox(name="Save Results CSV", value=False)
         self.save_json = pn.widgets.Checkbox(name="Save Results JSON", value=False)
         self.all_ellipse_sources = pn.widgets.Checkbox(
-            name="Save all sources within error ellipse", value=False
+            name="Save all sources within error ellipse", value=False,
         )
         self.output_folder = pn.widgets.TextInput(name="Output Folder", value="./output")
 
@@ -1336,9 +1491,17 @@ class StandalonePhotometryTab:
             lambda save_checked: save_checked, self.save_csv.param.value
         )
 
+        self.tips_card = pn.Card(
+            pn.pane.Markdown(ui_help.tips_markdown("standalone")),
+            title="\U0001F4A1 Tips",
+            collapsed=True,
+            sizing_mode="stretch_width",
+        )
+
         # Layout
         self.layout = pn.Row(
             pn.Column(
+                self.tips_card,
                 "### Standalone Photometry",
                 pn.pane.Markdown(
                     "*Perform photometry at arbitrary coordinates without ephemeris*",
@@ -1630,11 +1793,12 @@ documentation_tab = pn.pane.Markdown(
 # Create the application
 controller = ObjectDetectionController()
 data_loader = DataLoader()
-ephemeris_tab = EphemerisTab(controller).layout
-image_tab = ImageTab(controller).layout
+ui_state = UIState()
+ephemeris_tab = EphemerisTab(controller, ui_state).layout
+image_tab = ImageTab(controller, ui_state).layout
 photometry_tab = PhotometryTab(controller).layout
 standalone_tab = StandalonePhotometryTab(controller).layout
-complete_run_tab = CompleteRunTab(controller).layout
+complete_run_tab = CompleteRunTab(controller, ui_state).layout
 
 
 # Terminal test and clear
