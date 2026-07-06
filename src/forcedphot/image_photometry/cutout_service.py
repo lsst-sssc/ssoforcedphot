@@ -64,6 +64,15 @@ class CutoutResult:
     message: str
 
 
+# SODA needs an explicit angular cutout size. When the caller requests the full image
+# (cutout_size == 0) we pass an intentionally over-large CIRCLE radius: 1560 arcsec
+# (0.433 deg) comfortably exceeds the half-diagonal of a single LSSTCam/ComCam science
+# CCD (~580 arcsec at 0.2 arcsec/px), so SODA clips the circle to the detector bounds
+# and returns the entire detector image. Any value above ~580 arcsec works; 1560 is a
+# safe round margin, not a physically derived constant.
+DEFAULT_SODA_FULL_RADIUS_ARCSEC = 1560
+
+
 class CutoutProvider(Protocol):
     """Abstract interface for cutout providers."""
 
@@ -147,12 +156,24 @@ class ButlerCutoutProvider:
         x_center, y_center = pixel_coord.getX(), pixel_coord.getY()
         half_size = cutout_size // 2
 
+        # Edge cutoff (pixels): reject targets closer than this to any image edge
+        # so the cutout / PSF isn't truncated.
+        x_cutoff = y_cutoff = 10
+
         min_x, max_x = 0, exposure.getWidth()
         min_y, max_y = 0, exposure.getHeight()
 
         # Check if target is within 10 pixels of any edge
-        if x_center < 10 or x_center > (max_x - 10) or y_center < 10 or y_center > (max_y - 10):
-            print("Target is within 10 pixels of image edge or outside of the boundaries. Skipping image.")
+        if (
+            x_center < x_cutoff
+            or x_center > (max_x - x_cutoff)
+            or y_center < y_cutoff
+            or y_center > (max_y - y_cutoff)
+        ):
+            self.logger.warning(
+                f"Target is within {x_cutoff} px (x) / {y_cutoff} px (y) of the image edge "
+                "or outside the boundaries. Skipping image."
+            )
             return CutoutResult(
                 exposure=None,
                 bbox=None,
@@ -166,7 +187,7 @@ class ButlerCutoutProvider:
             )
 
         if cutout_size <= 0:
-            print("Using the complete image.")
+            self.logger.info("cutout_size <= 0; using the complete image.")
             return CutoutResult(
                 exposure=exposure,
                 bbox=None,
@@ -185,8 +206,7 @@ class ButlerCutoutProvider:
             or (y_center - half_size) < min_y
             or (y_center + half_size) > max_y
         ):
-            print("The cutout boundaries are outside of the image.")
-            print("Using the complete image.")
+            self.logger.info("Cutout boundaries fall outside the image; using the complete image.")
             return CutoutResult(
                 exposure=exposure,
                 bbox=None,
@@ -199,7 +219,7 @@ class ButlerCutoutProvider:
                 message="Cutout extends beyond image bounds, using complete image",
             )
 
-        print(f"Creating cutout with size {cutout_size} pixels")
+        self.logger.info(f"Creating cutout with size {cutout_size} pixels")
 
         # Create bounding box for cutout
         bbox = geom.Box2I()
@@ -451,7 +471,7 @@ class SodaCutoutProvider:
                 session=session,
             )
             # Convert cutout_size (arcsec) to degrees for SODA CIRCLE parameter
-            radius_deg = 1560 / 3600.0 if cutout_size == 0 else cutout_size / 3600.0
+            radius_deg = DEFAULT_SODA_FULL_RADIUS_ARCSEC / 3600.0 if cutout_size == 0 else cutout_size / 3600.0
             sq.circle = (ra_deg * u.deg, dec_deg * u.deg, radius_deg * u.deg)
 
             # Step 4: Execute and get FITS bytes

@@ -14,6 +14,8 @@ The Faint Solar System Object Detection Service is a Python tool designed for mo
 - Flexible input options: single query for a target, or batch processing via CSV files.
 - Multiple output options: JSON and CSV files for results, diagnostic plots (PNG), and FITS image cutouts.
 
+## Important Note: Miriade Ephemeris service
+The integrated Miriade ephemeris service is currently not working. We’re working on fixing it so it will be usable again. In the meantime, we’re using the Horizons service.
 
 ## Important Note: Ephemeris Interpolation Accuracy
 
@@ -88,7 +90,17 @@ pip install -e .
 
 ## Basic Usage
 
+```bash
+# Set up the LSST stack first, or imports like lsst.geom will fail
+setup lsst_distrib
+```
+
 ### Command Line Interface (CLI)
+The CLI working directory:
+```bash
+cd src/forcedphot/
+```
+
 The basic structure of an ODC command is:
 ```bash
 python odc.py [service options] [target options] [time options] [filter options] [output options]
@@ -156,6 +168,9 @@ python odc.py --service-selection all \
   - Default: `5.0`.
 - `--widening`: Widening factor in arcseconds for the polygon search area around the ephemeris track.
   - Default: `1.0`.
+`--cutout-provider`: Cutout backend.
+  - Options: `butler` (local in-memory slicing), `soda` (remote IVOA SODA cutouts).
+  - Default: `butler`.
 
 ### Output Options
 - `--output-folder`: Directory to save all output files (ephemeris data, diagnostic plots, FITS, JSON/CSV results).

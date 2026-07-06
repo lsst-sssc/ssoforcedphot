@@ -38,6 +38,13 @@ from lsst.meas.algorithms.detection import SourceDetectionTask
 from lsst.meas.base import ForcedMeasurementTask, SingleFrameMeasurementTask
 from lsst.meas.deblender import SourceDeblendTask
 
+# Approximate LSSTCam pixel scale (arcsec/pixel), used to convert a pixel cutout size
+# into the angular size the SODA service expects.
+LSSTCAM_PIXEL_SCALE_ARCSEC = 0.2
+
+# A detected source within this distance (arcsec) of the predicted target position is
+# treated as the target itself, so the forced-photometry fallback row is not added.
+TARGET_MATCH_RADIUS_ARCSEC = 2.0
 
 class PhotometryService:
     """
@@ -754,7 +761,15 @@ class PhotometryService:
             )
         else:
             # SODA path: use angular size and image identifiers
-            effective_arcsec = cutout_size_arcsec if cutout_size_arcsec else cutout_size * 0.2
+            if cutout_size_arcsec:
+                effective_arcsec = cutout_size_arcsec
+            else:
+                effective_arcsec = cutout_size * LSSTCAM_PIXEL_SCALE_ARCSEC
+                self.logger.info(
+                    f"No cutout_size_arcsec provided for SODA; deriving {effective_arcsec:.1f} arcsec "
+                    f"from {cutout_size} px using LSSTCam pixel scale {LSSTCAM_PIXEL_SCALE_ARCSEC} arcsec/px."
+                )
+
             result = self.cutout_service.get_cutout(
                 ra_deg,
                 dec_deg,
@@ -1005,7 +1020,7 @@ class PhotometryService:
             f"phot_within_error_ellipse: {len(sources_phot_results_list)} detected sources, "
             f"separations = {[f'{s:.2f}' for s in seps]}"
         )
-        if not any(r.separation < 2.0 for r in sources_phot_results_list):
+        if not any(r.separation < TARGET_MATCH_RADIUS_ARCSEC for r in sources_phot_results_list):
             sources_phot_results_list.insert(0, target_result)
             self.logger.info(
                 """Fallback: target not found in detected sources — added forced-phot
