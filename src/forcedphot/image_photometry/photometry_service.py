@@ -46,6 +46,7 @@ LSSTCAM_PIXEL_SCALE_ARCSEC = 0.2
 # treated as the target itself, so the forced-photometry fallback row is not added.
 TARGET_MATCH_RADIUS_ARCSEC = 2.0
 
+
 class PhotometryService:
     """
     Service for performing photometry operations on LSST images.
