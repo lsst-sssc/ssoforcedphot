@@ -47,6 +47,8 @@ class ObjectDetectionController:
         self.args.time_interval = 5.0
         self.args.widening = 1.0
         self.args.output_folder = "./output"
+        self.args.cutout_provider = "butler"
+        self.args.cutout_size_arcsec = None
         self.logger = logging.getLogger("odc")
         self.ephemeris_client = EphemerisClient()
         self.ephemeris_results: list[EphemerisDataCompressed] = []
@@ -254,6 +256,26 @@ class ObjectDetectionController:
             help="Save the FITS image cutouts used for photometry in the output folder. Default: False.",
         )
 
+        parser.add_argument(
+            "--cutout-provider",
+            choices=["butler", "soda"],
+            default="butler",
+            help=(
+                "Cutout backend: 'butler' for local in-memory slicing (default), "
+                "'soda' for remote IVOA SODA server-side cutouts."
+            ),
+        )
+
+        parser.add_argument(
+            "--cutout-size-arcsec",
+            type=float,
+            default=None,
+            help=(
+                "Cutout radius in arcseconds for SODA provider. "
+                "If not specified, approximated from --min-cutout-size using 0.2 arcsec/pixel."
+            ),
+        )
+
         # Standalone Photometry Options
         standalone_group = parser.add_argument_group("Standalone Photometry Options")
 
@@ -454,7 +476,7 @@ class ObjectDetectionController:
 
         print("-" * 40)
         print("The image search has been completed.")
-        print(f"The process took {(time.time()-start_time)/60:.2f} minutes.")
+        print(f"The process took {(time.time() - start_time) / 60:.2f} minutes.")
         print("-" * 40)
 
         return image_metadata
@@ -491,6 +513,7 @@ class ObjectDetectionController:
 
         # Configure photometry parameters
         self.imphot_controller.detection_threshold = self.args.threshold
+        self.imphot_controller.phot_service.cutout_service.set_provider(self.args.cutout_provider)
         # Execute photometry
         self.imphot_controller.process_images(
             target_name=self.args.target,
@@ -505,6 +528,7 @@ class ObjectDetectionController:
             display=self.args.display,
             output_folder=output_folder,
             refine_ephemeris=self.args.refine_ephemeris,
+            cutout_size_arcsec=self.args.cutout_size_arcsec,
         )
         if self.args.save_json:
             self.imphot_controller.save_results_to_json(
@@ -523,7 +547,7 @@ class ObjectDetectionController:
 
         print("-" * 40)
         print("The photometry service has been completed.")
-        print(f"The process took {(time.time()-start_time)/60:.2f} minutes.")
+        print(f"The process took {(time.time() - start_time) / 60:.2f} minutes.")
         print("-" * 40)
 
         return self.imphot_controller.results
@@ -840,6 +864,8 @@ class ObjectDetectionController:
                 self.args.min_cutout_size = photometry_params.get("min_cutout_size", 800)
                 self.args.override_error = photometry_params.get("override_error")
                 self.args.refine_ephemeris = photometry_params.get("refine_ephemeris", False)
+                self.args.cutout_provider = photometry_params.get("cutout_provider", "butler")
+                self.args.cutout_size_arcsec = photometry_params.get("cutout_size_arcsec")
                 self.args.display = photometry_params.get("display", False)
                 self.args.save_json = photometry_params.get("save_json", False)
                 self.args.save_csv = photometry_params.get("save_csv", False)
@@ -893,7 +919,7 @@ class ObjectDetectionController:
         if self.args.service_selection == "photometry-only":
             return self.run_standalone_photometry()
 
-        print(f"The total duration of the process was {(time.time()-start_time)/60:.2f} minutes.")
+        print(f"The total duration of the process was {(time.time() - start_time) / 60:.2f} minutes.")
 
 
 if __name__ == "__main__":

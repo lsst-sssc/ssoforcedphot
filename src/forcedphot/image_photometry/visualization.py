@@ -123,7 +123,7 @@ def create_diagnostic_plot(
                 nearby_pixel_x,
                 nearby_pixel_y,
                 "bo",
-                markersize=3,
+                markersize=6,
                 mfc="none",
                 markeredgewidth=0.5,
                 label="Nearby Sources",
