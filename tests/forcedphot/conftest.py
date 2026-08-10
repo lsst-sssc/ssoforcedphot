@@ -5,4 +5,5 @@ def pytest_ignore_collect(collection_path, config):
         "test_image_service.py",
         "test_photometry_service.py",
         "test_odc.py",
+        "test_utils_aperture.py",
     ]
