@@ -15,6 +15,7 @@ from image_photometry.image_service_butler import ImageServiceButler
 from image_photometry.imphot_control import ImPhotController
 from image_photometry.photometry_service import PhotometryService
 from image_photometry.utils import EphemerisDataCompressed, ImageMetadata
+from ui_help import row_count_warning
 
 logger = logging.getLogger("odc")
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -457,6 +458,10 @@ class ObjectDetectionController:
         else:
             if not self.ephemeris_results:
                 raise ValueError("Run ephemeris query first or provide --ephem-ecsv")
+
+        warning = row_count_warning(len(self.ephemeris_results.ephemeris.datetime))
+        if warning:
+            self.logger.warning(warning)
 
         # Use provided search method or fall back to args
         effective_search_method = self.args.image_search_method or search_method.lower()
