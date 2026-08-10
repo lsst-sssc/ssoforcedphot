@@ -43,9 +43,9 @@ EXPECTED_TOOLTIP_KEYS = {
 
 def test_tooltips_present_and_short():
     """All expected tooltip keys are present, non-empty strings within the 200-char limit."""
-    assert EXPECTED_TOOLTIP_KEYS.issubset(TOOLTIPS), (
-        f"missing tooltip keys: {EXPECTED_TOOLTIP_KEYS - set(TOOLTIPS)}"
-    )
+    assert EXPECTED_TOOLTIP_KEYS.issubset(
+        TOOLTIPS
+    ), f"missing tooltip keys: {EXPECTED_TOOLTIP_KEYS - set(TOOLTIPS)}"
     for key, text in TOOLTIPS.items():
         assert isinstance(text, str), f"tooltip {key} must be a string"
         assert text.strip() == text and text, f"tooltip {key} must be trimmed and non-empty"

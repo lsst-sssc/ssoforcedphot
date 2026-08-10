@@ -665,7 +665,7 @@ class EndResult:
                 for flag_name, flag_value in forced_phot.flags.items():
                     row[f"forced_phot_flag_{flag_name}"] = flag_value
 
-            # Aperture photometry on target
+                # Aperture photometry on target
                 if forced_phot.aperture:
                     for ap in forced_phot.aperture:
                         r = str(float(ap.radius_arcsec)).replace(".", "_")
@@ -711,7 +711,7 @@ class EndResult:
                 for flag_name, flag_value in best_source.flags.items():
                     row[f"ellipse_source_flag_{flag_name}"] = flag_value
 
-        # Aperture photometry on best ellipse source
+            # Aperture photometry on best ellipse source
             if best_source.aperture:
                 for ap in best_source.aperture:
                     r = str(float(ap.radius_arcsec)).replace(".", "_")

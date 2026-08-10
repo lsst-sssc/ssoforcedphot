@@ -402,7 +402,7 @@ class PhotometryService:
             dec=dec_deg,
             found_sources=found_sources,
             aperture_radii=aperture_radii,
-            aperture_radii_px=aperture_radii_px,    
+            aperture_radii_px=aperture_radii_px,
         )
 
         # Handle display and visualization (including saving diagnostic plot)

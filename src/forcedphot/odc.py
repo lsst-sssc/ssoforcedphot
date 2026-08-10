@@ -19,6 +19,8 @@ from image_photometry.utils import EphemerisDataCompressed, ImageMetadata
 logger = logging.getLogger("odc")
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
+DEFAULT_APERTURE_RADII: list[float] = [3.0, 5.0, 7.0]
+"""Default aperture radii in arcseconds when aperture photometry is requested without explicit radii."""
 
 class ObjectDetectionController:
     """
@@ -513,8 +515,6 @@ class ObjectDetectionController:
         start_time = time.time()
 
         # Normalize: --aperture-radii with no values → use project defaults
-        DEFAULT_APERTURE_RADII: list[float] = [3.0, 5.0, 7.0]
-
         if self.args.aperture_radii is not None and len(self.args.aperture_radii) == 0:
             self.args.aperture_radii = DEFAULT_APERTURE_RADII
 
@@ -875,8 +875,6 @@ class ObjectDetectionController:
                 self.args.cutout_provider = photometry_params.get("cutout_provider", "butler")
                 self.args.cutout_size_arcsec = photometry_params.get("cutout_size_arcsec")
                 self.args.aperture_radii = photometry_params.get("aperture_radii")
-                # Normalize: empty list → use project defaults
-                from photometry_api import DEFAULT_APERTURE_RADII
 
                 if self.args.aperture_radii is not None and len(self.args.aperture_radii) == 0:
                     self.args.aperture_radii = DEFAULT_APERTURE_RADII
