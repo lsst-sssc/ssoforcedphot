@@ -23,6 +23,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 DEFAULT_APERTURE_RADII: list[float] = [3.0, 5.0, 7.0]
 """Default aperture radii in arcseconds when aperture photometry is requested without explicit radii."""
 
+
 class ObjectDetectionController:
     """
     This class handles argument parsing, ephemeris queries, image searches,
