@@ -19,7 +19,6 @@ from pathlib import Path
 from typing import Optional, Union
 
 import astropy.units as u
-import lsst.geom as geom
 import numpy as np
 from astropy.coordinates import Angle, SkyCoord
 from astropy.table import Table

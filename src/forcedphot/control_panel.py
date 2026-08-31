@@ -25,6 +25,10 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 pn.extension("tabulator", "terminal", design="material")
 pn.config.theme = "dark"
 
+# Panel >=1.6 overrides a child's explicit sizing_mode with its parent's; keep ours.
+if hasattr(pn.config, "respect_explicit_sizing"):
+    pn.config.respect_explicit_sizing = True
+
 template = pn.template.MaterialTemplate(
     title="Faint Solar System Object Detection Service", logo="rubin_logo.svg"
 )
@@ -88,8 +92,6 @@ class TerminalHandler(logging.Handler):
                 msg = f"\033[92m{msg}\033[0m"  # Green for info
 
             self.terminal_widget.write(msg + "\n")
-            # Force update to browser
-            # pn.io.push_notebook(self.terminal_widget)
         except Exception:
             self.handleError(record)
 
@@ -128,8 +130,6 @@ class StreamToLogger:
                 self.logger.error(buf.rstrip())
             else:
                 self.logger.info(buf.rstrip())
-            # Force update to browser
-            # pn.io.push_notebook(self.terminal)
         self.flush()
 
     def flush(self):
@@ -1546,6 +1546,9 @@ class StandalonePhotometryTab:
             name="Run Standalone Photometry", button_type="primary", sizing_mode="stretch_width"
         )
 
+        # Error banner, shown only when a run fails
+        self.status_pane = pn.pane.Alert("", alert_type="danger", visible=False)
+
         # Results table
         self.table_view = pn.widgets.Tabulator(
             sizing_mode="stretch_width",
@@ -1613,6 +1616,7 @@ class StandalonePhotometryTab:
             ),
             pn.Column(
                 "### Results",
+                self.status_pane,
                 self.table_view,
                 # self.download_button,
                 sizing_mode="stretch_width",
@@ -1662,6 +1666,192 @@ class StandalonePhotometryTab:
             return io.StringIO(self.results_df.to_csv(index=False))
         return io.StringIO("No results available")
 
+    def _show_error(self, message):
+        """
+        Log an error and surface it in the tab.
+
+        Parameters
+        ----------
+        message : str
+            The message to display in the tab's error banner.
+        """
+        root_logger.error(message)
+        self.status_pane.object = message
+        self.status_pane.visible = True
+
+    def _save_results(self, service, results, results_df):
+        """
+        Write the results to CSV and/or JSON, as selected in the output options.
+
+        Parameters
+        ----------
+        service : StandalonePhotometryService
+            The service used to produce the results, used here for JSON serialisation.
+        results : list of PhotometryResult
+            The measurements to serialise to JSON.
+        results_df : pandas.DataFrame
+            The measurements to write as CSV.
+        """
+        if not (self.save_csv.value or self.save_json.value):
+            return
+
+        os.makedirs(self.output_folder.value, exist_ok=True)
+
+        if self.save_csv.value:
+            csv_path = f"{self.output_folder.value}/standalone_results.csv"
+            results_df.to_csv(csv_path, index=False)
+            root_logger.info(f"Results saved to: {csv_path}")
+
+        if self.save_json.value:
+            json_path = f"{self.output_folder.value}/standalone_results.json"
+            service._results_to_json(results, json_path)
+            root_logger.info(f"Results saved to: {json_path}")
+
+    def _run_single(self, service):
+        """
+        Measure a single coordinate and display the result.
+
+        Parameters
+        ----------
+        service : StandalonePhotometryService
+            The configured photometry service.
+        """
+        from photometry_api import PhotometryRequest
+
+        request = PhotometryRequest(
+            visit_id=self.visit_id.value,
+            detector=self.detector.value,
+            band=self.band.value,
+            ra=self.ra.value,
+            dec=self.dec.value,
+            error_radius=self.error_radius.value,
+            detection_threshold=self.detection_threshold.value,
+            image_type=self.image_type.value,
+            aperture_radii=(self.aperture_radii_input.value if self.run_aperture.value else None),
+        )
+
+        result = service.measure_single(
+            request=request,
+            save_diag_plots=self.save_diag_plots.value,
+            save_fits=self.save_fits.value,
+            output_folder=self.output_folder.value,
+        )
+
+        results_df = service._results_to_dataframe(
+            [result], [request], include_all_ellipse_sources=self.all_ellipse_sources.value
+        )
+        self.results_df = results_df
+        self.table_view.value = results_df
+
+        self._save_results(service, [result], results_df)
+        root_logger.info("Single measurement complete")
+
+    def _run_batch_csv(self, service):
+        """
+        Run photometry for every row of the uploaded CSV.
+
+        Parameters
+        ----------
+        service : StandalonePhotometryService
+            The configured photometry service.
+        """
+        if self.csv_upload.value is None:
+            self._show_error("No CSV file uploaded")
+            return
+
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False, suffix=".csv") as f:
+            f.write(self.csv_upload.value)
+            temp_csv = f.name
+
+        try:
+            results_df = service.measure_from_csv(
+                csv_path=temp_csv,
+                save_diag_plots=self.save_diag_plots.value,
+                save_fits=self.save_fits.value,
+                output_folder=self.output_folder.value,
+                output_csv=(
+                    f"{self.output_folder.value}/standalone_results.csv" if self.save_csv.value else None
+                ),
+                output_json=(
+                    f"{self.output_folder.value}/standalone_results.json" if self.save_json.value else None
+                ),
+                all_ellipse_sources=self.all_ellipse_sources.value,
+                default_error_radius=self.error_radius.value,
+                default_detection_threshold=self.detection_threshold.value,
+                default_image_type=self.image_type.value,
+            )
+
+            self.results_df = results_df
+            self.table_view.value = results_df
+
+            root_logger.info(
+                f"Batch processing complete: {len(results_df)} measurements, "
+                f"{results_df['success'].sum()} successful"
+            )
+        finally:
+            os.unlink(temp_csv)
+
+    def _run_multi_in_image(self, service):
+        """
+        Measure several coordinates within the same image.
+
+        Parameters
+        ----------
+        service : StandalonePhotometryService
+            The configured photometry service.
+        """
+        from photometry_api import PhotometryRequest
+
+        coordinates = []
+        for line in self.coords_text.value.strip().split("\n"):
+            if line.strip() and not line.startswith("#"):
+                try:
+                    ra, dec = map(float, line.strip().split(","))
+                    coordinates.append((ra, dec))
+                except ValueError:
+                    root_logger.warning(f"Skipping invalid line: {line}")
+
+        if not coordinates:
+            self._show_error("No valid coordinates provided")
+            return
+
+        results_dict = service.measure_multi_targets_in_image(
+            visit_id=self.visit_id.value,
+            detector=self.detector.value,
+            band=self.band.value,
+            coordinates=coordinates,
+            error_radius=self.error_radius.value,
+            image_type=self.image_type.value,
+            aperture_radii=(self.aperture_radii_input.value if self.run_aperture.value else None),
+            save_diag_plots=self.save_diag_plots.value,
+            save_fits=self.save_fits.value,
+            output_folder=self.output_folder.value,
+        )
+
+        results_list = list(results_dict.values())
+        requests_list = [
+            PhotometryRequest(
+                visit_id=self.visit_id.value,
+                detector=self.detector.value,
+                band=self.band.value,
+                ra=ra,
+                dec=dec,
+                target_name=name,
+                aperture_radii=(self.aperture_radii_input.value if self.run_aperture.value else None),
+            )
+            for (ra, dec), name in zip(coordinates, results_dict.keys())
+        ]
+        results_df = service._results_to_dataframe(
+            results_list, requests_list, include_all_ellipse_sources=self.all_ellipse_sources.value
+        )
+        self.results_df = results_df
+        self.table_view.value = results_df
+
+        self._save_results(service, results_list, results_df)
+        root_logger.info(f"Multi-target processing complete: {len(results_df)} measurements")
+
     async def run_standalone_photometry(self, event):
         """
         Execute standalone photometry based on selected input mode.
@@ -1669,185 +1859,38 @@ class StandalonePhotometryTab:
         Parameters
         ----------
         event : pn.viewable.singles.Button
-            The button click event.
+            The button click event (unused, but required by Panel's on_click signature).
         """
-        # from photometry_api import PhotometryRequest, StandalonePhotometryService
-
         await gen.sleep(0.01)
+        self.status_pane.visible = False
         root_logger.info("Starting standalone photometry...")
 
-        try:
-            from photometry_api import PhotometryRequest, StandalonePhotometryService
+        runners = {
+            "Single Coordinate": self._run_single,
+            "Batch CSV": self._run_batch_csv,
+            "Multiple in Image": self._run_multi_in_image,
+        }
 
-            cutout_prov = "butler" if "Butler" in self.cutout_provider.value else "soda"
+        try:
+            # Imported here rather than at module scope: the LSST stack is only
+            # available on the RSP, and an ImportError must reach the user.
+            from photometry_api import StandalonePhotometryService
+
             service = StandalonePhotometryService(
                 output_folder=self.output_folder.value,
                 detection_threshold=self.detection_threshold.value,
-                cutout_provider=cutout_prov,
+                cutout_provider="butler" if "Butler" in self.cutout_provider.value else "soda",
                 cutout_size=self.cutout_size.value,
                 cutout_size_arcsec=(
                     self.cutout_size_arcsec.value if "SODA" in self.cutout_provider.value else None
                 ),
             )
+            runners[self.input_mode.value](service)
 
-            mode = self.input_mode.value
-
-            if mode == "Single Coordinate":
-                # Single coordinate mode
-                request = PhotometryRequest(
-                    visit_id=self.visit_id.value,
-                    detector=self.detector.value,
-                    band=self.band.value,
-                    ra=self.ra.value,
-                    dec=self.dec.value,
-                    error_radius=self.error_radius.value,
-                    detection_threshold=self.detection_threshold.value,
-                    image_type=self.image_type.value,
-                    aperture_radii=(self.aperture_radii_input.value if self.run_aperture.value else None),
-                )
-
-                result = service.measure_single(
-                    request=request,
-                    save_diag_plots=self.save_diag_plots.value,
-                    save_fits=self.save_fits.value,
-                    output_folder=self.output_folder.value,
-                )
-
-                # Convert to DataFrame
-                results_df = service._results_to_dataframe(
-                    [result], [request], include_all_ellipse_sources=self.all_ellipse_sources.value
-                )
-                self.results_df = results_df
-                self.table_view.value = results_df
-
-                # Save CSV if requested
-                if self.save_csv.value:
-                    csv_path = f"{self.output_folder.value}/standalone_results.csv"
-                    os.makedirs(self.output_folder.value, exist_ok=True)
-                    results_df.to_csv(csv_path, index=False)
-                    root_logger.info(f"Results saved to: {csv_path}")
-
-                # Save JSON if requested
-                if self.save_json.value:
-                    json_path = f"{self.output_folder.value}/standalone_results.json"
-                    os.makedirs(self.output_folder.value, exist_ok=True)
-                    service._results_to_json([result], json_path)
-                    root_logger.info(f"Results saved to: {json_path}")
-
-                root_logger.info("Single measurement complete")
-
-            elif mode == "Batch CSV":
-                # CSV batch mode
-                if self.csv_upload.value is None:
-                    root_logger.error("No CSV file uploaded")
-                    return
-
-                # Save uploaded CSV temporarily
-                import tempfile
-
-                with tempfile.NamedTemporaryFile(mode="wb", delete=False, suffix=".csv") as f:
-                    f.write(self.csv_upload.value)
-                    temp_csv = f.name
-
-                try:
-                    results_df = service.measure_from_csv(
-                        csv_path=temp_csv,
-                        save_diag_plots=self.save_diag_plots.value,
-                        save_fits=self.save_fits.value,
-                        output_folder=self.output_folder.value,
-                        output_csv=(
-                            f"{self.output_folder.value}/standalone_results.csv"
-                            if self.save_csv.value
-                            else None
-                        ),
-                        output_json=(
-                            f"{self.output_folder.value}/standalone_results.json"
-                            if self.save_json.value
-                            else None
-                        ),
-                        all_ellipse_sources=self.all_ellipse_sources.value,
-                        default_error_radius=self.error_radius.value,
-                        default_detection_threshold=self.detection_threshold.value,
-                        default_image_type=self.image_type.value,
-                    )
-
-                    self.results_df = results_df
-                    self.table_view.value = results_df
-
-                    root_logger.info(
-                        f"Batch processing complete: {len(results_df)} measurements, "
-                        f"{results_df['success'].sum()} successful"
-                    )
-                finally:
-                    os.unlink(temp_csv)
-
-            elif mode == "Multiple in Image":
-                # Multiple coordinates in same image
-                coords_lines = self.coords_text.value.strip().split("\n")
-                coordinates = []
-                for line in coords_lines:
-                    if line.strip() and not line.startswith("#"):
-                        try:
-                            ra, dec = map(float, line.strip().split(","))
-                            coordinates.append((ra, dec))
-                        except ValueError:
-                            root_logger.warning(f"Skipping invalid line: {line}")
-
-                if not coordinates:
-                    root_logger.error("No valid coordinates provided")
-                    return
-
-                results_dict = service.measure_multi_targets_in_image(
-                    visit_id=self.visit_id.value,
-                    detector=self.detector.value,
-                    band=self.band.value,
-                    coordinates=coordinates,
-                    error_radius=self.error_radius.value,
-                    image_type=self.image_type.value,
-                    aperture_radii=(self.aperture_radii_input.value if self.run_aperture.value else None),
-                    save_diag_plots=self.save_diag_plots.value,
-                    save_fits=self.save_fits.value,
-                    output_folder=self.output_folder.value,
-                )
-
-                # Convert to DataFrame
-                results_list = list(results_dict.values())
-                requests_list = [
-                    PhotometryRequest(
-                        visit_id=self.visit_id.value,
-                        detector=self.detector.value,
-                        band=self.band.value,
-                        ra=ra,
-                        dec=dec,
-                        target_name=name,
-                        aperture_radii=(self.aperture_radii_input.value if self.run_aperture.value else None),
-                    )
-                    for (ra, dec), name in zip(coordinates, results_dict.keys())
-                ]
-                results_df = service._results_to_dataframe(
-                    results_list, requests_list, include_all_ellipse_sources=self.all_ellipse_sources.value
-                )
-                self.results_df = results_df
-                self.table_view.value = results_df
-
-                # Save CSV if requested
-                if self.save_csv.value:
-                    csv_path = f"{self.output_folder.value}/standalone_results.csv"
-                    os.makedirs(self.output_folder.value, exist_ok=True)
-                    results_df.to_csv(csv_path, index=False)
-                    root_logger.info(f"Results saved to: {csv_path}")
-
-                # Save JSON if requested
-                if self.save_json.value:
-                    json_path = f"{self.output_folder.value}/standalone_results.json"
-                    os.makedirs(self.output_folder.value, exist_ok=True)
-                    service._results_to_json(results_list, json_path)
-                    root_logger.info(f"Results saved to: {json_path}")
-
-                root_logger.info(f"Multi-target processing complete: {len(results_df)} measurements")
-
+        except ImportError as e:
+            self._show_error(f"LSST stack unavailable - standalone photometry needs the RSP environment: {e}")
         except Exception as e:
-            root_logger.error(f"Standalone photometry failed: {str(e)}")
+            self._show_error(f"Standalone photometry failed: {str(e)}")
             import traceback
 
             root_logger.error(traceback.format_exc())
