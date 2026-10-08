@@ -79,6 +79,7 @@ def test_run_image_query_with_ephem_ecsv(mock_load, odc_instance):
     """Test image query with ecsv"""
     odc_instance.args.ephem_ecsv = "dummy.ecsv"
     mock_ephem = MagicMock()
+    mock_ephem.datetime = []
     mock_load.return_value = mock_ephem
     odc_instance.imphot_controller.search_images.return_value = ["img1", "img2"]
     result = odc_instance.run_image_query()
@@ -90,6 +91,20 @@ def test_run_image_query_with_ephem_ecsv(mock_load, odc_instance):
         time_interval=5.0,
         widening=1,
     )
+
+
+@patch("odc.DataLoader.load_ephemeris_from_ecsv")
+def test_run_image_query_warns_on_large_ephemeris(mock_load, odc_instance):
+    """Test that a large ephemeris row count logs a warning before image search."""
+    odc_instance.args.ephem_ecsv = "dummy.ecsv"
+    mock_ephem = MagicMock()
+    mock_ephem.datetime = list(range(600))
+    mock_load.return_value = mock_ephem
+    odc_instance.imphot_controller.search_images.return_value = []
+    odc_instance.logger = MagicMock()
+    odc_instance.run_image_query()
+    odc_instance.logger.warning.assert_called_once()
+    assert "600" in odc_instance.logger.warning.call_args[0][0]
 
 
 def test_run_photometry(odc_instance):
@@ -110,6 +125,9 @@ def test_run_photometry(odc_instance):
         override_error=0,
         display=False,
         output_folder="./output",
+        refine_ephemeris=False,
+        cutout_size_arcsec=None,
+        aperture_radii=None,
     )
 
 

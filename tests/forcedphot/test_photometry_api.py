@@ -11,6 +11,7 @@ import pandas as pd
 import pytest
 
 try:
+    import lsst.daf.butler  # noqa: F401 — confirms real LSST stack is present
     from photometry_api import PhotometryRequest, StandalonePhotometryService
 
     LSST_AVAILABLE = True

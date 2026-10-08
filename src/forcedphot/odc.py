@@ -15,9 +15,13 @@ from image_photometry.image_service_butler import ImageServiceButler
 from image_photometry.imphot_control import ImPhotController
 from image_photometry.photometry_service import PhotometryService
 from image_photometry.utils import EphemerisDataCompressed, ImageMetadata
+from ui_help import row_count_warning
 
 logger = logging.getLogger("odc")
 logging.getLogger("httpx").setLevel(logging.WARNING)
+
+DEFAULT_APERTURE_RADII: list[float] = [3.0, 5.0, 7.0]
+"""Default aperture radii in arcseconds when aperture photometry is requested without explicit radii."""
 
 
 class ObjectDetectionController:
@@ -49,6 +53,7 @@ class ObjectDetectionController:
         self.args.output_folder = "./output"
         self.args.cutout_provider = "butler"
         self.args.cutout_size_arcsec = None
+        self.args.aperture_radii = None
         self.logger = logging.getLogger("odc")
         self.ephemeris_client = EphemerisClient()
         self.ephemeris_results: list[EphemerisDataCompressed] = []
@@ -315,7 +320,7 @@ class ObjectDetectionController:
 
         standalone_group.add_argument(
             "--aperture-radii",
-            nargs="+",
+            nargs="*",
             type=float,
             help="Aperture radii in arcseconds (e.g., --aperture-radii 3.0 5.0 7.0)",
         )
@@ -455,6 +460,10 @@ class ObjectDetectionController:
             if not self.ephemeris_results:
                 raise ValueError("Run ephemeris query first or provide --ephem-ecsv")
 
+        warning = row_count_warning(len(self.ephemeris_results.ephemeris.datetime))
+        if warning:
+            self.logger.warning(warning)
+
         # Use provided search method or fall back to args
         effective_search_method = self.args.image_search_method or search_method.lower()
 
@@ -511,6 +520,10 @@ class ObjectDetectionController:
 
         start_time = time.time()
 
+        # Normalize: --aperture-radii with no values → use project defaults
+        if self.args.aperture_radii is not None and len(self.args.aperture_radii) == 0:
+            self.args.aperture_radii = DEFAULT_APERTURE_RADII
+
         # Configure photometry parameters
         self.imphot_controller.detection_threshold = self.args.threshold
         self.imphot_controller.phot_service.cutout_service.set_provider(self.args.cutout_provider)
@@ -529,6 +542,7 @@ class ObjectDetectionController:
             output_folder=output_folder,
             refine_ephemeris=self.args.refine_ephemeris,
             cutout_size_arcsec=self.args.cutout_size_arcsec,
+            aperture_radii=self.args.aperture_radii,
         )
         if self.args.save_json:
             self.imphot_controller.save_results_to_json(
@@ -866,6 +880,10 @@ class ObjectDetectionController:
                 self.args.refine_ephemeris = photometry_params.get("refine_ephemeris", False)
                 self.args.cutout_provider = photometry_params.get("cutout_provider", "butler")
                 self.args.cutout_size_arcsec = photometry_params.get("cutout_size_arcsec")
+                self.args.aperture_radii = photometry_params.get("aperture_radii")
+
+                if self.args.aperture_radii is not None and len(self.args.aperture_radii) == 0:
+                    self.args.aperture_radii = DEFAULT_APERTURE_RADII
                 self.args.display = photometry_params.get("display", False)
                 self.args.save_json = photometry_params.get("save_json", False)
                 self.args.save_csv = photometry_params.get("save_csv", False)

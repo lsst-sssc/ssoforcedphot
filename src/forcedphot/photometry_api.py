@@ -20,14 +20,26 @@ from typing import Optional
 
 import pandas as pd
 from astropy.time import Time, TimeDelta
-from image_photometry.photometry_service import PhotometryService
-from image_photometry.utils import (
-    EndResult,
-    EphemerisDataCompressed,
-    ImageMetadata,
-)
-from lsst.daf.butler import Butler
-from lsst.rsp import get_tap_service
+
+try:
+    from image_photometry.photometry_service import PhotometryService
+    from image_photometry.utils import (
+        EndResult,
+        EphemerisDataCompressed,
+        ImageMetadata,
+    )
+    from lsst.daf.butler import Butler
+    from lsst.rsp import get_tap_service
+except ImportError:
+    PhotometryService = None
+    EndResult = None
+    EphemerisDataCompressed = None
+    ImageMetadata = None
+    Butler = None
+    get_tap_service = None
+
+DEFAULT_APERTURE_RADII: list[float] = [3.0, 5.0, 7.0]
+"""Default aperture radii in arcseconds when aperture photometry is requested without explicit radii."""
 
 
 class ImageType(str, Enum):
@@ -67,11 +79,10 @@ class PhotometryRequest:
     image_type : ImageType, optional
         Type of image to process: ImageType.VISIT or ImageType.DIFFERENCE.
         Default: ImageType.VISIT
-    aperture_radii : list[float], optional
-        List of aperture radii in arcseconds for aperture photometry.
-        If None, only PSF photometry is performed.
-        Example: [3.0, 5.0, 7.0]
-        Default: None (not yet implemented)
+    aperture_radii : list[float] or None, optional
+        Aperture radii in arcseconds. Pass None for PSF-only photometry (default).
+        Pass an empty list to use DEFAULT_APERTURE_RADII = [3.0, 5.0, 7.0].
+        Pass explicit radii to use those values directly.
     target_name : str, optional
         Optional name for this target (for output labeling).
         Default: "standalone_target"
@@ -167,6 +178,10 @@ class StandalonePhotometryService:
         Default directory for saving outputs (default: "./output")
     detection_threshold : float
         Default SNR threshold for source detection (default: 5.0)
+    cutout_size : int
+        Cutout size in pixels for Butler provider (default: 800)
+    cutout_size_arcsec : float, optional
+        Cutout radius in arcseconds for SODA provider (default: None)
     """
 
     def __init__(
@@ -176,6 +191,8 @@ class StandalonePhotometryService:
         output_folder: str = "./output",
         detection_threshold: float = 5.0,
         cutout_provider: str = "butler",
+        cutout_size: int = 800,
+        cutout_size_arcsec: Optional[float] = None,
     ):
         """Initialize the standalone photometry service."""
         self.logger = logging.getLogger("standalone_photometry")
@@ -190,6 +207,8 @@ class StandalonePhotometryService:
         self.output_folder = output_folder
         self.dr = dr
         self.collection = collection
+        self.cutout_size = cutout_size
+        self.cutout_size_arcsec = cutout_size_arcsec
 
     def measure_single(
         self,
@@ -234,6 +253,11 @@ class StandalonePhotometryService:
         # Use provided output folder or default
         out_folder = output_folder or self.output_folder
 
+        # Resolve aperture radii: None → PSF only; [] → use defaults; [r1, …] → as-is
+        aperture_radii = request.aperture_radii
+        if aperture_radii is not None and len(aperture_radii) == 0:
+            aperture_radii = DEFAULT_APERTURE_RADII
+
         # Validate coordinates
         self._validate_coordinates(request.ra, request.dec)
 
@@ -260,12 +284,14 @@ class StandalonePhotometryService:
             target_type="standalone",
             image_type=request.image_type,
             ephemeris_service="N/A",
-            cutout_size=800,
+            cutout_size=self.cutout_size,
+            cutout_size_arcsec=self.cutout_size_arcsec,
             override_error=request.error_radius,
             save_diag_plots=save_diag_plots,
             save_fits=save_fits,
             display=False,
             output_folder=out_folder,
+            aperture_radii=aperture_radii,
         )
 
         return result

@@ -7,6 +7,8 @@ import sys
 import astropy.units as u
 import pandas as pd
 import panel as pn
+import param
+import ui_help
 from astropy.table import Table
 from astropy.time import Time
 from ephemeris.data_loader import DataLoader
@@ -22,6 +24,10 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 # Panel extensions and template
 pn.extension("tabulator", "terminal", design="material")
 pn.config.theme = "dark"
+
+# Panel >=1.6 overrides a child's explicit sizing_mode with its parent's; keep ours.
+if hasattr(pn.config, "respect_explicit_sizing"):
+    pn.config.respect_explicit_sizing = True
 
 template = pn.template.MaterialTemplate(
     title="Faint Solar System Object Detection Service", logo="rubin_logo.svg"
@@ -86,8 +92,6 @@ class TerminalHandler(logging.Handler):
                 msg = f"\033[92m{msg}\033[0m"  # Green for info
 
             self.terminal_widget.write(msg + "\n")
-            # Force update to browser
-            pn.io.push_notebook(self.terminal_widget)
         except Exception:
             self.handleError(record)
 
@@ -126,8 +130,6 @@ class StreamToLogger:
                 self.logger.error(buf.rstrip())
             else:
                 self.logger.info(buf.rstrip())
-            # Force update to browser
-            pn.io.push_notebook(self.terminal)
         self.flush()
 
     def flush(self):
@@ -181,6 +183,27 @@ def serialize_query_result(result):
     }
 
 
+class UIState(param.Parameterized):
+    """Shared reactive UI state across tabs."""
+
+    ephemeris_row_count = param.Integer(default=0)
+
+
+def _ephemeris_count(results):
+    """Number of ephemeris rows in a controller results dict, or 0."""
+    if isinstance(results, dict):
+        qr = results.get("ephemeris")
+        if isinstance(qr, QueryResult):
+            return len(qr.ephemeris.RA_deg)
+    return 0
+
+
+def _row_warning_pane(n):
+    """Render a warning Alert when the row count is high, else an empty pane."""
+    msg = ui_help.row_count_warning(n)
+    return pn.pane.Alert(msg, alert_type="warning") if msg else pn.pane.Markdown("")
+
+
 class EphemerisTab:
     """
     GUI tab for managing ephemeris queries and displaying the results.
@@ -196,8 +219,9 @@ class EphemerisTab:
         ephemeris services and store results.
     """
 
-    def __init__(self, controller):
+    def __init__(self, controller, ui_state):
         self.controller = controller
+        self.ui_state = ui_state
         root_logger.warning(
             """Note: The image and photometry service may take a while.
             This terminal widget will not refresh in real-time until each full step completes.
@@ -206,30 +230,70 @@ class EphemerisTab:
 
         # Widgets
         self.ephemeris_source = pn.widgets.RadioButtonGroup(
-            name="Ephemeris Source", options=["Use Existing Data", "Upload ECSV"], value="Use Existing Data"
+            name="Ephemeris Source",
+            options=["Use Existing Data", "Upload ECSV"],
+            value="Use Existing Data",
+            description=ui_help.TOOLTIPS["ephemeris_source"],
         )
         self.file_upload = pn.widgets.input.FileInput(accept=".ecsv", multiple=False)
-        self.service = pn.widgets.Select(name="Service", options=["Horizons", "Miriade"], value="Horizons")
-        self.target_name = pn.widgets.TextInput(name="Target Name")
+        self.service = pn.widgets.Select(
+            name="Service",
+            options=["Horizons", "Miriade"],
+            value="Horizons",
+            description=ui_help.TOOLTIPS["service"],
+        )
+        self.target_name = pn.widgets.TextInput(
+            name="Target Name",
+            description=ui_help.TOOLTIPS["target_name"],
+        )
         self.target_type = pn.widgets.Select(
             name="Target Type",
             options=["smallbody", "asteroid_name", "comet_name", "designation"],
             value="smallbody",
+            description=ui_help.TOOLTIPS["target_type"],
         )
         self.start_time = pn.widgets.DatetimePicker(
             name="Start Time", value=datetime.datetime.now(), enable_time=True
         )
         self.time_spec = pn.widgets.RadioButtonGroup(
-            name="Time Specification", options=["End Time", "Day Range"], value="End Time"
+            name="Time Specification",
+            options=["End Time", "Day Range"],
+            value="End Time",
+            description=ui_help.TOOLTIPS["time_spec"],
         )
         self.end_time = pn.widgets.DatetimePicker(
             name="End Time", value=datetime.datetime.now() + datetime.timedelta(days=1), enable_time=True
         )
-        self.day_range = pn.widgets.IntInput(name="Day Range", value=1, start=1, width=120)
-        self.step_value = pn.widgets.FloatInput(name="Step Value", value=1, start=1, step=1, width=120)
-        self.step_unit = pn.widgets.Select(name="Step Unit", options=["d", "h", "m"], value="h", width=50)
-        self.save_ephem_data = pn.widgets.Checkbox(name="Save Ephemeris")
-        self.output_folder = pn.widgets.TextInput(name="Output folder", value="./output")
+        self.day_range = pn.widgets.IntInput(
+            name="Day Range",
+            value=1,
+            start=1,
+            width=120,
+            description=ui_help.TOOLTIPS["day_range"],
+        )
+        self.step_value = pn.widgets.FloatInput(
+            name="Step Value",
+            value=1,
+            start=1,
+            step=1,
+            width=120,
+            description=ui_help.TOOLTIPS["step_value"],
+        )
+        self.step_unit = pn.widgets.Select(
+            name="Step Unit",
+            options=["d", "h", "m"],
+            value="h",
+            width=50,
+            description=ui_help.TOOLTIPS["step_unit"],
+        )
+        self.save_ephem_data = pn.widgets.Checkbox(
+            name="Save Ephemeris",
+        )
+        self.output_folder = pn.widgets.TextInput(
+            name="Output folder",
+            value="./output",
+            description=ui_help.TOOLTIPS["output_folder"],
+        )
         self.run_button = pn.widgets.Button(
             name=pn.bind(
                 lambda s: "Update" if s == "Upload ECSV" else "Run Query", self.ephemeris_source.param.value
@@ -286,8 +350,16 @@ class EphemerisTab:
             """Condition check for ephemeris data source"""
             return self.file_upload if source == "Upload ECSV" else pn.pane.Str("Using Ephemeris service.")
 
+        self.tips_card = pn.Card(
+            pn.pane.Markdown(ui_help.tips_markdown("ephemeris")),
+            title="\U0001F4A1 Tips",
+            collapsed=True,
+            sizing_mode="stretch_width",
+        )
+
         self.layout = pn.Row(
             pn.Column(
+                self.tips_card,
                 "### Ephemeris Query Parameters",
                 self.ephemeris_source,
                 pn.bind(conditional_upload, self.ephemeris_source.param.value),
@@ -305,6 +377,7 @@ class EphemerisTab:
                 self.save_ephem_data,
                 self.output_folder,
                 self.run_button,
+                pn.bind(_row_warning_pane, self.ui_state.param.ephemeris_row_count),
                 sizing_mode="stretch_width",
             ),
             self.table_view,
@@ -332,6 +405,7 @@ class EphemerisTab:
             The button click event (unused, but required by Panel's on_click signature).
         """
         await gen.sleep(0.01)
+        self.ui_state.ephemeris_row_count = 0
         if self.ephemeris_source.value == "Upload ECSV":
             root_logger.info("Processing uploaded ECSV file.")
             if not self.file_upload.value:
@@ -346,6 +420,7 @@ class EphemerisTab:
 
                 # Update the table view
                 self.table_view.value = df
+                self.ui_state.ephemeris_row_count = len(df)
 
                 input_data = {
                     "ephemeris": {
@@ -402,6 +477,7 @@ class EphemerisTab:
                     ephemeris_data = serialized_query["ephemeris"]
                     df = pd.DataFrame(ephemeris_data)
                     self.table_view.value = df
+                    self.ui_state.ephemeris_row_count = len(df)
                 else:
                     self.result_pane.object = self.controller.ephemeris_results
                     self.table_view.value = pd.DataFrame()
@@ -426,14 +502,16 @@ class ImageTab:
         and provides the image search functionality.
     """
 
-    def __init__(self, controller):
+    def __init__(self, controller, ui_state):
         self.controller = controller
+        self.ui_state = ui_state
 
         # Widgets
         self.search_method = pn.widgets.RadioButtonGroup(
             name="Image Search Method",
             options=["Point", "Polygon"],
             value="Point",
+            description=ui_help.TOOLTIPS["image_search_method"],
         )
 
         self.filters = pn.widgets.ToggleGroup(
@@ -455,7 +533,8 @@ class ImageTab:
             value=1.0,
             start=0,
             step=0.5,
-            width=120,
+            width=170,
+            description=ui_help.TOOLTIPS["widening"],
         )
 
         self.time_interval = pn.widgets.FloatInput(
@@ -463,7 +542,8 @@ class ImageTab:
             value=5.0,
             start=0.1,
             step=0.5,
-            width=120,
+            width=170,
+            description=ui_help.TOOLTIPS["time_interval"],
         )
 
         # Set up visibility bindings for polygon options
@@ -489,10 +569,19 @@ class ImageTab:
             },
         )
 
+        self.tips_card = pn.Card(
+            pn.pane.Markdown(ui_help.tips_markdown("image")),
+            title="\U0001F4A1 Tips",
+            collapsed=True,
+            sizing_mode="stretch_width",
+        )
+
         # Layout
         self.layout = pn.Row(
             pn.Column(
+                self.tips_card,
                 "### Image Query Parameters",
+                pn.bind(_row_warning_pane, self.ui_state.param.ephemeris_row_count),
                 self.search_method,
                 pn.Column(
                     pn.Row("### Filters:", margin=(0, 10)),
@@ -584,27 +673,47 @@ class PhotometryTab:
 
         # Widgets for photometry parameters
         self.image_type = pn.widgets.Select(
-            name="Image type", options=["visit_image", "difference_image"], value="visit_image"
+            name="Image type",
+            options=["visit_image", "difference_image"],
+            value="visit_image",
+            description=ui_help.TOOLTIPS["image_type"],
         )
         self.detection_threshold = pn.widgets.FloatInput(
-            name="Detection Threshold", value=5.0, start=0, width=150
+            name="Detection Threshold",
+            value=5.0,
+            start=0,
+            width=180,
+            description=ui_help.TOOLTIPS["detection_threshold"],
         )
         self.cutout_provider = pn.widgets.Select(
             name="Cutout Provider",
             options=["Butler (local)", "SODA (remote)"],
             value="Butler (local)",
             width=180,
+            description=ui_help.TOOLTIPS["cutout_provider"],
         )
-        self.cutout_size = pn.widgets.IntInput(name="Cutout Size (pixels)", value=800, start=0, width=150)
+        self.cutout_size = pn.widgets.IntInput(
+            name="Cutout Size (pixels)",
+            value=800,
+            start=0,
+            width=180,
+            description=ui_help.TOOLTIPS["cutout_size"],
+        )
         self.cutout_size_arcsec = pn.widgets.FloatInput(
-            name="Cutout Radius (arcsec)", value=80.0, start=0.1, step=1.0, width=150
+            name="Cutout Radius (arcsec)",
+            value=80.0,
+            start=0.1,
+            step=1.0,
+            width=180,
+            description=ui_help.TOOLTIPS["cutout_radius"],
         )
         self.override_error = pn.widgets.FloatInput(
             name="Override error (arcsec)",
             value=0.0,
             start=0,
             step=0.1,
-            width=150,
+            width=180,
+            description=ui_help.TOOLTIPS["override_error"],
         )
         self.refine_ephemeris = pn.widgets.Checkbox(
             name="Refine Ephemeris at Observation Times",
@@ -616,9 +725,28 @@ class PhotometryTab:
         self.save_json = pn.widgets.Checkbox(name="Save Result to JSON", value=False)
         self.save_csv = pn.widgets.Checkbox(name="Save Result to csv", value=False)
         self.error_ellipse_sources = pn.widgets.Checkbox(
-            name="Save all the sources within the error ellipse", value=False
+            name="Save all the sources within the error ellipse",
+            value=False,
         )
         self.output_folder = pn.widgets.TextInput(name="Output folder", value="./output")
+        self.run_aperture = pn.widgets.Checkbox(
+            name="Aperture Photometry",
+            value=False,
+        )
+        self.aperture_radii_input = pn.widgets.LiteralInput(
+            name="Aperture Radii (arcsec)",
+            value=[3.0, 5.0, 7.0],
+            type=list,
+            disabled=True,
+            description=ui_help.TOOLTIPS["aperture_radii"],
+        )
+        # Enable input only when checkbox is checked
+        self.run_aperture.param.watch(
+            lambda e: setattr(self.aperture_radii_input, "disabled", not e.new), "value"
+        )
+        # self.aperture_radii_input.disabled = pn.bind(
+        #     lambda checked: not checked, self.run_aperture.param.value
+        # )
         self.run_button = pn.widgets.Button(name="Run Photometry", button_type="primary")
 
         # Cutout size visibility based on provider
@@ -658,9 +786,17 @@ class PhotometryTab:
             },
         )
 
+        self.tips_card = pn.Card(
+            pn.pane.Markdown(ui_help.tips_markdown("photometry")),
+            title="\U0001F4A1 Tips",
+            collapsed=True,
+            sizing_mode="stretch_width",
+        )
+
         # Layout
         self.layout = pn.Row(
             pn.Column(
+                self.tips_card,
                 "### Photometry Parameters",
                 self.image_type,
                 self.detection_threshold,
@@ -668,6 +804,8 @@ class PhotometryTab:
                 self.cutout_size,
                 self.cutout_size_arcsec,
                 self.override_error,
+                self.run_aperture,
+                self.aperture_radii_input,
                 self.refine_ephemeris,
                 self.save_diag_plots,
                 self.save_fits,
@@ -719,12 +857,16 @@ class PhotometryTab:
                 "cutout_size_arcsec": (
                     self.cutout_size_arcsec.value if "SODA" in self.cutout_provider.value else None
                 ),
+                "aperture_radii": (self.aperture_radii_input.value if self.run_aperture.value else None),
             }
         }
         try:
             await gen.sleep(0.01)
             result = self.controller.api_connection(input_data)
-            if "photometry" in result and result["photometry"]:
+            if "error" in result:
+                self.table_view.value = pd.DataFrame()
+                self.results_pane.object = {"error": result["error"]}
+            elif "photometry" in result and result["photometry"]:
                 # Flatten the photometry results for the table
                 photometry_data = result["photometry"]
                 rows = []
@@ -768,39 +910,83 @@ class CompleteRunTab:
         The main application controller instance that orchestrates all steps of the pipeline.
     """
 
-    def __init__(self, controller):
+    def __init__(self, controller, ui_state):
         self.controller = controller
+        self.ui_state = ui_state
 
         # Ephemeris Section Widgets
         self.ephemeris_source = pn.widgets.RadioButtonGroup(
-            name="Ephemeris Source", options=["Use Generated Data", "Upload ECSV"], value="Use Generated Data"
+            name="Ephemeris Source",
+            options=["Use Generated Data", "Upload ECSV"],
+            value="Use Generated Data",
+            description=ui_help.TOOLTIPS["ephemeris_source"],
         )
         self.file_upload = pn.widgets.input.FileInput(accept=".ecsv", multiple=False)
-        self.service = pn.widgets.Select(name="Service", options=["Horizons", "Miriade"], value="Horizons")
-        self.target_name = pn.widgets.TextInput(name="Target Name")
+        self.service = pn.widgets.Select(
+            name="Service",
+            options=["Horizons", "Miriade"],
+            value="Horizons",
+            description=ui_help.TOOLTIPS["service"],
+        )
+        self.target_name = pn.widgets.TextInput(
+            name="Target Name",
+            description=ui_help.TOOLTIPS["target_name"],
+        )
         self.target_type = pn.widgets.Select(
-            name="Target Type", options=["smallbody", "comet_name", "designation"], value="smallbody"
+            name="Target Type",
+            options=["smallbody", "comet_name", "designation"],
+            value="smallbody",
+            description=ui_help.TOOLTIPS["target_type"],
         )
         self.start_time = pn.widgets.DatetimePicker(
             name="Start Time", value=datetime.datetime.now(), enable_time=True
         )
         self.time_spec = pn.widgets.RadioButtonGroup(
-            name="Time Specification", options=["End Time", "Day Range"], value="End Time"
+            name="Time Specification",
+            options=["End Time", "Day Range"],
+            value="End Time",
+            description=ui_help.TOOLTIPS["time_spec"],
         )
         self.end_time = pn.widgets.DatetimePicker(
             name="End Time", value=datetime.datetime.now() + datetime.timedelta(days=1), enable_time=True
         )
-        self.day_range = pn.widgets.IntInput(name="Day Range", value=1, start=1, width=120)
-        self.step_value = pn.widgets.FloatInput(name="Step Value", value=12, start=1, step=1, width=120)
-        self.step_unit = pn.widgets.Select(name="Step Unit", options=["d", "h", "m"], value="h", width=50)
-        self.save_ephem_data = pn.widgets.Checkbox(name="Save Ephemeris")
-        self.output_folder = pn.widgets.TextInput(name="Output folder", value="./output")
+        self.day_range = pn.widgets.IntInput(
+            name="Day Range",
+            value=1,
+            start=1,
+            width=120,
+            description=ui_help.TOOLTIPS["day_range"],
+        )
+        self.step_value = pn.widgets.FloatInput(
+            name="Step Value",
+            value=12,
+            start=1,
+            step=1,
+            width=120,
+            description=ui_help.TOOLTIPS["step_value"],
+        )
+        self.step_unit = pn.widgets.Select(
+            name="Step Unit",
+            options=["d", "h", "m"],
+            value="h",
+            width=50,
+            description=ui_help.TOOLTIPS["step_unit"],
+        )
+        self.save_ephem_data = pn.widgets.Checkbox(
+            name="Save Ephemeris",
+        )
+        self.output_folder = pn.widgets.TextInput(
+            name="Output folder",
+            value="./output",
+            description=ui_help.TOOLTIPS["output_folder"],
+        )
 
         # Image Section Widgets
         self.search_method = pn.widgets.RadioButtonGroup(
             name="Image Search Method",
             options=["Point", "Polygon"],
             value="Point",
+            description=ui_help.TOOLTIPS["image_search_method"],
         )
 
         self.filters = pn.widgets.ToggleGroup(
@@ -817,7 +1003,8 @@ class CompleteRunTab:
             value=1.0,
             start=0,
             step=0.5,
-            width=120,
+            width=180,
+            description=ui_help.TOOLTIPS["widening"],
         )
 
         self.time_interval = pn.widgets.FloatInput(
@@ -825,32 +1012,53 @@ class CompleteRunTab:
             value=5.0,
             start=0.1,
             step=0.5,
-            width=120,
+            width=180,
+            description=ui_help.TOOLTIPS["time_interval"],
         )
 
         # Photometry Section Widgets
         self.image_type = pn.widgets.Select(
-            name="Image type", options=["visit_image", "difference_image"], value="visit_image"
+            name="Image type",
+            options=["visit_image", "difference_image"],
+            value="visit_image",
+            description=ui_help.TOOLTIPS["image_type"],
         )
         self.detection_threshold = pn.widgets.FloatInput(
-            name="Detection Threshold", value=5.0, start=0, width=150
+            name="Detection Threshold",
+            value=5.0,
+            start=0,
+            width=180,
+            description=ui_help.TOOLTIPS["detection_threshold"],
         )
         self.cutout_provider = pn.widgets.Select(
             name="Cutout Provider",
             options=["Butler (local)", "SODA (remote)"],
             value="Butler (local)",
             width=180,
+            description=ui_help.TOOLTIPS["cutout_provider"],
         )
-        self.cutout_size = pn.widgets.IntInput(name="Cutout Size (pixels)", value=800, start=0, width=150)
+        self.cutout_size = pn.widgets.IntInput(
+            name="Cutout Size (pixels)",
+            value=800,
+            start=0,
+            width=180,
+            description=ui_help.TOOLTIPS["cutout_size"],
+        )
         self.cutout_size_arcsec = pn.widgets.FloatInput(
-            name="Cutout Radius (arcsec)", value=80.0, start=0.1, step=1.0, width=150
+            name="Cutout Radius (arcsec)",
+            value=80.0,
+            start=0.1,
+            step=1.0,
+            width=180,
+            description=ui_help.TOOLTIPS["cutout_radius"],
         )
         self.override_error = pn.widgets.FloatInput(
             name="Override error (arcsec)",
             value=0.0,
             start=0,
             step=0.1,
-            width=150,
+            width=180,
+            description=ui_help.TOOLTIPS["override_error"],
         )
         self.refine_ephemeris = pn.widgets.Checkbox(
             name="Refine Ephemeris at Observation Times",
@@ -862,9 +1070,24 @@ class CompleteRunTab:
         self.save_json = pn.widgets.Checkbox(name="Save Result to JSON", value=False)
         self.save_csv = pn.widgets.Checkbox(name="Save Result to csv", value=False)
         self.error_ellipse_sources = pn.widgets.Checkbox(
-            name="Save all the sources within the error ellipse", value=False
+            name="Save all the sources within the error ellipse",
+            value=False,
         )
         self.output_folder = pn.widgets.TextInput(name="Output folder", value="./output")
+        self.run_aperture = pn.widgets.Checkbox(
+            name="Aperture Photometry",
+            value=False,
+        )
+        self.aperture_radii_input = pn.widgets.LiteralInput(
+            name="Aperture Radii (arcsec)",
+            value=[3.0, 5.0, 7.0],
+            type=list,
+            disabled=True,
+            description=ui_help.TOOLTIPS["aperture_radii"],
+        )
+        self.run_aperture.param.watch(
+            lambda e: setattr(self.aperture_radii_input, "disabled", not e.new), "value"
+        )
 
         # Set up visibility bindings
         self.end_time.visible = pn.bind(lambda ts: ts == "End Time", self.time_spec.param.value)
@@ -927,9 +1150,17 @@ class CompleteRunTab:
         self.run_all_button = pn.widgets.Button(name="Run All", button_type="primary")
         self.run_all_button.on_click(self.run_all)
 
+        self.tips_card = pn.Card(
+            pn.pane.Markdown(ui_help.tips_markdown("complete_run")),
+            title="\U0001F4A1 Tips",
+            collapsed=True,
+            sizing_mode="stretch_width",
+        )
+
         # --- Layout ---
         self.layout = pn.Row(
             pn.Column(
+                self.tips_card,
                 pn.Card(
                     pn.Column(
                         "### Ephemeris Parameters",
@@ -976,6 +1207,8 @@ class CompleteRunTab:
                         self.cutout_size,
                         self.cutout_size_arcsec,
                         self.override_error,
+                        self.run_aperture,
+                        self.aperture_radii_input,
                         self.refine_ephemeris,
                         self.save_diag_plots,
                         self.save_fits,
@@ -1098,6 +1331,10 @@ class CompleteRunTab:
                 return
 
         # Image Step
+        ephem_n = _ephemeris_count(self.controller.ephemeris_results)
+        ephem_warning = ui_help.row_count_warning(ephem_n)
+        if ephem_warning:
+            root_logger.warning(ephem_warning)
         await gen.sleep(0.01)
         input_data_image = {
             "image": {
@@ -1140,6 +1377,7 @@ class CompleteRunTab:
                 "cutout_size_arcsec": (
                     self.cutout_size_arcsec.value if "SODA" in self.cutout_provider.value else None
                 ),
+                "aperture_radii": (self.aperture_radii_input.value if self.run_aperture.value else None),
             }
         }
 
@@ -1147,7 +1385,10 @@ class CompleteRunTab:
             root_logger.info("Running photometry...")
             await gen.sleep(0.01)
             photometry_result = self.controller.api_connection(input_data_photometry)
-            if "photometry" in photometry_result and photometry_result["photometry"]:
+            if "error" in photometry_result:
+                root_logger.error(f"Photometry error: {photometry_result['error']}")
+                self.table_view.value = pd.DataFrame()
+            elif "photometry" in photometry_result and photometry_result["photometry"]:
                 # Process results
                 rows = []
                 for presult in photometry_result["photometry"]:
@@ -1199,6 +1440,7 @@ class StandalonePhotometryTab:
             name="Input Mode",
             options=["Single Coordinate", "Batch CSV", "Multiple in Image"],
             value="Single Coordinate",
+            description=ui_help.TOOLTIPS["input_mode"],
         )
 
         # Image specification widgets
@@ -1223,20 +1465,70 @@ class StandalonePhotometryTab:
 
         # Common parameters
         self.error_radius = pn.widgets.FloatInput(
-            name="Error Radius (arcsec)", value=3.0, step=0.5, start=0, width=150
+            name="Error Radius (arcsec)",
+            value=3.0,
+            step=0.5,
+            start=0,
+            width=180,
+            description=ui_help.TOOLTIPS["error_radius"],
         )
         self.detection_threshold = pn.widgets.FloatInput(
-            name="Detection Threshold (SNR)", value=5.0, step=0.5, start=1.0, width=150
+            name="Detection Threshold",
+            value=5.0,
+            step=0.5,
+            start=1.0,
+            width=180,
+            description=ui_help.TOOLTIPS["detection_threshold"],
         )
         self.image_type = pn.widgets.Select(
-            name="Image Type", options=["visit_image", "difference_image"], value="visit_image"
+            name="Image Type",
+            options=["visit_image", "difference_image"],
+            value="visit_image",
+            description=ui_help.TOOLTIPS["image_type"],
+        )
+        self.run_aperture = pn.widgets.Checkbox(
+            name="Aperture Photometry",
+            value=False,
+        )
+        self.aperture_radii_input = pn.widgets.LiteralInput(
+            name="Aperture Radii (arcsec)",
+            value=[3.0, 5.0, 7.0],
+            type=list,
+            disabled=True,
+            description=ui_help.TOOLTIPS["aperture_radii"],
+        )
+        self.run_aperture.param.watch(
+            lambda e: setattr(self.aperture_radii_input, "disabled", not e.new), "value"
+        )
+        # In Batch CSV mode, aperture radii are read per-row from the CSV file
+        self.aperture_note = pn.pane.Markdown(
+            "_Note: In Batch CSV mode, aperture radii are read from the CSV file per row._",
+            visible=pn.bind(lambda mode: mode == "Batch CSV", self.input_mode.param.value),
         )
         self.cutout_provider = pn.widgets.Select(
             name="Cutout Provider",
             options=["Butler (local)", "SODA (remote)"],
             value="Butler (local)",
             width=180,
+            description=ui_help.TOOLTIPS["cutout_provider"],
         )
+        self.cutout_size = pn.widgets.IntInput(
+            name="Cutout Size (pixels)",
+            value=800,
+            start=0,
+            width=180,
+            description=ui_help.TOOLTIPS["cutout_size"],
+        )
+        self.cutout_size_arcsec = pn.widgets.FloatInput(
+            name="Cutout Radius (arcsec)",
+            value=80.0,
+            start=0.1,
+            step=1.0,
+            width=180,
+            description=ui_help.TOOLTIPS["cutout_radius"],
+        )
+        self.cutout_size.visible = pn.bind(lambda p: "Butler" in p, self.cutout_provider.param.value)
+        self.cutout_size_arcsec.visible = pn.bind(lambda p: "SODA" in p, self.cutout_provider.param.value)
 
         # Save options
         self.save_diag_plots = pn.widgets.Checkbox(name="Save Diagnostic Plots", value=False)
@@ -1244,7 +1536,8 @@ class StandalonePhotometryTab:
         self.save_csv = pn.widgets.Checkbox(name="Save Results CSV", value=False)
         self.save_json = pn.widgets.Checkbox(name="Save Results JSON", value=False)
         self.all_ellipse_sources = pn.widgets.Checkbox(
-            name="Save all sources within error ellipse", value=False
+            name="Save all sources within error ellipse",
+            value=False,
         )
         self.output_folder = pn.widgets.TextInput(name="Output Folder", value="./output")
 
@@ -1252,6 +1545,9 @@ class StandalonePhotometryTab:
         self.run_button = pn.widgets.Button(
             name="Run Standalone Photometry", button_type="primary", sizing_mode="stretch_width"
         )
+
+        # Error banner, shown only when a run fails
+        self.status_pane = pn.pane.Alert("", alert_type="danger", visible=False)
 
         # Results table
         self.table_view = pn.widgets.Tabulator(
@@ -1279,9 +1575,17 @@ class StandalonePhotometryTab:
             lambda save_checked: save_checked, self.save_csv.param.value
         )
 
+        self.tips_card = pn.Card(
+            pn.pane.Markdown(ui_help.tips_markdown("standalone")),
+            title="\U0001F4A1 Tips",
+            collapsed=True,
+            sizing_mode="stretch_width",
+        )
+
         # Layout
         self.layout = pn.Row(
             pn.Column(
+                self.tips_card,
                 "### Standalone Photometry",
                 pn.pane.Markdown(
                     "*Perform photometry at arbitrary coordinates without ephemeris*",
@@ -1293,7 +1597,12 @@ class StandalonePhotometryTab:
                 self.error_radius,
                 self.detection_threshold,
                 self.image_type,
+                self.run_aperture,
+                self.aperture_radii_input,
+                self.aperture_note,
                 self.cutout_provider,
+                self.cutout_size,
+                self.cutout_size_arcsec,
                 "### Output Options",
                 self.save_diag_plots,
                 self.save_fits,
@@ -1307,6 +1616,7 @@ class StandalonePhotometryTab:
             ),
             pn.Column(
                 "### Results",
+                self.status_pane,
                 self.table_view,
                 # self.download_button,
                 sizing_mode="stretch_width",
@@ -1356,6 +1666,192 @@ class StandalonePhotometryTab:
             return io.StringIO(self.results_df.to_csv(index=False))
         return io.StringIO("No results available")
 
+    def _show_error(self, message):
+        """
+        Log an error and surface it in the tab.
+
+        Parameters
+        ----------
+        message : str
+            The message to display in the tab's error banner.
+        """
+        root_logger.error(message)
+        self.status_pane.object = message
+        self.status_pane.visible = True
+
+    def _save_results(self, service, results, results_df):
+        """
+        Write the results to CSV and/or JSON, as selected in the output options.
+
+        Parameters
+        ----------
+        service : StandalonePhotometryService
+            The service used to produce the results, used here for JSON serialisation.
+        results : list of PhotometryResult
+            The measurements to serialise to JSON.
+        results_df : pandas.DataFrame
+            The measurements to write as CSV.
+        """
+        if not (self.save_csv.value or self.save_json.value):
+            return
+
+        os.makedirs(self.output_folder.value, exist_ok=True)
+
+        if self.save_csv.value:
+            csv_path = f"{self.output_folder.value}/standalone_results.csv"
+            results_df.to_csv(csv_path, index=False)
+            root_logger.info(f"Results saved to: {csv_path}")
+
+        if self.save_json.value:
+            json_path = f"{self.output_folder.value}/standalone_results.json"
+            service._results_to_json(results, json_path)
+            root_logger.info(f"Results saved to: {json_path}")
+
+    def _run_single(self, service):
+        """
+        Measure a single coordinate and display the result.
+
+        Parameters
+        ----------
+        service : StandalonePhotometryService
+            The configured photometry service.
+        """
+        from photometry_api import PhotometryRequest
+
+        request = PhotometryRequest(
+            visit_id=self.visit_id.value,
+            detector=self.detector.value,
+            band=self.band.value,
+            ra=self.ra.value,
+            dec=self.dec.value,
+            error_radius=self.error_radius.value,
+            detection_threshold=self.detection_threshold.value,
+            image_type=self.image_type.value,
+            aperture_radii=(self.aperture_radii_input.value if self.run_aperture.value else None),
+        )
+
+        result = service.measure_single(
+            request=request,
+            save_diag_plots=self.save_diag_plots.value,
+            save_fits=self.save_fits.value,
+            output_folder=self.output_folder.value,
+        )
+
+        results_df = service._results_to_dataframe(
+            [result], [request], include_all_ellipse_sources=self.all_ellipse_sources.value
+        )
+        self.results_df = results_df
+        self.table_view.value = results_df
+
+        self._save_results(service, [result], results_df)
+        root_logger.info("Single measurement complete")
+
+    def _run_batch_csv(self, service):
+        """
+        Run photometry for every row of the uploaded CSV.
+
+        Parameters
+        ----------
+        service : StandalonePhotometryService
+            The configured photometry service.
+        """
+        if self.csv_upload.value is None:
+            self._show_error("No CSV file uploaded")
+            return
+
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False, suffix=".csv") as f:
+            f.write(self.csv_upload.value)
+            temp_csv = f.name
+
+        try:
+            results_df = service.measure_from_csv(
+                csv_path=temp_csv,
+                save_diag_plots=self.save_diag_plots.value,
+                save_fits=self.save_fits.value,
+                output_folder=self.output_folder.value,
+                output_csv=(
+                    f"{self.output_folder.value}/standalone_results.csv" if self.save_csv.value else None
+                ),
+                output_json=(
+                    f"{self.output_folder.value}/standalone_results.json" if self.save_json.value else None
+                ),
+                all_ellipse_sources=self.all_ellipse_sources.value,
+                default_error_radius=self.error_radius.value,
+                default_detection_threshold=self.detection_threshold.value,
+                default_image_type=self.image_type.value,
+            )
+
+            self.results_df = results_df
+            self.table_view.value = results_df
+
+            root_logger.info(
+                f"Batch processing complete: {len(results_df)} measurements, "
+                f"{results_df['success'].sum()} successful"
+            )
+        finally:
+            os.unlink(temp_csv)
+
+    def _run_multi_in_image(self, service):
+        """
+        Measure several coordinates within the same image.
+
+        Parameters
+        ----------
+        service : StandalonePhotometryService
+            The configured photometry service.
+        """
+        from photometry_api import PhotometryRequest
+
+        coordinates = []
+        for line in self.coords_text.value.strip().split("\n"):
+            if line.strip() and not line.startswith("#"):
+                try:
+                    ra, dec = map(float, line.strip().split(","))
+                    coordinates.append((ra, dec))
+                except ValueError:
+                    root_logger.warning(f"Skipping invalid line: {line}")
+
+        if not coordinates:
+            self._show_error("No valid coordinates provided")
+            return
+
+        results_dict = service.measure_multi_targets_in_image(
+            visit_id=self.visit_id.value,
+            detector=self.detector.value,
+            band=self.band.value,
+            coordinates=coordinates,
+            error_radius=self.error_radius.value,
+            image_type=self.image_type.value,
+            aperture_radii=(self.aperture_radii_input.value if self.run_aperture.value else None),
+            save_diag_plots=self.save_diag_plots.value,
+            save_fits=self.save_fits.value,
+            output_folder=self.output_folder.value,
+        )
+
+        results_list = list(results_dict.values())
+        requests_list = [
+            PhotometryRequest(
+                visit_id=self.visit_id.value,
+                detector=self.detector.value,
+                band=self.band.value,
+                ra=ra,
+                dec=dec,
+                target_name=name,
+                aperture_radii=(self.aperture_radii_input.value if self.run_aperture.value else None),
+            )
+            for (ra, dec), name in zip(coordinates, results_dict.keys())
+        ]
+        results_df = service._results_to_dataframe(
+            results_list, requests_list, include_all_ellipse_sources=self.all_ellipse_sources.value
+        )
+        self.results_df = results_df
+        self.table_view.value = results_df
+
+        self._save_results(service, results_list, results_df)
+        root_logger.info(f"Multi-target processing complete: {len(results_df)} measurements")
+
     async def run_standalone_photometry(self, event):
         """
         Execute standalone photometry based on selected input mode.
@@ -1363,176 +1859,38 @@ class StandalonePhotometryTab:
         Parameters
         ----------
         event : pn.viewable.singles.Button
-            The button click event.
+            The button click event (unused, but required by Panel's on_click signature).
         """
-        from photometry_api import PhotometryRequest, StandalonePhotometryService
-
         await gen.sleep(0.01)
+        self.status_pane.visible = False
         root_logger.info("Starting standalone photometry...")
 
+        runners = {
+            "Single Coordinate": self._run_single,
+            "Batch CSV": self._run_batch_csv,
+            "Multiple in Image": self._run_multi_in_image,
+        }
+
         try:
-            cutout_prov = "butler" if "Butler" in self.cutout_provider.value else "soda"
+            # Imported here rather than at module scope: the LSST stack is only
+            # available on the RSP, and an ImportError must reach the user.
+            from photometry_api import StandalonePhotometryService
+
             service = StandalonePhotometryService(
                 output_folder=self.output_folder.value,
                 detection_threshold=self.detection_threshold.value,
-                cutout_provider=cutout_prov,
+                cutout_provider="butler" if "Butler" in self.cutout_provider.value else "soda",
+                cutout_size=self.cutout_size.value,
+                cutout_size_arcsec=(
+                    self.cutout_size_arcsec.value if "SODA" in self.cutout_provider.value else None
+                ),
             )
+            runners[self.input_mode.value](service)
 
-            mode = self.input_mode.value
-
-            if mode == "Single Coordinate":
-                # Single coordinate mode
-                request = PhotometryRequest(
-                    visit_id=self.visit_id.value,
-                    detector=self.detector.value,
-                    band=self.band.value,
-                    ra=self.ra.value,
-                    dec=self.dec.value,
-                    error_radius=self.error_radius.value,
-                    detection_threshold=self.detection_threshold.value,
-                    image_type=self.image_type.value,
-                )
-
-                result = service.measure_single(
-                    request=request,
-                    save_diag_plots=self.save_diag_plots.value,
-                    save_fits=self.save_fits.value,
-                    output_folder=self.output_folder.value,
-                )
-
-                # Convert to DataFrame
-                results_df = service._results_to_dataframe(
-                    [result], [request], include_all_ellipse_sources=self.all_ellipse_sources.value
-                )
-                self.results_df = results_df
-                self.table_view.value = results_df
-
-                # Save CSV if requested
-                if self.save_csv.value:
-                    csv_path = f"{self.output_folder.value}/standalone_results.csv"
-                    os.makedirs(self.output_folder.value, exist_ok=True)
-                    results_df.to_csv(csv_path, index=False)
-                    root_logger.info(f"Results saved to: {csv_path}")
-
-                # Save JSON if requested
-                if self.save_json.value:
-                    json_path = f"{self.output_folder.value}/standalone_results.json"
-                    os.makedirs(self.output_folder.value, exist_ok=True)
-                    service._results_to_json([result], json_path)
-                    root_logger.info(f"Results saved to: {json_path}")
-
-                root_logger.info("Single measurement complete")
-
-            elif mode == "Batch CSV":
-                # CSV batch mode
-                if self.csv_upload.value is None:
-                    root_logger.error("No CSV file uploaded")
-                    return
-
-                # Save uploaded CSV temporarily
-                import tempfile
-
-                with tempfile.NamedTemporaryFile(mode="wb", delete=False, suffix=".csv") as f:
-                    f.write(self.csv_upload.value)
-                    temp_csv = f.name
-
-                try:
-                    results_df = service.measure_from_csv(
-                        csv_path=temp_csv,
-                        save_diag_plots=self.save_diag_plots.value,
-                        save_fits=self.save_fits.value,
-                        output_folder=self.output_folder.value,
-                        output_csv=(
-                            f"{self.output_folder.value}/standalone_results.csv"
-                            if self.save_csv.value
-                            else None
-                        ),
-                        output_json=(
-                            f"{self.output_folder.value}/standalone_results.json"
-                            if self.save_json.value
-                            else None
-                        ),
-                        all_ellipse_sources=self.all_ellipse_sources.value,
-                        default_error_radius=self.error_radius.value,
-                        default_detection_threshold=self.detection_threshold.value,
-                        default_image_type=self.image_type.value,
-                    )
-
-                    self.results_df = results_df
-                    self.table_view.value = results_df
-
-                    root_logger.info(
-                        f"Batch processing complete: {len(results_df)} measurements, "
-                        f"{results_df['success'].sum()} successful"
-                    )
-                finally:
-                    os.unlink(temp_csv)
-
-            elif mode == "Multiple in Image":
-                # Multiple coordinates in same image
-                coords_lines = self.coords_text.value.strip().split("\n")
-                coordinates = []
-                for line in coords_lines:
-                    if line.strip() and not line.startswith("#"):
-                        try:
-                            ra, dec = map(float, line.strip().split(","))
-                            coordinates.append((ra, dec))
-                        except ValueError:
-                            root_logger.warning(f"Skipping invalid line: {line}")
-
-                if not coordinates:
-                    root_logger.error("No valid coordinates provided")
-                    return
-
-                results_dict = service.measure_multi_targets_in_image(
-                    visit_id=self.visit_id.value,
-                    detector=self.detector.value,
-                    band=self.band.value,
-                    coordinates=coordinates,
-                    error_radius=self.error_radius.value,
-                    image_type=self.image_type.value,
-                    save_diag_plots=self.save_diag_plots.value,
-                    save_fits=self.save_fits.value,
-                    output_folder=self.output_folder.value,
-                )
-
-                # Convert to DataFrame
-                results_list = list(results_dict.values())
-                requests_list = [
-                    PhotometryRequest(
-                        visit_id=self.visit_id.value,
-                        detector=self.detector.value,
-                        band=self.band.value,
-                        ra=ra,
-                        dec=dec,
-                        target_name=name,
-                    )
-                    for (ra, dec), name in zip(coordinates, results_dict.keys())
-                ]
-                results_df = service._results_to_dataframe(
-                    results_list, requests_list, include_all_ellipse_sources=self.all_ellipse_sources.value
-                )
-                self.results_df = results_df
-                self.table_view.value = results_df
-
-                # Save CSV if requested
-                if self.save_csv.value:
-                    csv_path = f"{self.output_folder.value}/standalone_results.csv"
-                    os.makedirs(self.output_folder.value, exist_ok=True)
-                    results_df.to_csv(csv_path, index=False)
-                    root_logger.info(f"Results saved to: {csv_path}")
-
-                # Save JSON if requested
-                if self.save_json.value:
-                    json_path = f"{self.output_folder.value}/standalone_results.json"
-                    os.makedirs(self.output_folder.value, exist_ok=True)
-                    service._results_to_json(results_list, json_path)
-                    root_logger.info(f"Results saved to: {json_path}")
-
-                root_logger.info(f"Multi-target processing complete: {len(results_df)} measurements")
-
+        except ImportError as e:
+            self._show_error(f"LSST stack unavailable - standalone photometry needs the RSP environment: {e}")
         except Exception as e:
-            root_logger.error(f"Standalone photometry failed: {str(e)}")
+            self._show_error(f"Standalone photometry failed: {str(e)}")
             import traceback
 
             root_logger.error(traceback.format_exc())
@@ -1560,11 +1918,12 @@ documentation_tab = pn.pane.Markdown(
 # Create the application
 controller = ObjectDetectionController()
 data_loader = DataLoader()
-ephemeris_tab = EphemerisTab(controller).layout
-image_tab = ImageTab(controller).layout
+ui_state = UIState()
+ephemeris_tab = EphemerisTab(controller, ui_state).layout
+image_tab = ImageTab(controller, ui_state).layout
 photometry_tab = PhotometryTab(controller).layout
 standalone_tab = StandalonePhotometryTab(controller).layout
-complete_run_tab = CompleteRunTab(controller).layout
+complete_run_tab = CompleteRunTab(controller, ui_state).layout
 
 
 # Terminal test and clear

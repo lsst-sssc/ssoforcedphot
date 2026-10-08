@@ -341,6 +341,7 @@ class ImPhotController:
         save_csv: bool = False,
         refine_ephemeris: bool = False,
         cutout_size_arcsec: Optional[float] = None,
+        aperture_radii: Optional[list[float]] = None,
     ) -> None:
         """
         Performs photometry on all retrieved images.
@@ -390,6 +391,9 @@ class ImPhotController:
         cutout_size_arcsec : float, optional
             Cutout radius in arcseconds for the SODA cutout provider.
             Defaults to None (auto-estimated from cutout_size pixels).
+        aperture_radii : list[float], optional
+            Aperture radii in arcseconds. If None, only PSF photometry is performed.
+            Defaults to None.
 
         Raises
         ------
@@ -428,6 +432,7 @@ class ImPhotController:
                 save_json=save_json,
                 save_csv=save_csv,
                 cutout_size_arcsec=cutout_size_arcsec,
+                aperture_radii=aperture_radii,
             )
             # Skip results where target photometry is None (edge proximity)
             if result.forced_phot_on_target is not None:
