@@ -87,7 +87,7 @@ def create_diagnostic_plot(
         ellipse_ra, ellipse_dec = error_ellipse_obj.get_ellipse_points()
         ellipse_pixel_x = []
         ellipse_pixel_y = []
-        for ra, dec in zip(ellipse_ra, ellipse_dec):
+        for ra, dec in zip(ellipse_ra, ellipse_dec, strict=False):
             sky_point = geom.SpherePoint(ra * geom.degrees, dec * geom.degrees)
             pixel_pos = wcs.skyToPixel(sky_point)
             display_x = pixel_pos.getX() - xy0.getX()

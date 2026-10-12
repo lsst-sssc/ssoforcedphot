@@ -517,7 +517,7 @@ class PhotometryService:
         target_coord = geom.SpherePoint(np.radians(ra_coord), np.radians(dec_coord), geom.radians)
         separations = [
             target_coord.separation(geom.SpherePoint(ra, dec, geom.radians)).asArcseconds()
-            for ra, dec in zip(table["coord_ra"], table["coord_dec"])
+            for ra, dec in zip(table["coord_ra"], table["coord_dec"], strict=False)
         ]
 
         # Add separation column to table
@@ -714,7 +714,7 @@ class PhotometryService:
 
         # Add sources and perform measurements
         wcs = target_img.getWcs()
-        for ra, dec in zip(ra_list, dec_list):
+        for ra, dec in zip(ra_list, dec_list, strict=False):
             source_rec = forced_source.addNew()
             coord = geom.SpherePoint(np.radians(ra), np.radians(dec), geom.radians)
             source_rec.setCoord(coord)
@@ -874,7 +874,7 @@ class PhotometryService:
             return None
 
         results = []
-        for r_arcsec, r_px in zip(aperture_radii, aperture_radii_px):
+        for r_arcsec, r_px in zip(aperture_radii, aperture_radii_px, strict=False):
             col_flux = f"base_CircularApertureFlux_{r_px:.1f}_instFlux".replace(".", "_")
             col_err = f"base_CircularApertureFlux_{r_px:.1f}_instFluxErr".replace(".", "_")
             col_flag = f"base_CircularApertureFlux_{r_px:.1f}_flag".replace(".", "_")

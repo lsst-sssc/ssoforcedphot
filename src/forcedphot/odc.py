@@ -704,7 +704,7 @@ class ObjectDetectionController:
                     dec=dec,
                     target_name=name,
                 )
-                for (ra, dec), name in zip(coords, results.keys())
+                for (ra, dec), name in zip(coords, results.keys(), strict=False)
             ]
 
             # Save CSV if requested
