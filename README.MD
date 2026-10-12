@@ -76,7 +76,7 @@ For more information about the underlying photometry methods and pipeline:
 
 ## Installation Requirements
 
-- Python 3.9 or higher
+- Python 3.11 or higher
 - Git
 - Access to Rubin Science Platform (for full functionality)
 
