@@ -434,7 +434,7 @@ class ErrorEllipse:
         ra_deg, dec_deg = self.get_ellipse_points(n_points)
 
         pixel_coords = []
-        for ra, dec in zip(ra_deg, dec_deg, strict=False):
+        for ra, dec in zip(ra_deg, dec_deg, strict=True):
             coord = geom.SpherePoint(np.radians(ra), np.radians(dec), geom.radians)
             pixel_coord = wcs.skyToPixel(coord)
             pixel_coords.append((pixel_coord.getX() - x_offset, pixel_coord.getY() - y_offset))
