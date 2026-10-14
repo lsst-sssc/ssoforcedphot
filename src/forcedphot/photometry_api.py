@@ -523,7 +523,7 @@ class StandalonePhotometryService:
 
         # Create a request for each coordinate/name pair
         requests = []
-        for (ra, dec), name in zip(coordinates, target_names):
+        for (ra, dec), name in zip(coordinates, target_names, strict=True):
             requests.append(
                 PhotometryRequest(
                     visit_id=visit_id,
@@ -551,7 +551,7 @@ class StandalonePhotometryService:
             results_list.append(result)
 
         # Return as dictionary
-        return {name: result for name, result in zip(target_names, results_list)}
+        return {name: result for name, result in zip(target_names, results_list, strict=True)}
 
     def measure_at_coordinate(
         self,
@@ -868,7 +868,7 @@ class StandalonePhotometryService:
             Flattened results table
         """
         rows = []
-        for result, request in zip(results, requests):
+        for result, request in zip(results, requests, strict=True):
             if result is None or result.forced_phot_on_target is None:
                 # Failed measurement
                 row = {

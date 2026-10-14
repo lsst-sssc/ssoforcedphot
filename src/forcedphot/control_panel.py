@@ -1841,7 +1841,7 @@ class StandalonePhotometryTab:
                 target_name=name,
                 aperture_radii=(self.aperture_radii_input.value if self.run_aperture.value else None),
             )
-            for (ra, dec), name in zip(coordinates, results_dict.keys())
+            for (ra, dec), name in zip(coordinates, results_dict.keys(), strict=True)
         ]
         results_df = service._results_to_dataframe(
             results_list, requests_list, include_all_ellipse_sources=self.all_ellipse_sources.value
