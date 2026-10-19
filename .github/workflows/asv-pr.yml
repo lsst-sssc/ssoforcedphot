@@ -68,6 +68,8 @@ jobs:
         job_name: ${{ github.job }}
     - name: Create ASV machine config file
       run: asv machine --machine gh-runner --yes
+    - name: Create ASV benchmarks file
+      run: asv run --bench just-discover
     - name: Save comparison of PR against main branch
       run: |
         git remote add upstream https://github.com/${{ github.repository }}.git
