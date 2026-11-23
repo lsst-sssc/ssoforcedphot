@@ -413,6 +413,20 @@ python odc.py --service-selection all \
               --output-folder ./output
 ```
 
+## Quick-look Scripts
+Two scripts in `src/forcedphot/` post-process the photometry results JSON (written with `--save-json`). After `pip install -e .` they are also available as console commands.
+
+- **`plot_lightcurve.py`** (`forcedphot-lightcurve`): plots a light curve (AB magnitude or flux vs. MJD) from one or more result JSON files, one colour and marker per band. Runs anywhere; needs only matplotlib.
+  ```bash
+  python src/forcedphot/plot_lightcurve.py output/2024_TN57_photometry_results.json --separate
+  ```
+- **`compare_rubin.py`** (`forcedphot-compare-rubin`): checks the app's photometry against the Rubin pipeline. For each visit it finds the closest DiaSource in the same visit via TAP and compares magnitudes against `scienceFlux` (and the difference-image `psfFlux`). Writes a per-visit CSV and a comparison plot. Requires the RSP (TAP access).
+  ```bash
+  python src/forcedphot/compare_rubin.py output/2024_TN57_photometry_results.json
+  ```
+
+Both accept `--source nearest|forced` to choose between the nearest detection in the error ellipse (default) and forced photometry at the ephemeris position. See [scripts_guide.md](scripts_guide.md) for all options and how to read the output.
+
 ## Panel application
 The package provides a Panel-based web interface for interactive use:
 - Open `control_panel.py` in your RSP notebook environment.
