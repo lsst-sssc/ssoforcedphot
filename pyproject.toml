@@ -14,7 +14,7 @@ classifiers = [
     "Programming Language :: Python",
 ]
 dynamic = ["version"]
-requires-python = ">=3.11"
+requires-python = ">=3.9"
 dependencies = [
     "astropy",
     "astroquery",
@@ -22,13 +22,17 @@ dependencies = [
     "numpy"
 ]
 
+[project.scripts]
+forcedphot-lightcurve = "forcedphot.plot_lightcurve:main"
+forcedphot-compare-rubin = "forcedphot.compare_rubin:main"
+
 [project.urls]
 "Source Code" = "https://github.com/lsst-sssc/ssoforcedphot"
 
 # On a mac, install optional dependencies with `pip install '.[dev]'` (include the single quotes)
 [project.optional-dependencies]
 dev = [
-    "asv==0.6.6", # Used to compute performance benchmarks
+    "asv==0.6.4", # Used to compute performance benchmarks
     "jupyter", # Clears output from Jupyter notebooks
     "pre-commit", # Used to run checks before finalizing a git commit
     "pytest",
@@ -38,8 +42,8 @@ dev = [
 
 [build-system]
 requires = [
-    "setuptools>=84.2.1", # Used to build and package the Python project
-    "setuptools_scm>=10.3.4", # Gets release version from git. Makes it available programmatically
+    "setuptools>=62", # Used to build and package the Python project
+    "setuptools_scm>=6.2", # Gets release version from git. Makes it available programmatically
 ]
 build-backend = "setuptools.build_meta"
 
@@ -56,7 +60,7 @@ pythonpath = [
 
 [tool.black]
 line-length = 110
-target-version = ["py311"]
+target-version = ["py39"]
 
 [tool.isort]
 profile = "black"
@@ -64,7 +68,7 @@ line_length = 110
 
 [tool.ruff]
 line-length = 110
-target-version = "py311"
+target-version = "py39"
 
 [tool.ruff.lint]
 select = [
